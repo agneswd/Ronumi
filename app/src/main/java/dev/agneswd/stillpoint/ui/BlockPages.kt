@@ -55,13 +55,13 @@ import dev.agneswd.stillpoint.ui.design.appear
 import kotlinx.coroutines.launch
 
 /** The short-video apps that Stillpoint can close the feed of. */
-data class ShortsApp(val pkg: String, val name: String, val get: (Settings) -> Boolean, val set: (Settings, Boolean) -> Settings)
+data class ShortsApp(val pkg: String, val name: String, val logo: Int, val get: (Settings) -> Boolean, val set: (Settings, Boolean) -> Settings)
 
 val shortsApps = listOf(
-    ShortsApp("com.google.android.youtube", "YouTube Shorts", { it.blockYoutubeShorts }, { s, v -> s.copy(blockYoutubeShorts = v) }),
-    ShortsApp("com.instagram.android", "Instagram Reels", { it.blockInstagramReels }, { s, v -> s.copy(blockInstagramReels = v) }),
-    ShortsApp("com.snapchat.android", "Snapchat Spotlight", { it.blockSnapchatSpotlight }, { s, v -> s.copy(blockSnapchatSpotlight = v) }),
-    ShortsApp("com.facebook.katana", "Facebook Reels", { it.blockFacebookReels }, { s, v -> s.copy(blockFacebookReels = v) }),
+    ShortsApp("com.google.android.youtube", "YouTube Shorts", R.drawable.logo_youtube, { it.blockYoutubeShorts }, { s, v -> s.copy(blockYoutubeShorts = v) }),
+    ShortsApp("com.instagram.android", "Instagram Reels", R.drawable.logo_instagram, { it.blockInstagramReels }, { s, v -> s.copy(blockInstagramReels = v) }),
+    ShortsApp("com.snapchat.android", "Snapchat Spotlight", R.drawable.logo_snapchat, { it.blockSnapchatSpotlight }, { s, v -> s.copy(blockSnapchatSpotlight = v) }),
+    ShortsApp("com.facebook.katana", "Facebook Reels", R.drawable.logo_facebook, { it.blockFacebookReels }, { s, v -> s.copy(blockFacebookReels = v) }),
 )
 
 /**
@@ -109,7 +109,7 @@ fun ShortVideosPage(onClose: () -> Unit) {
     BlockPage("Short videos", "I close the endless feed. The rest of the app keeps working.", Mood.GUARD, onClose) { s, update ->
         Group(Modifier.appear(0)) {
             shortsApps.forEach { item ->
-                SwitchRow(item.name, null, item.get(s), leading = { AppIcon(item.pkg, name = item.name) }) { on -> update { item.set(it, on) } }
+                SwitchRow(item.name, null, item.get(s), leading = { AppIcon(item.pkg, name = item.name, logo = item.logo) }) { on -> update { item.set(it, on) } }
             }
         }
         Group(Modifier.padding(top = 12.dp).appear(60)) {

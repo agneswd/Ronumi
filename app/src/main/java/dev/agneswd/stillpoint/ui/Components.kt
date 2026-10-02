@@ -124,13 +124,18 @@ fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, leading
     }
 }
 
-/** The app's launcher icon. Apps that are not installed show the first letter of [name] or of their label. */
+/**
+ * The app's launcher icon. Apps that are not installed show [logo] when there is one,
+ * else the first letter of [name] or of their label.
+ */
 @Composable
-fun AppIcon(packageName: String, size: Dp = 40.dp, name: String? = null) {
+fun AppIcon(packageName: String, size: Dp = 40.dp, name: String? = null, logo: Int? = null) {
     val context = LocalContext.current
     val bitmap = remember(packageName) { context.app.catalog.icon(packageName) }
     if (bitmap != null) {
         Image(bitmap.asImageBitmap(), null, Modifier.size(size).clip(RoundedCornerShape(size / 4)))
+    } else if (logo != null) {
+        Image(painterResource(logo), null, Modifier.size(size))
     } else {
         val label = name ?: remember(packageName) { context.app.catalog.label(packageName) }
         Box(Modifier.size(size).clip(RoundedCornerShape(size / 4)).background(Sp.colors.brandSoft), contentAlignment = Alignment.Center) {
