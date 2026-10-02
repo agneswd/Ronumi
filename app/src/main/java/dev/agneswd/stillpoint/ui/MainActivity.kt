@@ -14,6 +14,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -229,33 +231,50 @@ private fun App(navigator: Navigator) {
             s == null -> Unit
             !s.onboarded -> Onboarding(onDone = { navigator.tab = Tab.HOME })
             celebrateId != null -> Celebration(celebrateId, onDone = Celebrations::consume)
-            running != null && !navigator.focusMinimized && route == null -> FocusSession(running, onMinimize = { navigator.focusMinimized = true })
             else -> {
-                BackHandler(enabled = route != null) { navigator.pop() }
+                // Keep the outgoing route until the focus screen covers it.
+                val fullFocus = running?.takeIf { !navigator.focusMinimized && route == null }
                 AnimatedContent(
-                    route,
-                    transitionSpec = { (slideInVertically(tween(260)) { it / 8 } + fadeIn(tween(260))) togetherWith fadeOut(tween(160)) },
-                    label = "route",
-                ) { current ->
-                    when (current) {
-                        is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
-                        is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
-                        Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
-                        Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
-                        Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
-                        Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
-                        Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
-                        Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
-                        Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
-                        null -> Tabs(navigator, game)
+                    targetState = fullFocus to route,
+                    contentKey = { (session, _) -> session != null },
+                    transitionSpec = {
+                        (fadeIn(tween(420)) + scaleIn(
+                            tween(420, easing = FastOutSlowInEasing), initialScale = 0.985f,
+                        )) togetherWith fadeOut(tween(260))
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    label = "focusScreen",
+                ) { (session, visibleRoute) ->
+                    if (session != null) {
+                        FocusSession(session, onMinimize = { navigator.focusMinimized = true })
+                    } else {
+                        BackHandler(enabled = visibleRoute != null) { navigator.pop() }
+                        AnimatedContent(
+                            visibleRoute,
+                            transitionSpec = { (slideInVertically(tween(260)) { it / 8 } + fadeIn(tween(260))) togetherWith fadeOut(tween(160)) },
+                            label = "route",
+                        ) { current ->
+                            when (current) {
+                                is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
+                                is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
+                                Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
+                                Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
+                                Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
+                                Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
+                                Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
+                                Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
+                                Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
+                                null -> Tabs(navigator, game)
+                            }
+                        }
+                        if (running != null && visibleRoute == null) {
+                            FocusChip(
+                                running,
+                                onOpen = { navigator.focusMinimized = false },
+                                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
+                            )
+                        }
                     }
-                }
-                if (running != null && route == null) {
-                    FocusChip(
-                        running,
-                        onOpen = { navigator.focusMinimized = false },
-                        modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
-                    )
                 }
             }
         }
