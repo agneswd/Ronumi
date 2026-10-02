@@ -45,7 +45,7 @@ class StillpointApp : Application() {
             }
         }
         scope.launch {
-            combine(dao.settings(), dao.schedules(), dao.activeFocusFlow()) { _, _, _ -> Unit }.collect {
+            combine(dao.settings().map { it.notificationDeliveryTimes }.distinctUntilChanged(), dao.schedules(), dao.activeFocusFlow()) { _, _, _ -> Unit }.collect {
                 Plans.refresh(this@StillpointApp)
             }
         }
