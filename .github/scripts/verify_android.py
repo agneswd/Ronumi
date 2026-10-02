@@ -15,6 +15,7 @@ except SystemExit as result:
         print(e2e.adb("logcat", "-d", "-b", "crash", check=False), flush=True)
         print("Foreground window:", flush=True)
         print(e2e.front(), flush=True)
+        print("Accessibility state:", e2e.sh("dumpsys accessibility"), flush=True)
         print("Device time:", e2e.sh("date"), flush=True)
         alarm_lines = e2e.sh("dumpsys alarm").splitlines()
         selected = set()

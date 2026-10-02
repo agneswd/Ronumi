@@ -1,11 +1,13 @@
 package dev.agneswd.stillpoint.e2e
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Instrumentation
 import android.app.UiAutomation
 import android.os.Bundle
 import android.graphics.Rect
 import android.util.Xml
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import java.io.StringWriter
 
 /** Reads the actual accessibility tree without requiring animated screens to become idle. */
@@ -35,8 +37,17 @@ class E2eDriver : Instrumentation() {
         xml.startTag(null, "hierarchy")
         // Reading the screen must not stop the guard that the test is checking.
         val automation = getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
-        val root = (1..10).firstNotNullOfOrNull {
-            automation.rootInActiveWindow ?: run { Thread.sleep(100); null }
+        automation.serviceInfo = automation.serviceInfo.apply {
+            flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+                AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+        }
+        val root = (1..20).firstNotNullOfOrNull {
+            // After a process restart, the active root can lag behind the focused application window.
+            automation.rootInActiveWindow ?: automation.windows
+                .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && (it.isFocused || it.isActive) }
+                .sortedByDescending { it.isFocused }
+                .firstNotNullOfOrNull { it.root }
+                ?: run { Thread.sleep(100); null }
         }
         fun node(info: AccessibilityNodeInfo) {
             val bounds = Rect().also(info::getBoundsInScreen)
