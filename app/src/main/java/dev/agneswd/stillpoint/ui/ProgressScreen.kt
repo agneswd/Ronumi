@@ -66,6 +66,7 @@ import dev.agneswd.stillpoint.ui.design.ChunkyCard
 import dev.agneswd.stillpoint.ui.design.ChunkyProgress
 import dev.agneswd.stillpoint.ui.design.Flame
 import dev.agneswd.stillpoint.ui.design.Medal
+import dev.agneswd.stillpoint.ui.design.companionMood
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Pebble
 import dev.agneswd.stillpoint.ui.design.ScreenTitle
@@ -118,7 +119,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
 
         // Level and XP.
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp).appear(0), verticalAlignment = Alignment.CenterVertically) {
-            Pebble(Mood.PROUD, size = 100.dp)
+            Pebble(game.companionMood(), size = 100.dp)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text("Level ${g.level.number}", style = MaterialTheme.typography.headlineMedium, color = Sp.colors.brand)

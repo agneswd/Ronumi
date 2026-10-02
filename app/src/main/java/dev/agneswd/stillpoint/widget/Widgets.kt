@@ -39,7 +39,7 @@ object Widgets {
             // Session history also determines which Pebble items are unlocked.
             val sessions = app.dao.allSessions()
             val game = gameState(sessions, settings)
-            val style = dev.agneswd.stillpoint.game.PebbleStyles.resolve(settings.pebbleItems, game.level.number)
+            val style = dev.agneswd.stillpoint.game.PebbleStyles.resolve(settings.pebbleItems, game.level.number, settings.petTapCount)
 
             ids(UsageWidget::class.java).forEach { id ->
                 val history = app.dao.allUsageDays().associate { it.day to it.perApp.values.sum() }

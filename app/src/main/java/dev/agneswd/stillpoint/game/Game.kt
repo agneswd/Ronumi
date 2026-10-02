@@ -45,6 +45,7 @@ data class GameState(
     val week: List<Pair<LocalDate, Int>>,
     val totalMinutes: Int,
     val sessions: Int,
+    val disposition: PebbleDisposition = PebbleDisposition(),
 )
 
 fun day(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
@@ -91,6 +92,7 @@ fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate
         week = (6 downTo 0).map { today.minusDays(it.toLong()) }.map { it to (minutesByDay[it] ?: 0) },
         totalMinutes = total,
         sessions = sessions.size,
+        disposition = pebbleDisposition(sessions, settings, today),
     )
 }
 

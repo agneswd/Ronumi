@@ -58,7 +58,7 @@ import dev.agneswd.stillpoint.ui.design.ChunkyButton
 import dev.agneswd.stillpoint.ui.design.ChunkyCard
 import dev.agneswd.stillpoint.ui.design.ChunkyProgress
 import dev.agneswd.stillpoint.ui.design.DayPart
-import dev.agneswd.stillpoint.ui.design.DayPartIcon
+import dev.agneswd.stillpoint.ui.design.ScheduleIcon
 import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Sp
@@ -98,7 +98,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
             PebbleSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60), pebbleSize = 96.dp)
             Text(
                 "Pebble wardrobe",
-                Modifier.align(Alignment.End).clickable { navigator.push(Route.Wardrobe) }
+                Modifier.align(Alignment.End).clip(RoundedCornerShape(12.dp)).clickable { navigator.push(Route.Wardrobe) }
                     .padding(horizontal = ScreenPadding, vertical = 12.dp),
                 style = MaterialTheme.typography.labelLarge, color = Sp.colors.brand,
             )
@@ -112,7 +112,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
                 SectionTitle("Up next")
                 ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(300), onClick = { navigator.tab = Tab.PLANNER }, contentPadding = 12.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        DayPartIcon(dayPartAt(next.first.startMinute), size = 48.dp)
+                        ScheduleIcon(next.first.icon, next.first.startMinute, size = 48.dp)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(next.first.name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
@@ -147,14 +147,17 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
 /** Pebble's mood and line for the home screen. It reacts to the streak, the goal and the time. */
 private fun greeting(game: GameState?): Pair<Mood, String> {
     val hour = LocalTime.now().hour
+    val feeling = game?.disposition?.feeling
     return when {
         game == null -> Mood.IDLE to "Hi there!"
-        game.todayMinutes >= game.goalMinutes -> Mood.CELEBRATE to "You hit today's goal! I'm so proud of you."
-        !game.streakSafeToday && game.streak > 0 && hour >= 18 -> Mood.SAD to "Your ${game.streak} day streak ends tonight. Just 10 minutes saves it!"
-        !game.streakSafeToday && game.streak > 0 -> Mood.HAPPY to "Day ${game.streak + 1} is waiting. Let's keep the flame going!"
-        game.todayMinutes > 0 -> Mood.HAPPY to "Nice work so far. ${formatMinutes(game.goalMinutes - game.todayMinutes)} to go!"
-        hour < 11 -> Mood.WAVE to "Good morning! A short focus now makes the whole day easier."
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.CELEBRATE -> Mood.CELEBRATE to "You hit today's goal! I'm so proud of you."
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.PROUD -> Mood.PROUD to "Look at us keeping a rhythm. Nice work!"
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.HAPPY -> Mood.HAPPY to "Nice work so far. ${formatMinutes(game.goalMinutes - game.todayMinutes)} to go!"
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.DOWN -> Mood.SAD to "I've missed our focus time. One small session is a fresh start."
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.QUIET -> Mood.THINK to "Let's ease back in. A few focused minutes will help."
         hour >= 22 -> Mood.SLEEPY to "It's late. Put the phone down and rest. I will too."
+        game.streak > 0 -> Mood.IDLE to "Our ${game.streak} day streak is still going. Ready for a little focus?"
+        hour < 11 -> Mood.WAVE to "Good morning! A short focus now makes the whole day easier."
         else -> Mood.IDLE to "Ready when you are. One session at a time."
     }
 }

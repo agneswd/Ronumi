@@ -45,6 +45,7 @@ import dev.agneswd.stillpoint.game.PebbleSlot
 import dev.agneswd.stillpoint.game.PebbleStyles
 import dev.agneswd.stillpoint.game.gameState
 import dev.agneswd.stillpoint.ui.design.ChunkyButton
+import dev.agneswd.stillpoint.ui.design.companionMood
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Pebble
 import dev.agneswd.stillpoint.ui.design.Sp
@@ -60,19 +61,20 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
     val app = context.app
     val settings by app.dao.settings().collectAsState(null)
     val saved = settings ?: return
-    val worn = PebbleStyles.resolve(saved.pebbleItems, game.level.number)
+    val catalog = PebbleStyles.visibleItems(saved.petTapCount)
+    val worn = PebbleStyles.resolve(saved.pebbleItems, game.level.number, saved.petTapCount)
     var slot by rememberSaveable { mutableStateOf(PebbleSlot.OUTFIT) }
-    var previewId by rememberSaveable(slot, worn) {
-        mutableStateOf(PebbleStyles.items.firstOrNull { it.slot == slot && it.id in worn }?.id)
+    var previewId by rememberSaveable(slot, worn, catalog.size) {
+        mutableStateOf(catalog.firstOrNull { it.slot == slot && it.id in worn }?.id)
     }
     var saving by androidx.compose.runtime.remember { mutableStateOf(false) }
-    val selected = PebbleStyles.items.firstOrNull { it.id == previewId }
-    val slotIds = PebbleStyles.items.filter { it.slot == slot }.mapTo(mutableSetOf()) { it.id }
+    val selected = catalog.firstOrNull { it.id == previewId }
+    val slotIds = catalog.filter { it.slot == slot }.mapTo(mutableSetOf()) { it.id }
     val preview = (worn - slotIds) + listOfNotNull(previewId)
-    val available = selected == null || selected.level <= game.level.number
+    val available = selected == null || PebbleStyles.isUnlocked(selected, game.level.number, saved.petTapCount)
     val equipped = preview == worn
-    val unlocked = PebbleStyles.items.count { it.level <= game.level.number }
-    val nextLevel = PebbleStyles.items.filter { it.level > game.level.number }.minOfOrNull { it.level }
+    val unlocked = catalog.count { PebbleStyles.isUnlocked(it, game.level.number, saved.petTapCount) }
+    val nextLevel = catalog.filter { it.level > game.level.number }.minOfOrNull { it.level }
 
     fun wear(reset: Boolean = false) {
         if (saving) return
@@ -85,10 +87,10 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                 app.database.withTransaction {
                     val fresh = app.dao.currentSettings()
                     val level = gameState(app.dao.allSessions(), fresh).level.number
-                    if (!reset && requested != null && requested.level > level) {
-                        "This item unlocks at level ${requested.level}."
+                    if (!reset && requested != null && !PebbleStyles.isUnlocked(requested, level, fresh.petTapCount)) {
+                        if (requested.minimumTaps > fresh.petTapCount) "This item is still hidden." else "This item unlocks at level ${requested.level}."
                     } else {
-                        val current = PebbleStyles.resolve(fresh.pebbleItems, level)
+                        val current = PebbleStyles.resolve(fresh.pebbleItems, level, fresh.petTapCount)
                         val remove = PebbleStyles.items.filter { it.slot == requestedSlot }.map { it.id }.toSet()
                         val updated = if (reset) emptySet() else (current - remove) + listOfNotNull(requested?.id)
                         app.dao.updateSettings { it.copy(pebbleItems = updated) }
@@ -113,7 +115,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Pebble(Mood.HAPPY, size = 126.dp, style = preview)
+                    Pebble(game.companionMood(), size = 126.dp, style = preview)
                     Spacer(Modifier.width(16.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(selected?.name ?: originalLabel(slot), style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
@@ -142,7 +144,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("Level ${game.level.number}", Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                        Text("$unlocked / ${PebbleStyles.items.size} unlocked",
+                        Text("$unlocked / ${catalog.size} unlocked",
                             style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
                     }
                     if (nextLevel != null) {
@@ -179,12 +181,13 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     scope.launch { listState.animateScrollToItem(0) }
                 }
             }
-            items(PebbleStyles.items.filter { it.slot == slot }, key = { it.id }) { item ->
+            items(catalog.filter { it.slot == slot }, key = { it.id }) { item ->
                 WardrobeItemRow(
                     item.name,
                     when {
                         item.id in worn -> "Equipped"
-                        item.level > game.level.number -> "Unlocks at level ${item.level}"
+                        !PebbleStyles.isUnlocked(item, game.level.number, saved.petTapCount) -> "Unlocks at level ${item.level}"
+                        item.minimumTaps > 0 -> "Secret discovered"
                         else -> "Ready to wear"
                     },
                     previewId == item.id,
@@ -201,7 +204,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                 )
                 Text(
                     "Restore original look",
-                    Modifier.fillMaxWidth().clickable(enabled = worn.isNotEmpty() && !saving) { wear(reset = true) }.padding(20.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(enabled = worn.isNotEmpty() && !saving) { wear(reset = true) }.padding(20.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (worn.isNotEmpty()) Sp.colors.brand else Sp.colors.textDim,
                 )
@@ -214,7 +217,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
 @Composable
 private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, look: Set<String>, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().selectable(selected, role = Role.RadioButton, onClick = onClick)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).selectable(selected, role = Role.RadioButton, onClick = onClick)
             .background(if (selected) Sp.colors.brandSoft else Sp.colors.background)
             .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
