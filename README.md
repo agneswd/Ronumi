@@ -16,7 +16,8 @@ This is an early release. [The feature map](docs/regain-parity.md) lists the rem
 - Website block lists, website allow lists, subdomain matching, and an optional adult-domain list.
 - A local notification inbox, scheduled notification summaries, and allowed notification apps.
 - Daily, weekly, and monthly focus reports, tags, app categories, unlocks, and saved usage history.
-- Screen-time and focus widgets, plus local JSON backup and restore.
+- Home screen widgets for the focus goal, a focus calendar, screen time, and one-tap focus.
+- Local JSON backup and restore.
 
 Short-video and browser detection use accessibility view IDs. App updates and device software can change them.
 The new YouTube controls still need tests against a current YouTube installation.

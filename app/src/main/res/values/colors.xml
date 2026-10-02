@@ -6,4 +6,12 @@
     <color name="periwinkle_deep">#FF3F4FC4</color>
     <color name="mist">#FFE6E8F2</color>
     <color name="mist_dim">#FF9EA3B8</color>
+    <color name="widget_face">#FFFFFFFF</color>
+    <color name="widget_lip">#FFE3E4F0</color>
+    <color name="widget_text">#FF262841</color>
+    <color name="widget_dim">#FF7F839E</color>
+    <color name="widget_brand">#FF6C7BFF</color>
+    <color name="widget_flame">#FFFF9F1C</color>
+    <color name="widget_mint">#FF34D399</color>
+    <color name="widget_mint_lip">#FF1FA874</color>
 </resources>

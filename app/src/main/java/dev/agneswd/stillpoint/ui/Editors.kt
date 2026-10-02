@@ -228,7 +228,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimeDialog(minute: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+fun TimeDialog(minute: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
     val state = rememberTimePickerState(minute / 60, minute % 60, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,

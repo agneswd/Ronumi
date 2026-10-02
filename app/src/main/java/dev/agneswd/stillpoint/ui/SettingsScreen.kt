@@ -1,17 +1,18 @@
 package dev.agneswd.stillpoint.ui
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,6 +25,8 @@ import dev.agneswd.stillpoint.data.importBackup
 import dev.agneswd.stillpoint.data.settings
 import dev.agneswd.stillpoint.data.updateSettings
 import dev.agneswd.stillpoint.guard.Rules
+import dev.agneswd.stillpoint.guard.formatMinutes
+import dev.agneswd.stillpoint.ui.design.Mood
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,50 +58,59 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-      TopBar("Settings", onClose)
-      Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-        SectionTitle("Permissions")
-        Column(Modifier.padding(horizontal = ScreenPadding)) { AccessRows(access, includeOptional = true) }
+        TopBar("Settings", onClose)
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            SectionTitle("Permissions")
+            Column(Modifier.padding(horizontal = ScreenPadding)) { AccessRows(access, includeOptional = true) }
 
-        val s = settings
-        if (s != null) {
-            SectionTitle("Daily goal")
-            Stepper("Focus goal", s.focusGoalMinutes, 5..600, 5, { dev.agneswd.stillpoint.guard.formatMinutes(it) }) { value ->
-                app.scope.launch { app.dao.updateSettings { it.copy(focusGoalMinutes = value) } }
+            val s = settings
+            if (s != null) {
+                SectionTitle("Daily goal")
+                Group {
+                    Stepper("Focus goal", s.focusGoalMinutes, 5..600, 5, { formatMinutes(it) }) { value ->
+                        app.scope.launch { app.dao.updateSettings { it.copy(focusGoalMinutes = value) } }
+                    }
+                    ListRow("Goal days", daysText(s.goalDays).replaceFirstChar(Char::uppercase))
+                    DayChoices(s.goalDays) { value -> app.scope.launch { app.dao.updateSettings { it.copy(goalDays = value) } } }
+                    Spacer(Modifier.height(12.dp))
+                }
+                Group(Modifier.padding(top = 12.dp)) {
+                    ListRow("Productive apps", if (s.productivePackages.isEmpty()) "Reports count no app as productive." else appCount(s.productivePackages.size), onClick = {
+                        navigator.push(Route.PickApps("Productive apps", s.productivePackages, single = false) { picked ->
+                            app.scope.launch { app.dao.updateSettings { it.copy(productivePackages = picked) } }
+                        })
+                    }) { Chevron() }
+                }
             }
-            DayChoices(s.goalDays) { value -> app.scope.launch { app.dao.updateSettings { it.copy(goalDays = value) } } }
-            ListRow("Productive apps", appCount(s.productivePackages.size), onClick = {
-                navigator.push(Route.PickApps("Productive apps", s.productivePackages, single = false) { picked ->
-                    app.scope.launch { app.dao.updateSettings { it.copy(productivePackages = picked) } }
-                })
-            })
-        }
-        SectionTitle("Backup")
-        ListRow("Save a backup", "Limits, schedules, sites, settings and focus history in one file.", onClick = {
-            export.launch("stillpoint-${LocalDate.now()}.json")
-        })
-        ListRow(
-            "Restore a backup",
-            if (locked || focus != null) "Locked while a focus session or protected schedule runs." else "Replaces everything with the content of the file.",
-            onClick = if (locked || focus != null) null else ({ import.launch(arrayOf("application/json", "*/*")) }),
-        )
 
-        SectionTitle("About")
-        Text(
-            "Stillpoint works offline. It has no internet permission, no account and no ads. " +
-                "Everything it records stays on this phone.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = ScreenPadding),
-        )
-        Spacer(Modifier.height(8.dp))
-        val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        Text("Version $version", color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(horizontal = ScreenPadding))
-        ListRow("GPLv3 source code", "github.com/agneswd/Stillpoint", onClick = {
-            context.openFirst(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/agneswd/Stillpoint")))
-        })
-        Text("Nunito uses the SIL Open Font License. License texts are included in this app.",
-            color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(horizontal = ScreenPadding))
-        Spacer(Modifier.height(32.dp))
-      }
+            SectionTitle("Backup")
+            Group {
+                ListRow("Save a backup", "Limits, schedules, sites, settings and focus history in one file.", onClick = {
+                    export.launch("stillpoint-${LocalDate.now()}.json")
+                }) { Chevron() }
+                ListRow(
+                    "Restore a backup",
+                    if (locked || focus != null) "Locked while a focus session or protected schedule runs." else "Replaces everything with the content of the file.",
+                    onClick = if (locked || focus != null) null else ({ import.launch(arrayOf("application/json", "*/*")) }),
+                ) { if (!locked && focus == null) Chevron() }
+            }
+
+            SectionTitle("About")
+            PebbleSays(
+                "I work offline. No account, no ads, no internet. Everything stays on this phone.",
+                Mood.WAVE,
+                Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
+                pebbleSize = 80.dp,
+            )
+            Group(Modifier.padding(top = 12.dp)) {
+                ListRow("Source code", "GPLv3 at github.com/agneswd/Stillpoint", onClick = {
+                    context.openFirst(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/agneswd/Stillpoint")))
+                }) { Chevron() }
+                val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                ListRow("Version", version)
+            }
+            Hint("Nunito uses the SIL Open Font License. License texts are included in this app.")
+            Spacer(Modifier.height(32.dp))
+        }
     }
 }

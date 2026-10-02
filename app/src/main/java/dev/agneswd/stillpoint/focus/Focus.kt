@@ -32,6 +32,8 @@ object Focus {
     /** Commits each transition once. Service collection cancellation cannot split the writes. */
     private suspend fun mutate(context: Context, action: suspend () -> Unit) = withContext(NonCancellable) {
         lock.withLock { context.app.database.withTransaction { action() } }
+        // Widgets read the database on another connection, so they refresh after the commit.
+        Widgets.refresh(context)
     }
 
     /** Called from the visible app to reconnect a persisted session to its foreground service. */
@@ -78,7 +80,6 @@ object Focus {
             ),
         )
         ContextCompat.startForegroundService(context, FocusService.intent(context))
-        Widgets.refresh(context)
     }
 
     /** Moves to the next phase. The last focus round ends the session. */
@@ -109,7 +110,6 @@ object Focus {
                 announce(context, "Round ${focus.round + 1} of ${focus.rounds}", "Back to focus.")
             }
         }
-        Widgets.refresh(context)
     }
 
     /** Pauses a session that is not strict. Blocks stop until it resumes. */
@@ -118,7 +118,6 @@ object Focus {
         val focus = dao.activeFocus() ?: return@mutate
         if (focus.strict || !focus.running) return@mutate
         dao.saveActiveFocus(focus.copy(pausedAt = System.currentTimeMillis()))
-        Widgets.refresh(context)
     }
 
     suspend fun resume(context: Context) = mutate(context) {
@@ -129,7 +128,6 @@ object Focus {
         dao.saveActiveFocus(
             focus.copy(pausedAt = 0, phaseStartedAt = focus.phaseStartedAt + gap, phaseEndsAt = focus.phaseEndsAt + gap),
         )
-        Widgets.refresh(context)
     }
 
     /** Ends a stopwatch session as a finished session. */
@@ -177,7 +175,6 @@ object Focus {
             if (completed) "Session done" else "Session ended",
             "You focused for ${formatDuration(focus.focusedMillisBefore)}.$heldText",
         )
-        Widgets.refresh(context)
     }
 
     private fun announce(context: Context, title: String, text: String) {

@@ -1,44 +1,61 @@
 package dev.agneswd.stillpoint.guard
 
-import dev.agneswd.stillpoint.ui.design.NumberStyle
-import dev.agneswd.stillpoint.ui.design.StillpointTheme
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.agneswd.stillpoint.app
+import dev.agneswd.stillpoint.data.currentSettings
+import dev.agneswd.stillpoint.ui.PebbleSays
+import dev.agneswd.stillpoint.ui.design.ButtonKind
+import dev.agneswd.stillpoint.ui.design.ChunkyButton
+import dev.agneswd.stillpoint.ui.design.ChunkyProgress
+import dev.agneswd.stillpoint.ui.design.FloatingDots
+import dev.agneswd.stillpoint.ui.design.Mood
+import dev.agneswd.stillpoint.ui.design.Sp
+import dev.agneswd.stillpoint.ui.design.StillpointTheme
+import dev.agneswd.stillpoint.ui.design.appear
+import dev.agneswd.stillpoint.ui.design.popIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import android.widget.Toast
+import kotlinx.coroutines.withContext
+import java.time.LocalDate
 
 /** The full-screen block. The guard opens it over a blocked app, feed or site. */
 class BlockActivity : ComponentActivity() {
@@ -68,6 +85,7 @@ class BlockActivity : ComponentActivity() {
             StillpointTheme {
                 BackHandler(onBack = leave)
                 BlockScreen(
+                    kind = kind,
                     icon = remember(pkg) { app.catalog.icon(pkg) },
                     title = title,
                     detail = detail,
@@ -76,7 +94,7 @@ class BlockActivity : ComponentActivity() {
                     onMore = {
                         app.scope.launch {
                             val granted = PolicyActions.grantExtra(this@BlockActivity, pkg)
-                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            withContext(Dispatchers.Main) {
                                 if (granted) {
                                     packageManager.getLaunchIntentForPackage(pkg)?.let(::startActivity)
                                     finish()
@@ -115,6 +133,7 @@ class BlockActivity : ComponentActivity() {
 
     @Composable
     private fun BlockScreen(
+        kind: BlockKind,
         icon: android.graphics.Bitmap?,
         title: String,
         detail: String,
@@ -131,26 +150,84 @@ class BlockActivity : ComponentActivity() {
                 }
             }
         }
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(Modifier.systemBarsPadding().padding(horizontal = 32.dp, vertical = 48.dp)) {
+        // Passes left today. Null until the database answers.
+        val passes by produceState<Int?>(null, gentle) {
+            if (gentle) value = withContext(Dispatchers.IO) {
+                val dao = app.dao
+                (dao.currentSettings().emergencyPassesPerDay - dao.passesUsed(LocalDate.now().toString())).coerceAtLeast(0)
+            }
+        }
+        val (mood, line) = remember(kind, title) { pebbleLine(kind) }
+        Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
+            FloatingDots(Modifier.fillMaxSize())
+            Column(
+                Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Spacer(Modifier.weight(0.5f))
+                PebbleSays(line, mood, Modifier.fillMaxWidth().appear(0), side = false, pebbleSize = 150.dp)
                 if (icon != null) {
-                    Image(icon.asImageBitmap(), null, Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)))
-                    Spacer(Modifier.height(28.dp))
-                }
-                Text(title, style = MaterialTheme.typography.displayMedium)
-                Spacer(Modifier.height(16.dp))
-                Text(detail, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.weight(1f))
-                Button(onClick = onClose, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text("Close")
-                }
-                if (gentle) {
-                    Spacer(Modifier.height(8.dp))
-                    TextButton(onClick = onMore, enabled = wait == 0, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (wait > 0) "Wait $wait s for 5 more minutes" else "Open for 5 more minutes")
+                    // The blocked app sits on Pebble's shoulder with a stop badge.
+                    Box(Modifier.offset(x = 70.dp, y = (-46).dp).popIn(300)) {
+                        Image(icon.asImageBitmap(), null, Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).border(3.dp, Sp.colors.background, RoundedCornerShape(14.dp)))
+                        Box(
+                            Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-8).dp).size(24.dp).clip(CircleShape)
+                                .background(Sp.colors.danger).border(3.dp, Sp.colors.background, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) { Box(Modifier.size(10.dp, 3.dp).background(Sp.colors.onFill)) }
                     }
+                } else {
+                    Spacer(Modifier.height(16.dp))
+                }
+                Text(title, style = MaterialTheme.typography.headlineMedium, color = Sp.colors.text, textAlign = TextAlign.Center, modifier = Modifier.appear(120))
+                Spacer(Modifier.height(8.dp))
+                Text(detail, style = MaterialTheme.typography.titleMedium, color = Sp.colors.textDim, textAlign = TextAlign.Center, modifier = Modifier.appear(200))
+                Spacer(Modifier.weight(1f))
+                ChunkyButton(if (kind == BlockKind.SHORTS || kind == BlockKind.STUDY) "Back to the app" else "Close", onClose, Modifier.fillMaxWidth())
+                if (gentle) {
+                    Spacer(Modifier.height(14.dp))
+                    MoreTime(wait, passes, onMore)
                 }
             }
         }
     }
+
+    /** The gentle way out: a bar fills during the wait, then a pass opens the app for 5 minutes. */
+    @Composable
+    private fun MoreTime(wait: Int, passes: Int?, onMore: () -> Unit) {
+        val none = passes == 0
+        if (wait > 0 && !none) {
+            ChunkyProgress(1f - wait / WAIT_SECONDS.toFloat(), Modifier.fillMaxWidth().padding(horizontal = 8.dp), color = Sp.colors.flame, height = 12.dp)
+            Spacer(Modifier.height(8.dp))
+            Text("Take a breath. $wait s", style = MaterialTheme.typography.titleSmall, color = Sp.colors.textDim)
+        } else {
+            ChunkyButton("Open for 5 more minutes", onMore, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, enabled = !none)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                when (passes) {
+                    null -> ""
+                    0 -> "No passes left today."
+                    1 -> "This is your last pass today."
+                    else -> "$passes passes left today."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = Sp.colors.textDim,
+            )
+        }
+    }
+}
+
+/** What Pebble says on the block screen. A few lines per kind keep it fresh. */
+private fun pebbleLine(kind: BlockKind): Pair<Mood, String> {
+    val (mood, lines) = when (kind) {
+        BlockKind.FOCUS -> Mood.GUARD to listOf("Not now. You're focusing!", "Back to it. I believe in you.", "Nice try! Your focus comes first.")
+        BlockKind.SCHEDULE -> Mood.GUARD to listOf("It's not time for this yet.", "Your plan says no. I agree.")
+        BlockKind.LIMIT -> Mood.SLEEPY to listOf("That's enough for today.", "Your time is used up. See you tomorrow!")
+        BlockKind.SHORTS -> Mood.GUARD to listOf("No endless scrolling!", "Shorts are closed. The rest is yours.")
+        BlockKind.STUDY -> Mood.THINK to listOf("Study mode is on.", "Let's find something useful.")
+        BlockKind.SITE -> Mood.THINK to listOf("Hmm, not this site.", "This site is on your list.")
+        BlockKind.PROTECTION -> Mood.PROUD to listOf("Nice try! Your blocks stay on.", "Future you says thanks.")
+        BlockKind.MULTI_WINDOW -> Mood.GUARD to listOf("One app at a time.")
+    }
+    return mood to lines.random()
 }

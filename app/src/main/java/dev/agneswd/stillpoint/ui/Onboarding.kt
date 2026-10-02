@@ -193,7 +193,7 @@ fun Onboarding(onDone: () -> Unit) {
                     "What pulls you away the most?", distractions, picked, multi = true,
                     onPick = { v -> picked = if (v in picked) picked - v else picked + v }, onNext = ::next,
                 )
-                Step.WHEN -> WhenStep(dayPart, noSchedule, onPick = { dayPart = it; noSchedule = false }, onLater = { dayPart = null; noSchedule = true }, onNext = ::next)
+                Step.WHEN -> WhenStep(dayPart, onPick = { dayPart = it; noSchedule = false }, onLater = { dayPart = null; noSchedule = true }, onNext = ::next)
                 Step.PLAN -> PlanStep(goal, picked, dayPart, ::next)
                 Step.SHORTS -> Slide("Scrolling Shorts?", "Pebble closes the feed. The rest of the app still works.", ::next) { ShortsScene() }
                 Step.NOTIFY -> Slide("Buzz, buzz, buzz?", "Notifications wait in a box until you finish.", ::next) { NotificationScene() }
@@ -268,7 +268,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
 }
 
 @Composable
-private fun WhenStep(selected: DayPart?, later: Boolean, onPick: (DayPart) -> Unit, onLater: () -> Unit, onNext: () -> Unit) {
+private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () -> Unit, onNext: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         PebbleSays("When do you want to focus each day?", Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -284,9 +284,6 @@ private fun WhenStep(selected: DayPart?, later: Boolean, onPick: (DayPart) -> Un
                     }
                 }
             }
-            ChunkyCard(Modifier.fillMaxWidth().appear(260), onClick = onLater, selected = later) {
-                Text("I'll set it later", style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-            }
         }
         Text(
             "Your apps are blocked during this time. You can change it later.",
@@ -294,7 +291,9 @@ private fun WhenStep(selected: DayPart?, later: Boolean, onPick: (DayPart) -> Un
             color = Sp.colors.textDim,
             modifier = Modifier.padding(top = 10.dp),
         )
-        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp), enabled = selected != null || later)
+        // Skipping stays visible on small screens instead of hiding under the list.
+        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(top = 16.dp), enabled = selected != null)
+        ChunkyButton("I'll set it later", { onLater(); onNext() }, Modifier.fillMaxWidth().padding(bottom = 8.dp), kind = ButtonKind.GHOST, height = 46.dp)
     }
 }
 

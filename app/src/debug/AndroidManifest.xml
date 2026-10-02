@@ -6,5 +6,9 @@
         <activity
             android:name=".DesignGalleryActivity"
             android:exported="true" />
+        <!-- Debug builds only: hosts every widget for screenshots. -->
+        <activity
+            android:name=".WidgetPreviewActivity"
+            android:exported="true" />
     </application>
 </manifest>

@@ -125,11 +125,14 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = ScreenPadding, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(FocusTheme.entries) { theme ->
                     val on = theme.name == s.focusTheme
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // The picture and its label are one tap target.
+                    Column(
+                        Modifier.clip(RoundedCornerShape(16.dp)).clickable { update { it.copy(focusTheme = theme.name) } },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Box(
                             Modifier.size(64.dp, 84.dp).clip(RoundedCornerShape(16.dp))
-                                .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp))
-                                .clickable { update { it.copy(focusTheme = theme.name) } },
+                                .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp)),
                         ) { FocusBackdrop(theme, Modifier.fillMaxSize()) }
                         Text(theme.label, style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
                     }
@@ -199,9 +202,15 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             SwitchRow("Lock the home screen", "Home brings you back to the timer.", s.focusLockHome, leading = { IconTile(R.drawable.ic_tab_home, Sp.colors.flame) }) { on -> update { it.copy(focusLockHome = on) } }
 
             SectionTitle("Sound")
-            Row(Modifier.padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FocusSound.entries.forEach { sound ->
-                    ChoiceButton(sound.name.lowercase().replaceFirstChar(Char::uppercase), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
+            // Three choices a row, so new sounds wrap instead of squeezing the labels.
+            Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FocusSound.entries.chunked(3).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { sound ->
+                            ChoiceButton(sound.name.lowercase().replaceFirstChar(Char::uppercase), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
+                        }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
                 }
             }
             Spacer(Modifier.height(24.dp))

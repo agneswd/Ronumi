@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -117,8 +118,9 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Sp.colors.background.copy(alpha = 0.94f))
-                .padding(horizontal = ScreenPadding, vertical = 12.dp),
+                // Cards fade out under the button instead of meeting a hard edge.
+                .background(Brush.verticalGradient(0f to Sp.colors.background.copy(alpha = 0f), 0.35f to Sp.colors.background))
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 28.dp, bottom = 12.dp),
         ) {
             ChunkyButton(
                 "Start focus",

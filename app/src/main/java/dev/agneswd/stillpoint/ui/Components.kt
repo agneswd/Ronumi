@@ -124,14 +124,18 @@ fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, leading
     }
 }
 
+/** The app's launcher icon. Apps that are not installed show the first letter of [name] or of their label. */
 @Composable
-fun AppIcon(packageName: String, size: Dp = 40.dp) {
+fun AppIcon(packageName: String, size: Dp = 40.dp, name: String? = null) {
     val context = LocalContext.current
     val bitmap = remember(packageName) { context.app.catalog.icon(packageName) }
     if (bitmap != null) {
         Image(bitmap.asImageBitmap(), null, Modifier.size(size).clip(RoundedCornerShape(size / 4)))
     } else {
-        Box(Modifier.size(size).clip(RoundedCornerShape(size / 4)).background(Sp.colors.surfaceHigh))
+        val label = name ?: remember(packageName) { context.app.catalog.label(packageName) }
+        Box(Modifier.size(size).clip(RoundedCornerShape(size / 4)).background(Sp.colors.brandSoft), contentAlignment = Alignment.Center) {
+            Text(label.take(1).uppercase(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.brand)
+        }
     }
 }
 
@@ -294,26 +298,4 @@ fun appCount(count: Int): String = if (count == 1) "1 app" else "$count apps"
 @Composable
 fun ChoiceButton(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     ChunkyButton(text, onClick, modifier, kind = if (selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY, height = 46.dp)
-}
-
-/** Saves a newline-separated list of local settings. */
-@Composable
-fun StringListField(label: String, help: String, values: Set<String>, onSave: (Set<String>) -> Unit) {
-    var draft by remember(values) { androidx.compose.runtime.mutableStateOf(values.joinToString("\n")) }
-    Column(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp)) {
-        androidx.compose.material3.OutlinedTextField(draft, { draft = it }, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-        Text(help, style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
-        ChunkyButton("Save $label", { onSave(draft.lines().map(String::trim).filter(String::isNotEmpty).toSet()) }, kind = ButtonKind.GHOST)
-    }
-}
-
-@Composable
-fun DeliveryTimes(values: Set<String>, onSave: (Set<String>) -> Unit) {
-    val formatted = values.mapNotNull(String::toIntOrNull).map { dev.agneswd.stillpoint.guard.minuteText(it) }.toSet()
-    var error by remember { androidx.compose.runtime.mutableStateOf(false) }
-    StringListField("Delivery times", if (error) "Use 24-hour times, one per line, such as 12:30." else "One 24-hour time per line. An empty list stops automatic delivery.", formatted) { times ->
-        val parsed = times.map { value -> runCatching { java.time.LocalTime.parse(value) }.getOrNull() }
-        error = parsed.any { it == null }
-        if (!error) onSave(parsed.filterNotNull().map { (it.hour * 60 + it.minute).toString() }.toSet())
-    }
 }

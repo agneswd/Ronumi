@@ -71,39 +71,54 @@ fun Pebble(mood: Mood, modifier: Modifier = Modifier, size: Dp = 160.dp, look: O
     val wave by time.animateFloat(-1f, 1f, infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wave")
     val drift by time.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing)), label = "drift")
 
-    Canvas(modifier.size(size, size * 1.1f)) {
-        val u = this.size.width / 100f
-        val b = sin(breath * 2 * PI).toFloat()
-        val jump = when (mood) {
-            Mood.CELEBRATE -> abs(sin(hop * PI)).toFloat() * 14f
-            Mood.HAPPY, Mood.PROUD -> abs(sin(hop * PI)).toFloat() * 3f
-            Mood.CALM -> 3f + sin(breath * 2 * PI).toFloat() * 3f
-            else -> 1f + b
-        }
-        // Squash a little near the ground when hopping.
-        val squash = if (mood == Mood.CELEBRATE && jump < 3f) 0.06f else 0f
+    Canvas(modifier.size(size, size * 1.1f)) { drawPebble(mood, breath, blink, hop, wave, drift, look) }
+}
 
-        // Ground shadow, smaller when Pebble is in the air.
-        val shadowScale = 1f - jump / 30f
-        drawOval(
-            Color.Black.copy(alpha = 0.12f),
-            topLeft = Offset((50f - 30f * shadowScale) * u, 102f * u),
-            size = Size(60f * shadowScale * u, 7f * u),
-        )
-
-        translate(top = -jump * u) {
-            scale(1f - b * 0.008f + squash, 1f + b * 0.015f - squash, pivot = Offset(50f * u, 100f * u)) {
-                val raised = mood in setOf(Mood.CELEBRATE, Mood.WAVE, Mood.GUARD, Mood.THINK)
-                if (!raised) drawArms(mood, u, wave)
-                drawFeet(u)
-                drawBody(u)
-                if (raised) drawArms(mood, u, wave)
-                drawSprout(mood, u, b, wave)
-                drawFace(mood, u, blink, look)
-            }
-        }
-        drawExtras(mood, u, drift, hop)
+/**
+ * Draws one frame of Pebble that fills the width of the draw area. The height is 1.1 times the width.
+ * The animation phases go from 0 to 1, except [wave] (-1 to 1) and [blink] (1 open, near 0 closed).
+ * Widgets use it with the defaults to draw a still Pebble into a bitmap.
+ */
+fun DrawScope.drawPebble(
+    mood: Mood,
+    breath: Float = 0f,
+    blink: Float = 1f,
+    hop: Float = 0.5f,
+    wave: Float = 0f,
+    drift: Float = 0.3f,
+    look: Offset = Offset.Zero,
+) {
+    val u = size.width / 100f
+    val b = sin(breath * 2 * PI).toFloat()
+    val jump = when (mood) {
+        Mood.CELEBRATE -> abs(sin(hop * PI)).toFloat() * 14f
+        Mood.HAPPY, Mood.PROUD -> abs(sin(hop * PI)).toFloat() * 3f
+        Mood.CALM -> 3f + sin(breath * 2 * PI).toFloat() * 3f
+        else -> 1f + b
     }
+    // Squash a little near the ground when hopping.
+    val squash = if (mood == Mood.CELEBRATE && jump < 3f) 0.06f else 0f
+
+    // Ground shadow, smaller when Pebble is in the air.
+    val shadowScale = 1f - jump / 30f
+    drawOval(
+        Color.Black.copy(alpha = 0.12f),
+        topLeft = Offset((50f - 30f * shadowScale) * u, 102f * u),
+        size = Size(60f * shadowScale * u, 7f * u),
+    )
+
+    translate(top = -jump * u) {
+        scale(1f - b * 0.008f + squash, 1f + b * 0.015f - squash, pivot = Offset(50f * u, 100f * u)) {
+            val raised = mood in setOf(Mood.CELEBRATE, Mood.WAVE, Mood.GUARD, Mood.THINK)
+            if (!raised) drawArms(mood, u, wave)
+            drawFeet(u)
+            drawBody(u)
+            if (raised) drawArms(mood, u, wave)
+            drawSprout(mood, u, b, wave)
+            drawFace(mood, u, blink, look)
+        }
+    }
+    drawExtras(mood, u, drift, hop)
 }
 
 private fun bodyPath(u: Float) = Path().apply {

@@ -1,0 +1,10 @@
+<resources>
+    <color name="widget_face">#FF1C1E2B</color>
+    <color name="widget_lip">#FF2E3146</color>
+    <color name="widget_text">#FFF1F2FA</color>
+    <color name="widget_dim">#FF9599B3</color>
+    <color name="widget_brand">#FF8391FF</color>
+    <color name="widget_flame">#FFFFA62E</color>
+    <color name="widget_mint">#FF3FDDA2</color>
+    <color name="widget_mint_lip">#FF22A777</color>
+</resources>
