@@ -194,9 +194,10 @@ class GuardService : AccessibilityService() {
 
     private fun checkContent(pkg: String, force: Boolean) {
         if (pkg !in watchedPackages && !rules.settings.blockMultiWindow) return
+        val elapsed = SystemClock.elapsedRealtime()
+        if (!force && elapsed - lastContentCheck < CONTENT_THROTTLE_MILLIS) return
+        lastContentCheck = elapsed
         val now = System.currentTimeMillis()
-        if (!force && now - lastContentCheck < CONTENT_THROTTLE_MILLIS) return
-        lastContentCheck = now
         val current = rules
         val roots = windowRoots(pkg)
         if (roots.isEmpty()) return
@@ -271,7 +272,7 @@ class GuardService : AccessibilityService() {
      * could then come up over the block screen. The block screen goes home when it closes.
      */
     private fun block(pkg: String, reason: BlockReason) {
-        val now = System.currentTimeMillis()
+        val now = SystemClock.elapsedRealtime()
         if (now - lastBlockAt < BLOCK_DEBOUNCE_MILLIS) return
         lastBlockAt = now
         startActivity(BlockActivity.intent(this, pkg, reason))
