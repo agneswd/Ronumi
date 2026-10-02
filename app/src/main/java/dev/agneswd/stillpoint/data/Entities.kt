@@ -165,6 +165,8 @@ data class Settings(
     val autoUpdateChecks: Boolean = true,
     /** Last calendar milestone that earned a freeze. Clock changes cannot replay it. */
     val freezeRewardedThrough: String = "",
+    /** Asks Android 16 and later to show the running focus timer as a Live Update in the status bar. */
+    val liveFocusTimer: Boolean = true,
 )
 
 /**

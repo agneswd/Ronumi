@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import dev.agneswd.stillpoint.data.currentSettings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
@@ -58,7 +59,8 @@ class FocusService : LifecycleService() {
                 stopSelf()
                 return@collectLatest
             }
-            goForeground(notification(focus))
+            // A changed Live Update setting applies at the next update, within 30 seconds.
+            goForeground(notification(focus, live = app.dao.currentSettings().liveFocusTimer))
             val playing = focus.phase == FocusPhase.FOCUS && focus.running && focus.sound != FocusSound.OFF
             if (playing) noise.play(focus.sound) else noise.stop()
             // A paused session waits here until the row changes again.
@@ -76,7 +78,7 @@ class FocusService : LifecycleService() {
 
     private fun placeholder(): Notification = builder().setContentTitle("Focus").build()
 
-    private fun notification(focus: ActiveFocus): Notification {
+    private fun notification(focus: ActiveFocus, live: Boolean): Notification {
         val title = when {
             !focus.running -> "Paused"
             focus.phase == FocusPhase.BREAK -> "Break"
@@ -91,6 +93,8 @@ class FocusService : LifecycleService() {
             .setShowWhen(focus.running)
             .setUsesChronometer(focus.running)
             .setChronometerCountDown(!stopwatch)
+            // Android 16 shows a promoted ongoing notification as a chip with the timer in the status bar.
+            .setRequestPromotedOngoing(live)
         if (!focus.strict) {
             val giveUp = PendingIntent.getService(this, 1, intent(this).setAction(ACTION_GIVE_UP), PendingIntent.FLAG_IMMUTABLE)
             builder.addAction(0, "End session", giveUp)
