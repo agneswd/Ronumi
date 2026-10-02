@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sfx
+import dev.agneswd.stillpoint.ui.design.Sound
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -32,6 +34,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -77,30 +80,30 @@ import kotlinx.coroutines.withContext
 
 private enum class Step { WELCOME, HELLO, ASK, PURPOSE, GOAL, DISTRACTIONS, WHEN, PLAN, SHORTS, NOTIFY, STRICT, STREAK, APPS, ACCESS, FIRST }
 
-private data class Option(val emoji: String, val label: String, val value: String)
+private data class Option(val icon: Int, val label: String, val value: String)
 
 private val purposes = listOf(
-    Option("📚", "Study", "study"),
-    Option("💼", "Work", "work"),
-    Option("📱", "Scroll less", "scroll"),
-    Option("😴", "Sleep better", "sleep"),
-    Option("🧘", "Feel calmer", "calm"),
+    Option(R.drawable.ic_activity_study, "Study", "study"),
+    Option(R.drawable.ic_activity_work, "Work", "work"),
+    Option(R.drawable.ic_activity_phone, "Scroll less", "scroll"),
+    Option(R.drawable.ic_activity_sleep, "Sleep better", "sleep"),
+    Option(R.drawable.ic_activity_calm, "Feel calmer", "calm"),
 )
 
 private val goals = listOf(
-    Option("☕", "Casual, 30 min a day", "30"),
-    Option("🌱", "Regular, 1 hour a day", "60"),
-    Option("🔥", "Serious, 2 hours a day", "120"),
-    Option("🚀", "Intense, 4 hours a day", "240"),
+    Option(R.drawable.ic_activity_coffee, "Casual, 30 min a day", "30"),
+    Option(R.drawable.ic_activity_sprout, "Regular, 1 hour a day", "60"),
+    Option(R.drawable.ic_activity_flame, "Serious, 2 hours a day", "120"),
+    Option(R.drawable.ic_activity_rocket, "Intense, 4 hours a day", "240"),
 )
 
 private val distractions = listOf(
-    Option("🎬", "Shorts and Reels", "shorts"),
-    Option("📺", "YouTube rabbit holes", "youtube"),
-    Option("💬", "Social media feeds", "social"),
-    Option("🔔", "Notifications", "notifications"),
-    Option("🎮", "Games", "games"),
-    Option("🐢", "I can't get started", "start"),
+    Option(R.drawable.ic_video, "Shorts and Reels", "shorts"),
+    Option(R.drawable.ic_video, "YouTube rabbit holes", "youtube"),
+    Option(R.drawable.ic_activity_social, "Social media feeds", "social"),
+    Option(R.drawable.ic_bell, "Notifications", "notifications"),
+    Option(R.drawable.ic_activity_game, "Games", "games"),
+    Option(R.drawable.ic_activity_steps, "I can't get started", "start"),
 )
 
 /** Apps that most people find distracting. Onboarding picks the installed ones first. */
@@ -127,6 +130,48 @@ fun Onboarding(onDone: () -> Unit) {
         value = withContext(Dispatchers.IO) { app.catalog.launchableApps() }
     }
     val access = rememberAccess()
+
+    // Play one short sequence per slide. Leaving the slide cancels pending cues.
+    LaunchedEffect(step) {
+        when (step) {
+            Step.PLAN -> {
+                val checks = 2 + listOf("shorts" in picked, "notifications" in picked,
+                    picked.any { it in setOf("youtube", "social", "games") }, dayPart != null).count { it }
+                kotlinx.coroutines.delay(400)
+                repeat(checks) {
+                    Sfx.play(Sound.SELECT)
+                    kotlinx.coroutines.delay(220)
+                }
+            }
+            Step.SHORTS -> {
+                kotlinx.coroutines.delay(320)
+                Sfx.play(Sound.BLOCK)
+                kotlinx.coroutines.delay(400)
+                Sfx.play(Sound.SLIDE)
+            }
+            Step.NOTIFY -> {
+                kotlinx.coroutines.delay(650)
+                repeat(3) {
+                    Sfx.play(Sound.NOTIFICATION)
+                    kotlinx.coroutines.delay(933)
+                }
+            }
+            else -> {
+                kotlinx.coroutines.delay(350)
+                Sfx.play(when (step) {
+                    Step.WELCOME, Step.HELLO -> Sound.WELCOME
+                    Step.ASK, Step.PURPOSE, Step.DISTRACTIONS -> Sound.QUESTION
+                    Step.GOAL, Step.WHEN -> Sound.SELECT
+                    Step.STRICT -> Sound.BLOCK
+                    Step.STREAK -> Sound.STREAK
+                    Step.APPS -> Sound.SLIDE
+                    Step.ACCESS -> Sound.TOGGLE_ON
+                    Step.FIRST -> Sound.START
+                    else -> Sound.TAP
+                })
+            }
+        }
+    }
 
     fun go(next: Step) {
         forward = next.ordinal > step.ordinal
@@ -193,7 +238,7 @@ fun Onboarding(onDone: () -> Unit) {
                     "What pulls you away the most?", distractions, picked, multi = true,
                     onPick = { v -> picked = if (v in picked) picked - v else picked + v }, onNext = ::next,
                 )
-                Step.WHEN -> WhenStep(dayPart, noSchedule, onPick = { dayPart = it; noSchedule = false }, onLater = { dayPart = null; noSchedule = true }, onNext = ::next)
+                Step.WHEN -> WhenStep(dayPart, onPick = { dayPart = it; noSchedule = false }, onLater = { dayPart = null; noSchedule = true }, onNext = ::next)
                 Step.PLAN -> PlanStep(goal, picked, dayPart, ::next)
                 Step.SHORTS -> Slide("Scrolling Shorts?", "Pebble closes the feed. The rest of the app still works.", ::next) { ShortsScene() }
                 Step.NOTIFY -> Slide("Buzz, buzz, buzz?", "Notifications wait in a box until you finish.", ::next) { NotificationScene() }
@@ -228,7 +273,7 @@ private fun Welcome(onNext: () -> Unit) {
             ChunkyButton("Get started", onNext, Modifier.fillMaxWidth().appear(500))
             Spacer(Modifier.height(12.dp))
             Text(
-                "Free, offline and private. No account needed.",
+                "Free and private. Focus works offline. No account needed.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Sp.colors.textDim,
                 modifier = Modifier.appear(600),
@@ -256,7 +301,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
             options.forEachIndexed { i, option ->
                 ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(option.value) }, selected = option.value in selected) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(option.emoji, style = MaterialTheme.typography.headlineMedium)
+                        Icon(painterResource(option.icon), null, tint = Sp.colors.brand, modifier = Modifier.size(28.dp))
                         Spacer(Modifier.width(16.dp))
                         Text(option.label, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text, modifier = Modifier.weight(1f))
                     }
@@ -268,7 +313,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
 }
 
 @Composable
-private fun WhenStep(selected: DayPart?, later: Boolean, onPick: (DayPart) -> Unit, onLater: () -> Unit, onNext: () -> Unit) {
+private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () -> Unit, onNext: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         PebbleSays("When do you want to focus each day?", Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -284,9 +329,6 @@ private fun WhenStep(selected: DayPart?, later: Boolean, onPick: (DayPart) -> Un
                     }
                 }
             }
-            ChunkyCard(Modifier.fillMaxWidth().appear(260), onClick = onLater, selected = later) {
-                Text("I'll set it later", style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-            }
         }
         Text(
             "Your apps are blocked during this time. You can change it later.",
@@ -294,7 +336,9 @@ private fun WhenStep(selected: DayPart?, later: Boolean, onPick: (DayPart) -> Un
             color = Sp.colors.textDim,
             modifier = Modifier.padding(top = 10.dp),
         )
-        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp), enabled = selected != null || later)
+        // Skipping stays visible on small screens instead of hiding under the list.
+        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(top = 16.dp), enabled = selected != null)
+        ChunkyButton("I'll set it later", { onLater(); onNext() }, Modifier.fillMaxWidth().padding(bottom = 8.dp), kind = ButtonKind.GHOST, height = 46.dp)
     }
 }
 
@@ -302,20 +346,20 @@ private fun WhenStep(selected: DayPart?, later: Boolean, onPick: (DayPart) -> Un
 private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: () -> Unit) {
     val minutes = goal.toIntOrNull() ?: 60
     val items = buildList {
-        add("🎯" to "Focus ${if (minutes < 60) "$minutes minutes" else "${minutes / 60} hour${if (minutes >= 120) "s" else ""}"} a day")
-        if ("shorts" in picked) add("🎬" to "Close Shorts and Reels for you")
-        if ("notifications" in picked) add("🔔" to "Hold notifications while you focus")
-        if ("youtube" in picked || "social" in picked || "games" in picked) add("🛡️" to "Block your distracting apps during focus")
-        if (part != null) add("⏰" to "${part.label} focus, ${minuteText(part.start)} to ${minuteText(part.end)}")
-        add("🔥" to "A daily streak to keep you going")
+        add(R.drawable.ic_activity_focus to "Focus ${if (minutes < 60) "$minutes minutes" else "${minutes / 60} hour${if (minutes >= 120) "s" else ""}"} a day")
+        if ("shorts" in picked) add(R.drawable.ic_video to "Close Shorts and Reels for you")
+        if ("notifications" in picked) add(R.drawable.ic_bell to "Hold notifications while you focus")
+        if ("youtube" in picked || "social" in picked || "games" in picked) add(R.drawable.ic_tab_blocks to "Block your distracting apps during focus")
+        if (part != null) add(R.drawable.ic_timer to "${part.label} focus, ${minuteText(part.start)} to ${minuteText(part.end)}")
+        add(R.drawable.ic_activity_flame to "A daily streak to keep you going")
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         PebbleSays("Here's your plan. I think you'll love it!", Mood.PROUD, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items.forEachIndexed { i, (emoji, text) ->
+            items.forEachIndexed { i, (icon, text) ->
                 Row(Modifier.fillMaxWidth().appear(200 + i * 220), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Sp.colors.brandSoft), contentAlignment = Alignment.Center) {
-                        Text(emoji, style = MaterialTheme.typography.titleLarge)
+                        Icon(painterResource(icon), null, tint = Sp.colors.brand, modifier = Modifier.size(26.dp))
                     }
                     Spacer(Modifier.width(14.dp))
                     Text(text, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text, modifier = Modifier.weight(1f))
@@ -325,7 +369,7 @@ private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: 
                 }
             }
         }
-        ChunkyButton("Sounds great", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp))
+        ChunkyButton("Sounds great", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp), sound = Sound.QUEST)
     }
 }
 
@@ -379,7 +423,7 @@ private fun AccessStep(access: Access, onNext: () -> Unit) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             AccessRows(access, includeOptional = true)
             Text(
-                "Stillpoint has no internet access. What it sees stays on this phone.",
+                "Your app usage stays on this phone. Only update checks and downloads use the internet.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Sp.colors.textDim,
                 modifier = Modifier.padding(top = 12.dp),
@@ -396,7 +440,7 @@ private fun FirstFocus(onStart: () -> Unit, onSkip: () -> Unit) {
         Spacer(Modifier.weight(1f))
         PebbleSays("Let's try a 2 minute focus together. You'll see how it feels!", Mood.HAPPY, Modifier.fillMaxWidth(), side = false, pebbleSize = 170.dp)
         Spacer(Modifier.weight(1f))
-        ChunkyButton("Start 2 minute focus", onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play))
+        ChunkyButton("Start 2 minute focus", onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play), sound = Sound.START)
         ChunkyButton("Maybe later", onSkip, Modifier.fillMaxWidth().padding(top = 4.dp), kind = ButtonKind.GHOST)
     }
 }

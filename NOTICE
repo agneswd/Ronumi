@@ -1,0 +1,24 @@
+Stillpoint
+Copyright (C) 2026 agneswd
+
+Stillpoint source code and original artwork are licensed under GPL-3.0-only.
+See LICENSE for the full license text.
+
+Nunito font
+Copyright 2014 The Nunito Project Authors
+Licensed under the SIL Open Font License, Version 1.1.
+See licenses/Nunito-OFL.txt for the font license and copyright notice.
+
+Android and Kotlin libraries retain their respective licenses.
+Dependency coordinates and versions are listed in gradle/libs.versions.toml.
+
+Interface Sounds (1.0) by Kenney
+UI and onboarding audio is adapted from https://kenney.nl/assets/interface-sounds.
+Licensed under Creative Commons Zero (CC0 1.0 Universal).
+See licenses/Kenney-Interface-Sounds-CC0.txt and docs/audio-sources.md.
+
+Focus recordings from Freesound
+White noise by theundecided, pink noise by klangfabrik, brown noise by
+OldSlowVideogamer, Gentle Rain by shelbyshark, and Slow Waves, Stony Beach
+by Kinoton. Each recording is licensed under CC0 1.0 Universal.
+See docs/focus-audio-sources.md for source links, hashes, and processing details.

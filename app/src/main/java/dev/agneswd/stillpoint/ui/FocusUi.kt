@@ -1,17 +1,17 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sound
+import dev.agneswd.stillpoint.ui.design.Sfx
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -68,6 +69,8 @@ import dev.agneswd.stillpoint.data.TimerMode
 import dev.agneswd.stillpoint.data.settings
 import dev.agneswd.stillpoint.data.updateSettings
 import dev.agneswd.stillpoint.focus.Focus
+import dev.agneswd.stillpoint.focus.elapsedPhaseMillis
+import dev.agneswd.stillpoint.focus.remainingMillis
 import dev.agneswd.stillpoint.game.gameState
 import dev.agneswd.stillpoint.guard.formatMinutes
 import dev.agneswd.stillpoint.ui.design.ButtonKind
@@ -125,11 +128,15 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = ScreenPadding, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(FocusTheme.entries) { theme ->
                     val on = theme.name == s.focusTheme
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // The picture and its label are one tap target.
+                    Column(
+                        Modifier.clip(RoundedCornerShape(16.dp))
+                            .clickable { update { it.copy(focusTheme = theme.name) } }.padding(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Box(
                             Modifier.size(64.dp, 84.dp).clip(RoundedCornerShape(16.dp))
-                                .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp))
-                                .clickable { update { it.copy(focusTheme = theme.name) } },
+                                .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp)),
                         ) { FocusBackdrop(theme, Modifier.fillMaxSize()) }
                         Text(theme.label, style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
                     }
@@ -163,7 +170,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
+                modifier = Modifier.trackTextFieldFocus().fillMaxWidth().padding(horizontal = ScreenPadding),
             )
             if (recentTags.isNotEmpty()) {
                 FlowRow(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -191,7 +198,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                         },
                     )
                 },
-            ) { Icon(painterResource(R.drawable.ic_chevron), null, tint = Sp.colors.textDim, modifier = Modifier.size(18.dp)) }
+            ) { AppSelectionPreview(s.focusPackages) }
             SwitchRow("Block every other app", "Only the chosen apps work.", s.focusMode == BlockMode.ALL_EXCEPT, leading = { IconTile(R.drawable.ic_lock, Sp.colors.brand) }) { on ->
                 update { it.copy(focusMode = if (on) BlockMode.ALL_EXCEPT else BlockMode.LISTED) }
             }
@@ -199,9 +206,15 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             SwitchRow("Lock the home screen", "Home brings you back to the timer.", s.focusLockHome, leading = { IconTile(R.drawable.ic_tab_home, Sp.colors.flame) }) { on -> update { it.copy(focusLockHome = on) } }
 
             SectionTitle("Sound")
-            Row(Modifier.padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FocusSound.entries.forEach { sound ->
-                    ChoiceButton(sound.name.lowercase().replaceFirstChar(Char::uppercase), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
+            // Three choices a row, so new sounds wrap instead of squeezing the labels.
+            Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FocusSound.entries.chunked(3).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { sound ->
+                            ChoiceButton(sound.name.lowercase().replaceFirstChar(Char::uppercase), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
+                        }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
                 }
             }
             Spacer(Modifier.height(24.dp))
@@ -209,13 +222,19 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
         ChunkyButton(
             "Start",
             {
-                app.scope.launch { Focus.start(context, tag) }
-                onClose()
+                app.scope.launch {
+                    Focus.start(context, tag)
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        navigator.focusMinimized = false
+                        onClose()
+                    }
+                }
             },
             Modifier.fillMaxWidth().padding(ScreenPadding),
             kind = ButtonKind.MINT,
             icon = painterResource(R.drawable.ic_play),
             height = 58.dp,
+            sound = Sound.START,
         )
     }
 }
@@ -242,10 +261,10 @@ private val tips = listOf(
 fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
     LaunchedEffect(focus) {
         while (true) {
-            now = System.currentTimeMillis()
+            now = android.os.SystemClock.elapsedRealtime()
             delay(200)
         }
     }
@@ -259,10 +278,9 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
     var askGiveUp by remember { mutableStateOf(false) }
     BackHandler(onBack = onMinimize)
 
-    val clock = if (focus.running) now else focus.pausedAt
     val stopwatch = focus.timerMode == TimerMode.STOPWATCH
-    val elapsed = (clock - focus.phaseStartedAt).coerceAtLeast(0)
-    val left = (focus.phaseEndsAt - clock).coerceAtLeast(0)
+    val elapsed = focus.elapsedPhaseMillis(now)
+    val left = focus.remainingMillis(now)
     val total = (focus.phaseEndsAt - focus.phaseStartedAt).coerceAtLeast(1)
     val shown = if (stopwatch) elapsed else left
     val fraction = if (stopwatch) (elapsed % 3_600_000) / 3_600_000f else left.toFloat() / total
@@ -272,50 +290,62 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
     Box(Modifier.fillMaxSize()) {
         FocusBackdrop(themeOf(focus.theme), Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                GlassButton(R.drawable.ic_chevron, "Minimize", rotate = 90f, onClick = onMinimize)
-                Spacer(Modifier.weight(1f))
-                if (focus.tag.isNotBlank()) GlassLabel(focus.tag)
-                Spacer(Modifier.weight(1f))
-                if (focus.strict) GlassButton(R.drawable.ic_lock, "Strict mode is on") {} else Spacer(Modifier.size(44.dp))
-            }
-            Spacer(Modifier.weight(0.6f))
-            Text(
-                when {
-                    !focus.running -> "PAUSED"
-                    focus.phase == FocusPhase.BREAK -> "BREAK TIME"
-                    focus.rounds > 1 -> "ROUND ${focus.round} OF ${focus.rounds}"
-                    stopwatch -> "STOPWATCH"
-                    else -> "FOCUS"
-                },
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.White.copy(alpha = 0.85f),
-            )
-            Spacer(Modifier.height(16.dp))
-            Box(Modifier.size(270.dp), contentAlignment = Alignment.Center) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val stroke = 12.dp.toPx()
-                    val inset = stroke / 2
-                    val arcSize = Size(size.width - stroke, size.height - stroke)
-                    drawCircle(Color.Black.copy(alpha = 0.18f), size.width / 2 - stroke)
-                    drawArc(Color.White.copy(alpha = 0.18f), 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
-                    drawArc(Color.White, -90f, 360f * fraction, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val dialSize = (maxHeight * 0.40f).coerceIn(160.dp, 270.dp)
+                val pebbleSize = (maxHeight * 0.16f).coerceIn(70.dp, 110.dp)
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        GlassButton(R.drawable.ic_chevron, "Minimize", rotate = 90f, onClick = onMinimize)
+                        Spacer(Modifier.weight(1f))
+                        if (focus.tag.isNotBlank()) {
+                            Box(Modifier.weight(6f), contentAlignment = Alignment.Center) { GlassLabel(focus.tag) }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        if (focus.strict) GlassButton(R.drawable.ic_lock, "Strict mode is on") {} else Spacer(Modifier.size(44.dp))
+                    }
+                    Spacer(Modifier.weight(0.6f))
+                    Text(
+                        when {
+                            !focus.running -> "PAUSED"
+                            focus.phase == FocusPhase.BREAK -> "BREAK TIME"
+                            focus.rounds > 1 -> "ROUND ${focus.round} OF ${focus.rounds}"
+                            stopwatch -> "STOPWATCH"
+                            else -> "FOCUS"
+                        },
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White.copy(alpha = 0.85f),
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Box(Modifier.size(dialSize), contentAlignment = Alignment.Center) {
+                        Canvas(Modifier.fillMaxSize()) {
+                            val stroke = 12.dp.toPx()
+                            val inset = stroke / 2
+                            val arcSize = Size(size.width - stroke, size.height - stroke)
+                            drawCircle(Color.Black.copy(alpha = 0.18f), size.width / 2 - stroke)
+                            drawArc(Color.White.copy(alpha = 0.18f), 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                            drawArc(Color.White, -90f, 360f * fraction, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                        }
+                        Text(clockText(shown), style = NumberStyle.copy(fontSize = NumberStyle.fontSize * (dialSize / 270.dp)), color = Color.White)
+                    }
+                    Spacer(Modifier.weight(0.5f))
+                    Crossfade(tip, modifier = Modifier.fillMaxWidth(), label = "tip") { i ->
+                        GlassLabel(
+                            if (firstFocus && firstBlocked != null) "Try opening one of your blocked apps. I'll stop it!" else tips[i],
+                            big = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    Pebble(
+                        when {
+                            !focus.running -> Mood.SLEEPY
+                            focus.phase == FocusPhase.BREAK -> Mood.HAPPY
+                            else -> Mood.CALM
+                        },
+                        size = pebbleSize,
+                    )
+                    Spacer(Modifier.height(12.dp))
                 }
-                Text(clockText(shown), style = NumberStyle, color = Color.White)
             }
-            Spacer(Modifier.weight(0.5f))
-            AnimatedContent(tip, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "tip") { i ->
-                GlassLabel(if (firstFocus && firstBlocked != null) "Try opening one of your blocked apps. I'll stop it!" else tips[i], big = true)
-            }
-            Pebble(
-                when {
-                    !focus.running -> Mood.SLEEPY
-                    focus.phase == FocusPhase.BREAK -> Mood.HAPPY
-                    else -> Mood.CALM
-                },
-                size = 110.dp,
-            )
-            Spacer(Modifier.height(12.dp))
             if (firstFocus && firstBlocked != null) {
                 ChunkyButton(
                     "Try opening ${app.catalog.label(firstBlocked)}",
@@ -332,6 +362,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                     Modifier.fillMaxWidth(),
                     kind = if (focus.running) ButtonKind.SECONDARY else ButtonKind.MINT,
                     icon = painterResource(if (focus.running) R.drawable.ic_pause else R.drawable.ic_play),
+                    sound = if (focus.running) Sound.TOGGLE_OFF else Sound.TOGGLE_ON,
                 )
             }
             if (!focus.strict) {
@@ -339,7 +370,9 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                     "GIVE UP",
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { askGiveUp = true }.padding(14.dp),
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
+                        askGiveUp = true
+                    }.padding(14.dp),
                 )
             } else {
                 Text("Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
@@ -371,6 +404,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                         },
                         Modifier.fillMaxWidth(),
                         kind = ButtonKind.GHOST,
+                        sound = Sound.GIVE_UP,
                     )
                 }
             }
@@ -397,15 +431,15 @@ private fun GlassButton(icon: Int, label: String, rotate: Float = 0f, onClick: (
 }
 
 @Composable
-private fun GlassLabel(text: String, big: Boolean = false) {
+private fun GlassLabel(text: String, big: Boolean = false, modifier: Modifier = Modifier) {
     Text(
         text,
         style = if (big) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
         color = Color.White,
         textAlign = TextAlign.Center,
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.16f))
+            .background(Color.Black.copy(alpha = 0.55f))
             .padding(horizontal = 16.dp, vertical = if (big) 12.dp else 8.dp),
     )
 }
@@ -427,98 +461,125 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
     val xpGained = after.xp - before.xp
     val streakUp = after.streak > before.streak
     val levelUp = after.level.number > before.level.number
+    val questsDone = after.quests.count { it.done } > before.quests.count { it.done }
     var notes by remember { mutableStateOf(session.notes) }
+    // The reward sounds play in the same order as the reward animations.
+    LaunchedEffect(sessionId) {
+        if (session.completed) Sfx.play(Sound.COMPLETE)
+        if (questsDone) {
+            kotlinx.coroutines.delay(900)
+            Sfx.play(Sound.QUEST)
+        }
+        if (levelUp) {
+            kotlinx.coroutines.delay(700)
+            Sfx.play(Sound.LEVEL_UP)
+        }
+        if (streakUp) {
+            kotlinx.coroutines.delay(if (levelUp) 1_500 else 700)
+            Sfx.play(Sound.STREAK)
+        }
+    }
     var noteOpen by remember { mutableStateOf(false) }
     BackHandler(onBack = onDone)
 
     Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(24.dp).verticalScroll(rememberScrollState()),
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(24.dp))
-            Pebble(if (session.completed) Mood.CELEBRATE else Mood.HAPPY, Modifier.popIn(), size = 170.dp)
-            Spacer(Modifier.height(12.dp))
-            Text(
-                if (session.completed) "Session complete!" else "Nice effort!",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Sp.colors.text,
-                modifier = Modifier.appear(150),
-            )
-            Text(
-                if (session.completed) "You stayed with it to the end." else "Every minute counts. Next time, go all the way!",
-                style = MaterialTheme.typography.titleMedium,
-                color = Sp.colors.textDim,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.appear(250),
-            )
-            Spacer(Modifier.height(24.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                RewardTile("FOCUS", Sp.colors.brand, Modifier.weight(1f).popIn(400)) {
-                    CountUp((session.focusedMillis / 60_000).toInt(), MaterialTheme.typography.headlineSmall, Sp.colors.brand, delayMillis = 400) { "${it}m" }
-                }
-                RewardTile("XP", Sp.colors.goldLip, Modifier.weight(1f).popIn(550)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        XpBolt(size = 22.dp)
-                        CountUp(xpGained, MaterialTheme.typography.headlineSmall, Sp.colors.goldLip, delayMillis = 550) { "+$it" }
-                    }
-                }
-                RewardTile("STREAK", Sp.colors.flame, Modifier.weight(1f).popIn(700)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Flame(size = 24.dp, lit = after.streakSafeToday)
-                        Text("${after.streak}", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.flame)
-                    }
-                }
-            }
-            if (streakUp || levelUp) {
-                Spacer(Modifier.height(16.dp))
-                ChunkyCard(Modifier.fillMaxWidth().popIn(900), fill = Sp.colors.flame.copy(alpha = 0.1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (levelUp) {
-                            Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Sp.colors.brand), contentAlignment = Alignment.Center) {
-                                Text("${after.level.number}", style = MaterialTheme.typography.titleLarge, color = Color.White)
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val compact = maxHeight < 560.dp
+                val heroSize = (maxHeight * 0.22f).coerceIn(80.dp, 140.dp)
+                val gap = if (compact) 10.dp else 16.dp
+                Column(
+                    Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Pebble(if (session.completed) Mood.CELEBRATE else Mood.HAPPY, Modifier.popIn(), size = heroSize)
+                    Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
+                    Text(
+                        if (session.completed) "Session complete!" else "Nice effort!",
+                        style = if (compact) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineLarge,
+                        color = Sp.colors.text,
+                        modifier = Modifier.appear(150),
+                    )
+                    Text(
+                        if (session.completed) "You stayed with it to the end." else "Every minute counts. Next time, go all the way!",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Sp.colors.textDim,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.appear(250),
+                    )
+                    Spacer(Modifier.height(gap))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        RewardTile("FOCUS", Sp.colors.brand, Modifier.weight(1f).popIn(400), compact) {
+                            CountUp((session.focusedMillis / 60_000).toInt(), MaterialTheme.typography.headlineSmall, Sp.colors.brand, delayMillis = 400) { "${it}m" }
+                        }
+                        RewardTile("XP", Sp.colors.goldLip, Modifier.weight(1f).popIn(550), compact) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                XpBolt(size = 22.dp)
+                                CountUp(xpGained, MaterialTheme.typography.headlineSmall, Sp.colors.goldLip, delayMillis = 550) { "+$it" }
                             }
-                        } else {
-                            Flame(size = 44.dp)
                         }
-                        Spacer(Modifier.width(14.dp))
-                        Column {
-                            Text(
-                                if (levelUp) "Level up!" else "Streak extended!",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = if (levelUp) Sp.colors.brand else Sp.colors.flame,
-                            )
-                            Text(
-                                if (levelUp) "You reached level ${after.level.number}." else "${after.streak} day${if (after.streak == 1) "" else "s"} in a row. Come back tomorrow!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Sp.colors.text,
-                            )
+                        RewardTile("STREAK", Sp.colors.flame, Modifier.weight(1f).popIn(700), compact) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Flame(size = 24.dp, lit = after.streak > 0 || after.streakSafeToday)
+                                Text("${after.streak}", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.flame)
+                            }
                         }
+                    }
+                    if (streakUp || levelUp) {
+                        Spacer(Modifier.height(gap))
+                        ChunkyCard(Modifier.fillMaxWidth().popIn(900), fill = Sp.colors.flame.copy(alpha = 0.1f), contentPadding = if (compact) 12.dp else 16.dp) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (levelUp) {
+                                    Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Sp.colors.brand), contentAlignment = Alignment.Center) {
+                                        Text("${after.level.number}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.onFill)
+                                    }
+                                } else {
+                                    Flame(size = 44.dp)
+                                }
+                                Spacer(Modifier.width(14.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        if (levelUp) "Level up!" else "Streak extended!",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = if (levelUp) Sp.colors.brand else Sp.colors.flame,
+                                    )
+                                    Text(
+                                        if (levelUp) "You reached level ${after.level.number}." else "${after.streak} day${if (after.streak == 1) "" else "s"} in a row. Come back tomorrow!",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Sp.colors.text,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(gap))
+                    AnimatedVisibility(noteOpen) {
+                        OutlinedTextField(
+                            notes, { notes = it },
+                            placeholder = { Text("What did you get done?") },
+                            minLines = 3,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
+                            modifier = Modifier.trackTextFieldFocus().fillMaxWidth(),
+                        )
+                    }
+                    if (!noteOpen) {
+                        ChunkyButton("Add a note", { noteOpen = true }, Modifier.fillMaxWidth(), kind = ButtonKind.GHOST, height = 44.dp)
                     }
                 }
             }
-            Spacer(Modifier.height(16.dp))
-            AnimatedVisibility(noteOpen) {
-                OutlinedTextField(
-                    notes, { notes = it },
-                    placeholder = { Text("What did you get done?") },
-                    minLines = 3,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (!noteOpen) {
-                ChunkyButton("Add a note", { noteOpen = true }, Modifier.fillMaxWidth(), kind = ButtonKind.GHOST)
-            }
-            Spacer(Modifier.weight(1f))
             ChunkyButton(
                 "Continue",
                 {
                     if (notes != session.notes) app.scope.launch { app.dao.saveSession(session.copy(notes = notes.trim())) }
                     onDone()
                 },
-                Modifier.fillMaxWidth().padding(top = 16.dp),
+                Modifier.fillMaxWidth().padding(top = 12.dp),
             )
         }
         Confetti(sessionId, Modifier.fillMaxSize())
@@ -526,7 +587,7 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
 }
 
 @Composable
-private fun RewardTile(label: String, color: Color, modifier: Modifier, value: @Composable () -> Unit) {
+private fun RewardTile(label: String, color: Color, modifier: Modifier, compact: Boolean, value: @Composable () -> Unit) {
     Column(
         modifier
             .clip(RoundedCornerShape(18.dp))
@@ -536,25 +597,25 @@ private fun RewardTile(label: String, color: Color, modifier: Modifier, value: @
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
+            color = if (color == Sp.colors.brand) Sp.colors.onFill else Color(0xFF262841),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().background(color).padding(vertical = 4.dp),
         )
-        Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) { value() }
+        Box(Modifier.padding(vertical = if (compact) 8.dp else 12.dp), contentAlignment = Alignment.Center) { value() }
     }
 }
 
 /** A floating chip over the tabs while a minimized session runs. Tap it to go back. */
 @Composable
 fun FocusChip(focus: ActiveFocus, onOpen: () -> Unit, modifier: Modifier = Modifier) {
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
     LaunchedEffect(focus) {
         while (true) {
-            now = System.currentTimeMillis()
+            now = android.os.SystemClock.elapsedRealtime()
             delay(500)
         }
     }
-    val shown = if (focus.timerMode == TimerMode.STOPWATCH) now - focus.phaseStartedAt else (focus.phaseEndsAt - (if (focus.running) now else focus.pausedAt)).coerceAtLeast(0)
+    val shown = if (focus.timerMode == TimerMode.STOPWATCH) focus.elapsedPhaseMillis(now) else focus.remainingMillis(now)
     Row(
         modifier
             .clip(RoundedCornerShape(20.dp))
@@ -568,7 +629,7 @@ fun FocusChip(focus: ActiveFocus, onOpen: () -> Unit, modifier: Modifier = Modif
         Text(
             "${if (focus.phase == FocusPhase.BREAK) "Break" else "Focusing"} ${clockText(shown)}",
             style = MaterialTheme.typography.labelLarge,
-            color = Color.White,
+            color = Sp.colors.onFill,
         )
     }
 }

@@ -46,17 +46,24 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.app
+import dev.agneswd.stillpoint.data.Settings
 import dev.agneswd.stillpoint.game.GameState
 import dev.agneswd.stillpoint.ui.design.ButtonKind
 import dev.agneswd.stillpoint.ui.design.ChunkyButton
 import dev.agneswd.stillpoint.ui.design.Flame
+import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Pebble
+import dev.agneswd.stillpoint.ui.design.Sfx
+import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sp
 import dev.agneswd.stillpoint.ui.design.XpBolt
 import kotlinx.coroutines.delay
 
 val ScreenPadding = 20.dp
+
+/** Saves a change to the settings row. */
+typealias SettingsUpdate = ((Settings) -> Settings) -> Unit
 
 /** A section title with space above it. */
 @Composable
@@ -82,7 +89,7 @@ fun ListRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick) else Modifier)
             .padding(horizontal = ScreenPadding, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -105,13 +112,16 @@ fun ListRow(
 
 @Composable
 fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, leading: (@Composable () -> Unit)? = null, onChange: (Boolean) -> Unit) {
-    ListRow(title, subtitle, onClick = { onChange(!checked) }, leading = leading) {
+    val toggle: (Boolean) -> Unit = { on ->
+        onChange(on)
+    }
+    ListRow(title, subtitle, onClick = { toggle(!checked) }, leading = leading) {
         Switch(
             checked = checked,
-            onCheckedChange = onChange,
+            onCheckedChange = toggle,
             colors = SwitchDefaults.colors(
                 checkedTrackColor = Sp.colors.mint,
-                checkedThumbColor = Color.White,
+                checkedThumbColor = LightPalette.text,
                 uncheckedTrackColor = Sp.colors.surfaceHigh,
                 uncheckedBorderColor = Sp.colors.border,
                 uncheckedThumbColor = Sp.colors.textDim,
@@ -120,14 +130,23 @@ fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, leading
     }
 }
 
+/**
+ * The app's launcher icon. Apps that are not installed show [logo] when there is one,
+ * else the first letter of [name] or of their label.
+ */
 @Composable
-fun AppIcon(packageName: String, size: Dp = 40.dp) {
+fun AppIcon(packageName: String, size: Dp = 40.dp, name: String? = null, logo: Int? = null) {
     val context = LocalContext.current
     val bitmap = remember(packageName) { context.app.catalog.icon(packageName) }
     if (bitmap != null) {
         Image(bitmap.asImageBitmap(), null, Modifier.size(size).clip(RoundedCornerShape(size / 4)))
+    } else if (logo != null) {
+        Image(painterResource(logo), null, Modifier.size(size))
     } else {
-        Box(Modifier.size(size).clip(RoundedCornerShape(size / 4)).background(Sp.colors.surfaceHigh))
+        val label = name ?: remember(packageName) { context.app.catalog.label(packageName) }
+        Box(Modifier.size(size).clip(RoundedCornerShape(size / 4)).background(Sp.colors.brandSoft), contentAlignment = Alignment.Center) {
+            Text(label.take(1).uppercase(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.brand)
+        }
     }
 }
 
@@ -217,17 +236,17 @@ fun GameBar(game: GameState?, modifier: Modifier = Modifier, onOpen: () -> Unit 
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Stat(onOpen) {
-            Flame(size = 26.dp, lit = game?.streakSafeToday == true)
-            Counter(game?.streak ?: 0, if (game?.streakSafeToday == true) c.flame else c.textDim)
+            Flame(size = 26.dp, lit = (game?.streak ?: 0) > 0 || game?.streakSafeToday == true)
+            Counter(game?.streak ?: 0, if ((game?.streak ?: 0) > 0 || game?.streakSafeToday == true) c.text else c.textDim)
         }
         Stat(onOpen) {
             XpBolt(size = 24.dp)
-            Counter(game?.xp ?: 0, c.goldLip)
+            Counter(game?.xp ?: 0, c.text)
         }
         Spacer(Modifier.weight(1f))
         Stat(onOpen) {
             Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(c.brand), contentAlignment = Alignment.Center) {
-                Text("${game?.level?.number ?: 1}", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                Text("${game?.level?.number ?: 1}", style = MaterialTheme.typography.labelMedium, color = c.onFill)
             }
             Text("LEVEL", style = MaterialTheme.typography.labelLarge, color = c.brand)
         }
@@ -291,6 +310,3 @@ fun appCount(count: Int): String = if (count == 1) "1 app" else "$count apps"
 fun ChoiceButton(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     ChunkyButton(text, onClick, modifier, kind = if (selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY, height = 46.dp)
 }
-
-/** Applies a change to the stored settings. */
-typealias SettingsUpdate = ((dev.agneswd.stillpoint.data.Settings) -> dev.agneswd.stillpoint.data.Settings) -> Unit

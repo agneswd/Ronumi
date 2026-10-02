@@ -1,73 +1,119 @@
 package dev.agneswd.stillpoint.focus
 
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.util.Log
 import dev.agneswd.stillpoint.data.FocusSound
-import kotlin.random.Random
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
-/**
- * Makes white, pink or brown noise on the device. No audio files, no network.
- * One background thread writes samples while a sound plays.
- */
-class NoisePlayer {
+/** Plays bundled library recordings offline. One worker owns the track until its fade ends. */
+class NoisePlayer(context: Context) {
+    private val assets = context.applicationContext.assets
     @Volatile
     private var sound = FocusSound.OFF
     private var thread: Thread? = null
 
+    @Synchronized
     fun play(next: FocusSound) {
         sound = next
-        if (thread?.isAlive == true) return
+        if (next != FocusSound.OFF && thread == null) startWorker()
+    }
+
+    @Synchronized
+    fun stop() {
+        sound = FocusSound.OFF
+    }
+
+    private fun startWorker() {
         thread = Thread(::loop, "focus-noise").apply { start() }
     }
 
-    fun stop() {
-        sound = FocusSound.OFF
-        thread = null
-    }
-
     private fun loop() {
-        val buffer = ShortArray(SAMPLE_RATE / 10)
-        val track = AudioTrack.Builder()
-            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-            .setAudioFormat(AudioFormat.Builder().setSampleRate(SAMPLE_RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-            .setBufferSizeInBytes(buffer.size * 2 * 2)
-            .build()
-        track.play()
-        val random = Random.Default
-        // Pink noise filter state (Paul Kellet's economy filter) and brown noise state.
-        var b0 = 0f; var b1 = 0f; var b2 = 0f
-        var brown = 0f
-        var gain = 0f
-        while (sound != FocusSound.OFF) {
-            val current = sound
-            for (i in buffer.indices) {
-                val white = random.nextFloat() * 2f - 1f
-                val sample = when (current) {
-                    FocusSound.WHITE -> white * 0.25f
-                    FocusSound.PINK -> {
-                        b0 = 0.99765f * b0 + white * 0.0990460f
-                        b1 = 0.96300f * b1 + white * 0.2965164f
-                        b2 = 0.57000f * b2 + white * 1.0526913f
-                        (b0 + b1 + b2 + white * 0.1848f) * 0.08f
-                    }
-                    FocusSound.BROWN -> {
-                        brown = (brown + white * 0.02f) / 1.02f
-                        brown * 2.5f
-                    }
-                    FocusSound.OFF -> 0f
-                }
-                // Fade in over about two seconds so the sound does not start with a jump.
-                gain = minOf(1f, gain + 1f / (SAMPLE_RATE * 2))
-                buffer[i] = (sample.coerceIn(-1f, 1f) * gain * Short.MAX_VALUE).toInt().toShort()
+        val buffer = ShortArray(FocusLoopRenderer.SAMPLE_RATE / 50)
+        val generator = FocusLoopRenderer { selected ->
+            val bytes = assets.open("focus/${selected.name.lowercase(java.util.Locale.ROOT)}.pcm").use { it.readBytes() }
+            require(bytes.isNotEmpty() && bytes.size % 2 == 0) { "Invalid focus audio asset" }
+            ShortArray(bytes.size / 2).also {
+                ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(it)
             }
-            track.write(buffer, 0, buffer.size)
         }
-        track.stop()
-        track.release()
+        var track: AudioTrack? = null
+        try {
+            val playback = AudioTrack.Builder()
+                .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+                .setAudioFormat(AudioFormat.Builder().setSampleRate(FocusLoopRenderer.SAMPLE_RATE)
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+                .setBufferSizeInBytes(maxOf(buffer.size * 4, AudioTrack.getMinBufferSize(
+                    FocusLoopRenderer.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)))
+                .build().also { track = it }
+            playback.play()
+            var totalWritten = 0L
+            while (true) {
+                generator.render(sound, buffer)
+                var written = 0
+                while (written < buffer.size) {
+                    val count = playback.write(buffer, written, buffer.size - written)
+                    check(count > 0) { "AudioTrack write failed: $count" }
+                    written += count
+                    totalWritten += count
+                }
+                if (synchronized(this) { sound == FocusSound.OFF && generator.isSilent }) {
+                    // Let the queued fade play before releasing the track.
+                    val deadline = System.nanoTime() + 500_000_000
+                    while ((totalWritten - playback.playbackHeadPosition.toLong()) and 0xffff_ffffL != 0L &&
+                        System.nanoTime() < deadline) Thread.sleep(5)
+                    return
+                }
+            }
+        } catch (error: Exception) {
+            synchronized(this) { sound = FocusSound.OFF }
+            Log.w("NoisePlayer", "Focus audio stopped", error)
+        } finally {
+            track?.let {
+                runCatching { it.stop() }
+                runCatching { it.release() }
+            }
+            synchronized(this) {
+                thread = null
+                // A play request can arrive while the old track drains and releases.
+                if (sound != FocusSound.OFF) startWorker()
+            }
+        }
+    }
+}
+
+/** Buffer-independent loop playback. Loading happens on the audio worker, after the old sound fades. */
+internal class FocusLoopRenderer(private val load: (FocusSound) -> ShortArray) {
+    private var current = FocusSound.OFF
+    private var gain = 0f
+    private var samples = shortArrayOf()
+    private var position = 0
+
+    val isSilent: Boolean get() = current == FocusSound.OFF && gain == 0f
+
+    fun render(requested: FocusSound, output: ShortArray) {
+        for (i in output.indices) {
+            if (current != requested && gain == 0f) {
+                current = requested
+                samples = if (current == FocusSound.OFF) shortArrayOf() else load(current).also {
+                    require(it.isNotEmpty()) { "Empty focus audio asset" }
+                }
+                position = 0
+            }
+            // Apply the old gain first so every start and sound change includes a zero sample.
+            output[i] = if (current == FocusSound.OFF) 0 else (samples[position] * gain).toInt().toShort()
+            if (samples.isNotEmpty()) position = (position + 1) % samples.size
+            gain = if (current == requested && current != FocusSound.OFF) {
+                minOf(1f, gain + 1f / (SAMPLE_RATE * 0.25f))
+            } else maxOf(0f, gain - 1f / (SAMPLE_RATE * 0.18f))
+        }
     }
 
-    private companion object {
+    companion object {
         const val SAMPLE_RATE = 22_050
     }
 }

@@ -26,11 +26,12 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
 
     fun hasAccess(): Boolean {
         val appOps = context.getSystemService(AppOpsManager::class.java)
-        val mode = appOps.unsafeCheckOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            Process.myUid(),
-            context.packageName,
-        )
+        val mode = if (android.os.Build.VERSION.SDK_INT >= 29) {
+            appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
+        }
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
@@ -43,6 +44,7 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
     fun day(date: LocalDate): DayUsage {
         val from = startOfDay(date)
         val to = minOf(startOfDay(date.plusDays(1)), System.currentTimeMillis())
+        if (from >= to) return DayUsage(date, emptyList(), 0)
         val hidden = catalog.launchers() + SYSTEM_UI
         val perApp = foregroundTimes(from, to)
             .filterKeys { it !in hidden }
@@ -60,44 +62,19 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
 
     private fun foregroundTimes(from: Long, to: Long): Map<String, Long> {
         if (!hasAccess()) return emptyMap()
-        val totals = HashMap<String, Long>()
-        val seen = HashSet<String>()
-        var current: String? = null
-        var start = from
-        fun close(at: Long) {
-            current?.let { totals[it] = (totals[it] ?: 0L) + (at - start).coerceAtLeast(0) }
-            current = null
-        }
-
-        val events = manager.queryEvents(from, to)
+        val timeline = ForegroundTimeline(from, to)
+        // Find the app already open at midnight, even before its first event today.
+        val events = manager.queryEvents((from - 86_400_000).coerceAtLeast(0), to)
         val event = UsageEvents.Event()
         while (events.getNextEvent(event)) {
-            val pkg = event.packageName
             when (event.eventType) {
-                UsageEvents.Event.ACTIVITY_RESUMED -> {
-                    if (current != pkg) {
-                        close(event.timeStamp)
-                        current = pkg
-                        start = event.timeStamp
-                    }
-                    seen += pkg
-                }
-
-                UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED -> {
-                    if (current == pkg) {
-                        close(event.timeStamp)
-                    } else if (pkg !in seen && current == null) {
-                        // The app was already open when the range started.
-                        totals[pkg] = (totals[pkg] ?: 0L) + (event.timeStamp - from)
-                    }
-                    seen += pkg
-                }
-
-                UsageEvents.Event.SCREEN_NON_INTERACTIVE, UsageEvents.Event.DEVICE_SHUTDOWN -> close(event.timeStamp)
+                UsageEvents.Event.ACTIVITY_RESUMED -> event.packageName?.let { timeline.resume(it, event.timeStamp) }
+                UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED ->
+                    event.packageName?.let { timeline.pause(it, event.timeStamp) }
+                UsageEvents.Event.SCREEN_NON_INTERACTIVE, UsageEvents.Event.DEVICE_SHUTDOWN -> timeline.screenOff(event.timeStamp)
             }
         }
-        close(to)
-        return totals
+        return timeline.result()
     }
 
     private fun unlocks(from: Long, to: Long): Int {

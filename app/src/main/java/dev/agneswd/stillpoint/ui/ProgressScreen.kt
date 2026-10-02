@@ -1,11 +1,18 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sound
+import dev.agneswd.stillpoint.ui.design.Sfx
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +29,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import dev.agneswd.stillpoint.data.settings
+import dev.agneswd.stillpoint.insights.UsageCategory
+import dev.agneswd.stillpoint.insights.usageCategory
+import dev.agneswd.stillpoint.insights.report
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -54,10 +66,13 @@ import dev.agneswd.stillpoint.ui.design.ChunkyCard
 import dev.agneswd.stillpoint.ui.design.ChunkyProgress
 import dev.agneswd.stillpoint.ui.design.Flame
 import dev.agneswd.stillpoint.ui.design.Medal
+import dev.agneswd.stillpoint.ui.design.companionMood
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Pebble
 import dev.agneswd.stillpoint.ui.design.ScreenTitle
+import dev.agneswd.stillpoint.insights.Report
 import dev.agneswd.stillpoint.ui.design.Sp
+import dev.agneswd.stillpoint.ui.design.XpBolt
 import dev.agneswd.stillpoint.ui.design.appear
 import dev.agneswd.stillpoint.ui.design.popIn
 import dev.agneswd.stillpoint.usage.DayUsage
@@ -78,7 +93,19 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
     val days by produceState(emptyList<DayUsage>(), refresh) {
         value = withContext(Dispatchers.IO) { app.usage.recentDays(7) }
     }
+    var badgeFilter by remember { mutableStateOf("All") }
     var openBadge by remember { mutableStateOf<Badge?>(null) }
+    val sessions by app.dao.sessions().collectAsState(emptyList())
+    val settings by app.dao.settings().collectAsState(null)
+    val records by app.dao.usageDays().collectAsState(emptyList())
+    var period by remember { mutableIntStateOf(7) }
+    val s = settings ?: return
+    val essentials by produceState(emptySet<String>(), refresh) {
+        value = withContext(Dispatchers.IO) { app.catalog.essentials() }
+    }
+    val totals = remember(sessions, records, s, period, essentials) {
+        report(sessions, records, s, period, essentialPackages = essentials)
+    }
     val g = game ?: return
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -92,7 +119,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
 
         // Level and XP.
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp).appear(0), verticalAlignment = Alignment.CenterVertically) {
-            Pebble(Mood.PROUD, size = 100.dp)
+            Pebble(game.companionMood(), size = 100.dp)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text("Level ${g.level.number}", style = MaterialTheme.typography.headlineMedium, color = Sp.colors.brand)
@@ -107,16 +134,32 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
             }
         }
 
-        // Streak.
-        ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(80), fill = Sp.colors.flame.copy(alpha = 0.08f)) {
+        ListRow("Pebble wardrobe", "Clothes, colors, hats, and accessories. Unlock more as you level up.",
+            onClick = { navigator.push(Route.Wardrobe) })
+
+        // An active streak stays lit while today's next step is still pending.
+        val activeStreak = g.streak > 0 || g.streakSafeToday
+        val remainingStreakMinutes = (dev.agneswd.stillpoint.game.STREAK_MINUTES - g.todayMinutes).coerceAtLeast(0)
+        val streakToday = java.time.LocalDate.now()
+        val streakMessage = when {
+            g.streakSafeToday -> "Today's streak step is complete."
+            !dev.agneswd.stillpoint.game.studyDay(s, streakToday) -> if (activeStreak) "Rest day. Your streak stays active." else "Rest day. Start a streak on your next focus day."
+            streakToday.toString() in s.frozenDays -> "A freeze protects today's streak."
+            activeStreak -> "Focus $remainingStreakMinutes more ${if (remainingStreakMinutes == 1) "minute" else "minutes"} today to extend it."
+            else -> "Focus ${dev.agneswd.stillpoint.game.STREAK_MINUTES} minutes today to start a streak."
+        }
+        ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(80)) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Flame(size = 56.dp, lit = g.streakSafeToday)
+                    Flame(size = 56.dp, lit = activeStreak)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("${g.streak} day streak", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.flame)
                         Text(
-                            if (g.streakSafeToday) "Today is done. See you tomorrow!" else "Focus 10 minutes today to keep it.",
+                            "${g.streak} day streak", style = MaterialTheme.typography.headlineSmall,
+                            color = if (!activeStreak) Sp.colors.textDim else if (Sp.colors.dark) Sp.colors.flame else Color(0xFFA64D00),
+                        )
+                        Text(
+                            streakMessage,
                             style = MaterialTheme.typography.bodyMedium,
                             color = Sp.colors.text,
                         )
@@ -137,17 +180,25 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
 
         // Numbers.
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp).appear(140), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatTile("⏱️", formatMinutes(g.totalMinutes), "Total focus", Modifier.weight(1f))
-            StatTile("✅", "${g.sessions}", "Sessions", Modifier.weight(1f))
-            StatTile("⚡", "${g.xp}", "Total XP", Modifier.weight(1f))
+            StatTile({ Icon(painterResource(R.drawable.ic_timer), null, tint = Sp.colors.brand, modifier = Modifier.size(24.dp)) }, formatMinutes(g.totalMinutes), "Total focus", Modifier.weight(1f))
+            StatTile({ Icon(painterResource(R.drawable.ic_check), null, tint = Sp.colors.mint, modifier = Modifier.size(24.dp)) }, "${g.sessions}", "Sessions", Modifier.weight(1f))
+            StatTile({ XpBolt(size = 24.dp) }, "${g.xp}", "Total XP", Modifier.weight(1f))
         }
 
         SectionTitle("Focus this week")
         ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(200)) {
-            Bars(g.week.map { it.first.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()) to it.second.toFloat() }, goal = g.goalMinutes.toFloat(), color = Sp.colors.brand) {
+            Bars(g.week.map { it.first.dayOfWeek.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale) to it.second.toFloat() }, goal = g.goalMinutes.toFloat(), color = Sp.colors.brand) {
                 formatMinutes(it.toInt())
             }
         }
+
+        SectionTitle("Focus reports")
+        Row(Modifier.padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(1 to "Today", 7 to "Week", 30 to "Month").forEach { (days, label) ->
+                ChoiceButton(label, period == days, Modifier.weight(1f)) { period = days }
+            }
+        }
+        ReportCard(totals, Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 12.dp).appear(200))
 
         SectionTitle("Screen time")
         ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(260)) {
@@ -165,7 +216,9 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                Bars(days.map { it.date.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()) to it.totalMillis / 60_000f }, goal = null, color = Sp.colors.rose) {
+                Text("Total screen time - all app categories", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+                Spacer(Modifier.height(6.dp))
+                Bars(days.map { it.date.dayOfWeek.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale) to it.totalMillis / 60_000f }, goal = null, color = Sp.colors.textDim) {
                     formatMinutes(it.toInt())
                 }
                 today?.perApp?.take(5)?.let { top ->
@@ -178,7 +231,21 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                             Column(Modifier.weight(1f)) {
                                 Text(app.catalog.label(pkg), style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
                                 Spacer(Modifier.height(4.dp))
-                                ShareBar(ms.toFloat() / most, color = Sp.colors.rose)
+                                val category = usageCategory(pkg, s, essentials)
+                                ShareBar(ms.toFloat() / most, color = when (category) {
+                                    UsageCategory.PRODUCTIVE -> Sp.colors.mint
+                                    UsageCategory.DISTRACTING -> Sp.colors.rose
+                                    UsageCategory.OTHER -> Sp.colors.textDim
+                                })
+                                Text(
+                                    when (category) {
+                                        UsageCategory.PRODUCTIVE -> "Productive"
+                                        UsageCategory.DISTRACTING -> "Distracting"
+                                        UsageCategory.OTHER -> "Other apps"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall, color = Sp.colors.textDim,
+                                    modifier = Modifier.padding(top = 3.dp),
+                                )
                             }
                             Spacer(Modifier.width(12.dp))
                             Text(formatDuration(ms), style = MaterialTheme.typography.titleSmall, color = Sp.colors.textDim)
@@ -189,11 +256,42 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         }
 
         SectionTitle("Badges", action = { Text("${g.badges.count { it.unlocked }} / ${g.badges.size}", style = MaterialTheme.typography.titleMedium, color = Sp.colors.textDim) })
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            listOf("All", "Next", "Earned", "Sessions", "Time", "Rhythm", "Purpose", "Quests").forEach { filter ->
+                Text(
+                    filter,
+                    Modifier.clip(RoundedCornerShape(12.dp))
+                        .background(if (badgeFilter == filter) Sp.colors.brandSoft else Sp.colors.background)
+                        .selectable(badgeFilter == filter, role = Role.Tab) { badgeFilter = filter }
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (badgeFilter == filter) Sp.colors.brand else Sp.colors.textDim,
+                )
+            }
+        }
+        val visibleBadges = when (badgeFilter) {
+            "All" -> g.badges
+            "Next" -> g.badges.filterNot { it.unlocked }.sortedByDescending { it.progress }.take(6)
+            "Earned" -> g.badges.filter { it.unlocked }
+            else -> g.badges.filter { badgeGroup(it.id) == badgeFilter }
+        }
+        if (visibleBadges.isEmpty()) {
+            Text(
+                if (badgeFilter == "Earned") "Your first badge starts with one completed session." else "You have earned every badge in this group.",
+                Modifier.padding(horizontal = ScreenPadding, vertical = 12.dp),
+                style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim,
+            )
+        }
         Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            g.badges.chunked(3).forEachIndexed { row, chunk ->
+            visibleBadges.chunked(3).forEachIndexed { row, chunk ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     chunk.forEachIndexed { i, badge ->
-                        BadgeView(badge, Modifier.weight(1f).popIn(300 + (row * 3 + i) * 60)) { openBadge = badge }
+                        BadgeView(badge, Modifier.weight(1f).popIn(300 + (row * 3 + i) * 60)) {
+                            openBadge = badge
+                        }
                     }
                     repeat(3 - chunk.size) { Spacer(Modifier.weight(1f)) }
                 }
@@ -212,7 +310,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                     Text(badge.detail, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(14.dp))
                     if (badge.unlocked) {
-                        Text("Unlocked!", style = MaterialTheme.typography.titleMedium, color = Sp.colors.mintLip)
+                        Text("Unlocked!", style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
                     } else {
                         ChunkyProgress(badge.progress, color = Sp.colors.gold)
                         Text("${(badge.progress * 100).toInt()}%", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim, modifier = Modifier.padding(top = 6.dp))
@@ -225,11 +323,84 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
     }
 }
 
+/** The report for the chosen period: focus, where screen time went, tags, held notifications and time saved. */
 @Composable
-private fun StatTile(emoji: String, value: String, label: String, modifier: Modifier) {
+private fun ReportCard(totals: Report, modifier: Modifier) {
+    ChunkyCard(modifier.fillMaxWidth()) {
+        Column {
+            Text(formatMinutes(totals.focusMinutes.toInt()), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.brand)
+            Text("focus, ${formatMinutes(totals.averageMinutes.toInt())} a day on average", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+
+            val used = totals.screenMillis
+            if (used > 0) {
+                Spacer(Modifier.height(18.dp))
+                Text("${formatDuration(used)} screen time in this period", style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+                Spacer(Modifier.height(8.dp))
+                val categories = listOf(
+                    Triple("Productive", totals.productiveMillis, Sp.colors.mint),
+                    Triple("Distracting", totals.distractingMillis, Sp.colors.rose),
+                    Triple("Other apps", totals.uncategorizedMillis, Sp.colors.textDim),
+                )
+                Row(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp))) {
+                    categories.forEach { (_, duration, color) ->
+                        if (duration > 0) Box(Modifier.weight(duration.toFloat() / used).fillMaxHeight().background(color))
+                    }
+                }
+                categories.forEach { (label, duration, color) ->
+                    Spacer(Modifier.height(8.dp))
+                    Legend(label, formatDuration(duration), color, Modifier.fillMaxWidth())
+                }
+                Text("Productive apps are your choices. Distracting apps follow your focus block list. Other apps are the rest.",
+                    style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                    modifier = Modifier.padding(top = 8.dp))
+            }
+
+            if (totals.tags.isNotEmpty()) {
+                Spacer(Modifier.height(18.dp))
+                Text("By tag", style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+                val most = totals.tags.maxOf { it.second }.coerceAtLeast(1)
+                totals.tags.forEach { (tag, minutes) ->
+                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(tag, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.text, modifier = Modifier.width(96.dp), maxLines = 1)
+                        ShareBar(minutes.toFloat() / most, Modifier.weight(1f))
+                        Text(formatMinutes(minutes.toInt()), style = MaterialTheme.typography.titleSmall, color = Sp.colors.textDim, modifier = Modifier.padding(start = 10.dp))
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+            Box(Modifier.fillMaxWidth().height(2.dp).background(Sp.colors.border))
+            Spacer(Modifier.height(14.dp))
+            Row {
+                Column(Modifier.weight(1f)) {
+                    Text("${totals.notificationsHeld}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
+                    Text("notifications held", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(totals.timeSavedMillis?.let(::formatDuration) ?: "Soon", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
+                    Text(if (totals.timeSavedMillis == null) "time saved, after 7 days of data" else "time saved", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Legend(label: String, value: String, color: Color, modifier: Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(color))
+        Spacer(Modifier.width(6.dp))
+        Text("$label ", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+        Text(value, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+    }
+}
+
+@Composable
+private fun StatTile(icon: @Composable () -> Unit, value: String, label: String, modifier: Modifier) {
     ChunkyCard(modifier, contentPadding = 12.dp) {
         Column {
-            Text(emoji, style = MaterialTheme.typography.titleLarge)
+            icon()
+            Spacer(Modifier.height(4.dp))
             Text(value, style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, maxLines = 1)
             Text(label, style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
         }
@@ -274,20 +445,42 @@ fun Bars(values: List<Pair<String, Float>>, goal: Float?, color: Color, label: (
 }
 
 private val badgeLooks = mapOf(
-    "first" to "🌱", "streak3" to "🔥", "streak7" to "🎯", "streak30" to "🏔️", "hours10" to "🌊",
-    "hours50" to "⛰️", "marathon" to "🏃", "early" to "🌅", "night" to "🦉", "sessions50" to "🧱",
+    "first" to "🌱", "sessions5" to "🎵", "sessions10" to "🪴", "sessions25" to "🛠️",
+    "sessions50" to "🧱", "sessions100" to "🏡",
+    "hours1" to "⌛", "hours5" to "🌿", "hours10" to "🌊", "hours25" to "🌳",
+    "hours50" to "⛰️", "hours100" to "🌲",
+    "streak3" to "🔥", "streak7" to "🎯", "streak14" to "🗓️", "streak30" to "🏔️",
+    "days7" to "👣", "days30" to "🔁", "days100" to "🧭",
+    "goals1" to "🏁", "goals7" to "🪺", "goals30" to "✅",
+    "named1" to "🏷️", "named10" to "📝", "notes1" to "✏️", "notes10" to "📖",
+    "quests10" to "🔎", "quests50" to "🎒", "questday1" to "☀️", "questday7" to "🌈",
+    "marathon" to "🏃", "early" to "🌅", "night" to "🦉",
 )
+
+private fun badgeGroup(id: String): String = when {
+    id == "first" || id.startsWith("sessions") -> "Sessions"
+    id.startsWith("hours") || id in setOf("marathon", "early", "night") -> "Time"
+    id.startsWith("streak") || id.startsWith("days") || id.startsWith("goals") -> "Rhythm"
+    id.startsWith("named") || id.startsWith("notes") -> "Purpose"
+    else -> "Quests"
+}
 
 @Composable
 private fun BadgeMedal(badge: Badge, size: androidx.compose.ui.unit.Dp) {
-    val colors = listOf(Sp.colors.brand to Sp.colors.brandLip, Sp.colors.flame to Sp.colors.flameLip, Sp.colors.mint to Sp.colors.mintLip, Sp.colors.rose to Sp.colors.roseLip, Sp.colors.gold to Sp.colors.goldLip)
-    val (fill, lip) = colors[kotlin.math.abs(badge.id.hashCode()) % colors.size]
+    val (fill, lip) = when (badgeGroup(badge.id)) {
+        "Sessions" -> Sp.colors.mint to Sp.colors.mintLip
+        "Time" -> Sp.colors.brand to Sp.colors.brandLip
+        "Rhythm" -> Sp.colors.flame to Sp.colors.flameLip
+        "Purpose" -> Sp.colors.rose to Sp.colors.roseLip
+        else -> Sp.colors.gold to Sp.colors.goldLip
+    }
     Box(contentAlignment = Alignment.Center) {
         Medal(fill, lip, locked = !badge.unlocked, size = size)
-        Text(
-            if (badge.unlocked) badgeLooks[badge.id] ?: "⭐" else "🔒",
-            style = if (size > 80.dp) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineSmall,
-        )
+        if (badge.unlocked) {
+            Text(badgeLooks[badge.id] ?: "⭐", style = if (size > 80.dp) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineSmall)
+        } else {
+            Icon(painterResource(R.drawable.ic_lock), "Locked", tint = Sp.colors.textDim, modifier = Modifier.size(size * 0.34f))
+        }
     }
 }
 
@@ -296,16 +489,18 @@ private fun BadgeView(badge: Badge, modifier: Modifier, onClick: () -> Unit) {
     Column(modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         BadgeMedal(badge, 70.dp)
         Spacer(Modifier.height(6.dp))
+        if (!badge.unlocked) {
+            ChunkyProgress(badge.progress, Modifier.padding(horizontal = 8.dp), color = Sp.colors.gold, height = 6.dp)
+        } else {
+            Spacer(Modifier.height(6.dp))
+        }
+        Spacer(Modifier.height(6.dp))
         Text(
             badge.title,
             style = MaterialTheme.typography.labelMedium,
             color = if (badge.unlocked) Sp.colors.text else Sp.colors.textDim,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 3,
         )
-        if (!badge.unlocked) {
-            Spacer(Modifier.height(4.dp))
-            ChunkyProgress(badge.progress, Modifier.padding(horizontal = 8.dp), color = Sp.colors.gold, height = 6.dp)
-        }
     }
 }

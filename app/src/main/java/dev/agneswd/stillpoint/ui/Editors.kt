@@ -3,6 +3,10 @@ package dev.agneswd.stillpoint.ui
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import dev.agneswd.stillpoint.ui.design.ScheduleIcon
+import dev.agneswd.stillpoint.ui.design.scheduleIconChoices
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -93,7 +97,7 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
                 { query = it },
                 label = { Text("Search") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).trackTextFieldFocus(),
             )
             val shown = apps.orEmpty().filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
                 // Chosen apps first, so the user sees the current choice at the top.
@@ -125,9 +129,46 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
     val original = route.original
     var draft by route::draft
     var picking by remember { mutableStateOf<Boolean?>(null) } // true = start, false = end
-    val save = {
-        context.app.scope.launch { context.app.dao.saveSchedule(draft.copy(name = draft.name.trim())) }
-        onClose()
+    var pickingIcon by remember { mutableStateOf(false) }
+    val save: () -> Unit = {
+        context.app.scope.launch {
+            if (dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, draft.copy(name = draft.name.trim()))) {
+                kotlinx.coroutines.withContext(Dispatchers.Main) { onClose() }
+            }
+        }
+    }
+    if (pickingIcon) {
+        AlertDialog(
+            onDismissRequest = { pickingIcon = false },
+            title = { Text("Choose a schedule icon") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Automatic follows the start time. Pick another icon for your own routine.", color = Sp.colors.textDim)
+                    scheduleIconChoices.chunked(3).forEach { choices ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            choices.forEach { (id, label) ->
+                                Column(
+                                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                                        .background(if (draft.icon == id) Sp.colors.brandSoft else Sp.colors.background)
+                                        .selectable(draft.icon == id, role = Role.RadioButton) {
+                                            draft = draft.copy(icon = id)
+                                            pickingIcon = false
+                                        }.padding(vertical = 10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    ScheduleIcon(id, draft.startMinute, size = 34.dp)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(label, style = MaterialTheme.typography.labelMedium, color = Sp.colors.text,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                }
+                            }
+                            repeat(3 - choices.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { pickingIcon = false }) { Text("Close") } },
+        )
     }
     EditorFrame(
         if (original == null) "New schedule" else "Edit schedule",
@@ -142,8 +183,12 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 { draft = draft.copy(name = it) },
                 label = { Text("Name") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).trackTextFieldFocus(),
             )
+            ListRow(
+                "Schedule icon", scheduleIconChoices.firstOrNull { it.first == draft.icon }?.second ?: "Automatic",
+                onClick = { pickingIcon = true },
+            ) { ScheduleIcon(draft.icon, draft.startMinute, size = 40.dp) }
             ListRow("Starts", minuteText(draft.startMinute), onClick = { picking = true })
             ListRow(
                 "Ends",
@@ -167,13 +212,17 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            day.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                            day.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale),
                             style = MaterialTheme.typography.titleMedium,
                             color = if (on) Sp.colors.onFill else Sp.colors.textDim,
                         )
                     }
                 }
             }
+
+            SectionTitle("Planned focus")
+            SwitchRow("Start focus at this time", "Allow alarms in Settings for automatic start. Otherwise you receive a reminder.", draft.startFocus) { on -> draft = draft.copy(startFocus = on) }
+            if (draft.startFocus) Stepper("Focus length", draft.focusMinutes, 5..240, 5, { dev.agneswd.stillpoint.guard.formatMinutes(it) }) { value -> draft = draft.copy(focusMinutes = value) }
 
             SectionTitle("Apps")
             ListRow(
@@ -186,7 +235,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                         },
                     )
                 },
-            )
+            ) { AppSelectionPreview(draft.packages) }
             SwitchRow("Block every other app", "Only the chosen apps work during this schedule.", draft.mode == BlockMode.ALL_EXCEPT) { on ->
                 draft = draft.copy(mode = if (on) BlockMode.ALL_EXCEPT else BlockMode.LISTED)
             }
@@ -196,8 +245,11 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 ChunkyButton(
                     "Delete schedule",
                     {
-                        context.app.scope.launch { context.app.dao.deleteSchedule(original) }
-                        onClose()
+                        context.app.scope.launch {
+                            if (dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, original, delete = true)) {
+                                kotlinx.coroutines.withContext(Dispatchers.Main) { onClose() }
+                            }
+                        }
                     },
                     Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
                     kind = ButtonKind.DANGER,
@@ -218,7 +270,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimeDialog(minute: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+fun TimeDialog(minute: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
     val state = rememberTimePickerState(minute / 60, minute % 60, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -233,7 +285,10 @@ fun HeldScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val dao = context.app.dao
     val held by dao.held().collectAsState(emptyList())
-    EditorFrame("Held notifications", onClose, action = "Clear all", onAction = { context.app.scope.launch { dao.clearHeld() } }, actionEnabled = held.isNotEmpty()) {
+    EditorFrame("Held notifications", onClose, action = "Clear all", onAction = { context.app.scope.launch {
+        dao.clearHeld()
+        context.getSharedPreferences("delivery", android.content.Context.MODE_PRIVATE).edit().remove("lastDelivered").apply()
+    } }, actionEnabled = held.isNotEmpty()) {
         LazyColumn {
             if (held.isEmpty()) item { ListRow("Nothing held", "Notifications from your chosen apps show here.") }
             items(held, key = { it.id }) { item ->
@@ -248,6 +303,24 @@ fun HeldScreen(onClose: () -> Unit) {
                             ?.let(context::startActivity)
                     },
                 )
+            }
+        }
+    }
+}
+
+/** At least one active day is required. */
+@Composable
+fun DayChoices(mask: Int, onChange: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.SpaceBetween) {
+        DayOfWeek.entries.forEach { day ->
+            val bit = 1 shl (day.value - 1)
+            val on = mask and bit != 0
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(20.dp))
+                .background(if (on) Sp.colors.brand else Sp.colors.surfaceHigh).clickable {
+                    val next = mask xor bit
+                    if (next != 0) onChange(next)
+                }, contentAlignment = Alignment.Center) {
+                Text(day.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale), color = if (on) Sp.colors.onFill else Sp.colors.textDim)
             }
         }
     }

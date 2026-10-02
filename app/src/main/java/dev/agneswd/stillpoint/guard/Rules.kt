@@ -10,7 +10,7 @@ import dev.agneswd.stillpoint.data.Settings
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-enum class BlockKind { FOCUS, SCHEDULE, LIMIT, SHORTS, SITE, PROTECTION }
+enum class BlockKind { FOCUS, SCHEDULE, LIMIT, SHORTS, SITE, PROTECTION, STUDY, MULTI_WINDOW }
 
 /** Why the block screen shows. [gentle] blocks let the user take 5 more minutes. */
 data class BlockReason(
@@ -65,6 +65,8 @@ data class Rules(
             }
         }
 
+        if (settings.pauseBlocksUntil > System.currentTimeMillis()) return Verdict.Allow
+
         if (pkg !in essentials) {
             activeSchedules(now).firstOrNull { it.mode.blocks(pkg, it.packages) }?.let { schedule ->
                 return Verdict.Block(
@@ -74,7 +76,7 @@ data class Rules(
         }
 
         val limit = limits[pkg]?.takeIf { it.enabled } ?: return Verdict.Allow
-        if (System.currentTimeMillis() < allowedUntil) return Verdict.Allow
+        if (limit.mode == LimitMode.GENTLE && System.currentTimeMillis() < allowedUntil) return Verdict.Allow
         val usedMinutes = usedToday() / 60_000
         if (usedMinutes < limit.minutesPerDay) return Verdict.Allow
         return Verdict.Block(

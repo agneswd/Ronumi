@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Stillpoint"
-include(":app")
+include(":app", ":e2e-driver")

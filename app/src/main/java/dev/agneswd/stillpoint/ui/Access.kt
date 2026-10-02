@@ -48,8 +48,10 @@ data class Access(
     val guard: Boolean,
     val notifications: Boolean,
     val listener: Boolean,
+    val exactAlarms: Boolean = true,
 ) {
     val ready: Boolean get() = usage && guard
+    val allAllowed: Boolean get() = ready && notifications && listener && exactAlarms
 
     companion object {
         fun read(context: Context) = Access(
@@ -57,6 +59,7 @@ data class Access(
             guard = GuardService.isEnabled(context),
             notifications = NotificationManagerCompat.from(context).areNotificationsEnabled(),
             listener = HoldListener.isEnabled(context),
+            exactAlarms = dev.agneswd.stillpoint.schedule.Plans.exactAllowed(context),
         )
     }
 }
@@ -74,11 +77,11 @@ fun rememberAccess(): Access {
 }
 
 @Composable
-fun AccessRows(access: Access, includeOptional: Boolean) {
+fun AccessRows(access: Access, includeOptional: Boolean, onlyMissing: Boolean = false) {
     val context = LocalContext.current
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    AccessRow(
+    if (!onlyMissing || !access.usage) AccessRow(
         "Usage access",
         "Shows screen time and checks app limits.",
         access.usage,
@@ -88,13 +91,18 @@ fun AccessRows(access: Access, includeOptional: Boolean) {
             Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS),
         )
     }
-    AccessRow(
+    if (!onlyMissing || !access.guard) AccessRow(
         "Accessibility",
         "Sees which app is open so Stillpoint can block it. If the switch is grey, open App info, tap the menu, then allow restricted settings.",
         access.guard,
     ) { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
     if (!includeOptional) return
-    AccessRow(
+    if (Build.VERSION.SDK_INT >= 31 && (!onlyMissing || !access.exactAlarms)) AccessRow(
+        "Alarms and reminders",
+        "Starts planned focus and ends timer rounds while the phone sleeps.",
+        access.exactAlarms,
+    ) { context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))) }
+    if (!onlyMissing || !access.notifications) AccessRow(
         "Notifications",
         "Shows the focus timer and tells you when a round ends.",
         access.notifications,
@@ -105,7 +113,7 @@ fun AccessRows(access: Access, includeOptional: Boolean) {
             context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
         }
     }
-    AccessRow(
+    if (!onlyMissing || !access.listener) AccessRow(
         "Notification access",
         "Holds notifications from the apps you choose.",
         access.listener,

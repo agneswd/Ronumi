@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sound
+import dev.agneswd.stillpoint.ui.design.Sfx
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -8,12 +10,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.SideEffect
+import androidx.core.view.WindowCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -81,13 +88,21 @@ sealed interface Route {
         var draft by mutableStateOf(original ?: Schedule(name = "Evening focus", startMinute = 18 * 60, endMinute = 20 * 60))
     }
 
+    data object Wardrobe : Route
     data object Held : Route
     data object Settings : Route
+    data object Updates : Route
     data object FocusSetup : Route
+    data object ShortVideos : Route
+    data object Websites : Route
+    data object Notifications : Route
+    data object Strict : Route
 }
 
 /** Opens new screens. The tabs and editors get it instead of a navigation library. */
-class Navigator {
+class Navigator : androidx.lifecycle.ViewModel() {
+    val settingsScroll = androidx.compose.foundation.ScrollState(0)
+    var showPermissions by mutableStateOf(false)
     var tab by mutableStateOf(Tab.HOME)
     val stack = mutableStateListOf<Route>()
 
@@ -105,22 +120,32 @@ class Navigator {
 }
 
 class MainActivity : ComponentActivity() {
-    private val navigator = Navigator()
+    private val navigator by viewModels<Navigator>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        openFrom(intent)
+        if (savedInstanceState == null) openFrom(intent)
         setContent {
-            StillpointTheme {
-                App(navigator)
+            val themeSettings by app.dao.settings().collectAsState(null)
+            val themeMode = themeSettings?.themeMode ?: return@setContent
+            StillpointTheme(themeMode = themeMode) {
+                KeyboardDismissHost { App(navigator) }
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
-        lifecycleScope.launch { applyStreakFreezes(app.dao) }
+        lifecycleScope.launch {
+            applyStreakFreezes(app.dao)
+            dev.agneswd.stillpoint.focus.Focus.recover(this@MainActivity)
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                if (app.usage.hasAccess()) app.usage.recentDays(7) else emptyList()
+            }.forEach { usage ->
+                app.dao.recordUsage(dev.agneswd.stillpoint.data.UsageDay(usage.date.toString(), usage.perApp.toMap(), usage.unlocks))
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -129,11 +154,29 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openFrom(intent: Intent) {
+        if (intent.getBooleanExtra(dev.agneswd.stillpoint.update.UpdateScheduler.SHOW_UPDATES, false)) {
+            navigator.focusMinimized = true
+            navigator.stack.clear()
+            navigator.push(Route.Updates)
+            return
+        }
         when (val target = intent.getStringExtra(EXTRA_TAB)) {
             null -> Unit
             FOCUS -> {
                 navigator.focusMinimized = false
                 navigator.stack.clear()
+                // Without a running session, this opens the setup controls.
+                lifecycleScope.launch {
+                    val planId = intent.getLongExtra("planId", 0)
+                    val plan = app.dao.allSchedules().firstOrNull { it.id == planId && it.enabled && it.startFocus }
+                    if (plan != null) dev.agneswd.stillpoint.focus.Focus.start(this@MainActivity, plan.name, plan = plan)
+                    else if (app.dao.activeFocus() == null) navigator.push(Route.FocusSetup)
+                }
+            }
+            "INBOX" -> {
+                navigator.focusMinimized = true
+                navigator.stack.clear()
+                navigator.push(Route.Held)
             }
             else -> Tab.entries.firstOrNull { it.name == target }?.let {
                 navigator.tab = it
@@ -158,6 +201,12 @@ class MainActivity : ComponentActivity() {
         fun pendingFocus(context: Context): PendingIntent =
             PendingIntent.getActivity(context, 10, focusIntent(context), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
+        fun pendingInbox(context: Context): PendingIntent =
+            PendingIntent.getActivity(context, 12, intent(context, "INBOX"), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+        fun pendingPlan(context: Context, id: Long): PendingIntent =
+            PendingIntent.getActivity(context, 100 + id.toInt(), focusIntent(context).putExtra("planId", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
         fun pendingHome(context: Context): PendingIntent =
             PendingIntent.getActivity(context, 11, intent(context, Tab.HOME.name), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
@@ -171,44 +220,96 @@ private fun App(navigator: Navigator) {
     val focus by dao.activeFocusFlow().collectAsState(null)
     val sessions by dao.sessions().collectAsState(emptyList())
     val celebrate by Celebrations.pending.collectAsState()
-    val game = remember(sessions, settings) { settings?.let { gameState(sessions, it) } }
+    var today by remember { mutableStateOf(java.time.LocalDate.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val date = java.time.LocalDate.now()
+            if (date != today) {
+                applyStreakFreezes(dao, date)
+                today = date
+            }
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
+    val game = remember(sessions, settings, today) { settings?.let { gameState(sessions, it, today) } }
 
     LaunchedEffect(focus == null) {
         if (focus == null) navigator.focusMinimized = false
     }
 
     val s = settings
-    Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
-        val running = focus
-        val celebrateId = celebrate
-        val route = navigator.stack.lastOrNull()
-        when {
-            s == null -> Unit
-            !s.onboarded -> Onboarding(onDone = { navigator.tab = Tab.HOME })
-            celebrateId != null -> Celebration(celebrateId, onDone = Celebrations::consume)
-            running != null && !navigator.focusMinimized && route == null -> FocusSession(running, onMinimize = { navigator.focusMinimized = true })
-            else -> {
-                BackHandler(enabled = route != null) { navigator.pop() }
-                AnimatedContent(
-                    route,
-                    transitionSpec = { (slideInVertically(tween(260)) { it / 8 } + fadeIn(tween(260))) togetherWith fadeOut(tween(160)) },
-                    label = "route",
-                ) { current ->
-                    when (current) {
-                        is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
-                        is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
-                        Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
-                        Route.Settings -> Page { SettingsScreen(onClose = navigator::pop) }
-                        Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
-                        null -> Tabs(navigator, game)
+    val dark = Sp.colors.dark
+    val focusVisible = focus != null && !navigator.focusMinimized && navigator.stack.isEmpty() && celebrate == null
+    SideEffect {
+        val window = (context as? android.app.Activity)?.window
+        if (window != null) {
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                isAppearanceLightStatusBars = !dark && !focusVisible
+                isAppearanceLightNavigationBars = !dark && !focusVisible
+            }
+        }
+    }
+    androidx.compose.runtime.CompositionLocalProvider(
+        dev.agneswd.stillpoint.ui.design.LocalPebbleStyle provides
+            dev.agneswd.stillpoint.game.PebbleStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1, s?.petTapCount ?: 0),
+    ) {
+        Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
+            val running = focus
+            val celebrateId = celebrate
+            val route = navigator.stack.lastOrNull()
+            when {
+                s == null -> Unit
+                !s.onboarded -> Onboarding(onDone = { navigator.tab = Tab.HOME })
+                celebrateId != null -> Celebration(celebrateId, onDone = Celebrations::consume)
+                else -> {
+                    // Keep the outgoing route until the focus screen covers it.
+                    val fullFocus = running?.takeIf { !navigator.focusMinimized && route == null }
+                    AnimatedContent(
+                        targetState = fullFocus to route,
+                        contentKey = { (session, _) -> session != null },
+                        transitionSpec = {
+                            (fadeIn(tween(420)) + scaleIn(
+                                tween(420, easing = FastOutSlowInEasing), initialScale = 0.985f,
+                            )) togetherWith fadeOut(tween(260))
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        label = "focusScreen",
+                    ) { (session, visibleRoute) ->
+                        if (session != null) {
+                            FocusSession(session, onMinimize = { navigator.focusMinimized = true })
+                        } else {
+                            Box(Modifier.fillMaxSize()) {
+                                BackHandler(enabled = visibleRoute != null) { navigator.pop() }
+                                AnimatedContent(
+                                    visibleRoute,
+                                    transitionSpec = { (slideInVertically(tween(260)) { it / 8 } + fadeIn(tween(260))) togetherWith fadeOut(tween(160)) },
+                                    label = "route",
+                                ) { current ->
+                                    when (current) {
+                                        is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
+                                        is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
+                                        Route.Wardrobe -> Page { game?.let { WardrobeScreen(it, navigator::pop) } }
+                                        Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
+                                        Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
+                                        Route.Updates -> Page { UpdatesScreen(onClose = navigator::pop) }
+                                        Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
+                                        Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
+                                        Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
+                                        Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
+                                        Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
+                                        null -> Tabs(navigator, game)
+                                    }
+                                }
+                                if (running != null && visibleRoute == null) {
+                                    FocusChip(
+                                        running,
+                                        onOpen = { navigator.focusMinimized = false },
+                                        modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
+                                    )
+                                }
+                            }
+                        }
                     }
-                }
-                if (running != null && route == null) {
-                    FocusChip(
-                        running,
-                        onOpen = { navigator.focusMinimized = false },
-                        modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
-                    )
                 }
             }
         }
@@ -248,7 +349,9 @@ private fun TabBar(navigator: Navigator) {
                 Column(
                     Modifier
                         .weight(1f)
-                        .clickable(remember { MutableInteractionSource() }, indication = null) { navigator.tab = tab }
+                        .clickable(remember { MutableInteractionSource() }, indication = null) {
+                            navigator.tab = tab
+                        }
                         .padding(vertical = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {

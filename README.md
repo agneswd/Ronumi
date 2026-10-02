@@ -1,52 +1,116 @@
 # Stillpoint
 
-An offline Android app that limits screen time and blocks distractions.
-It has no account, no ads and no `INTERNET` permission. All data stays on the phone.
-Every feature is free.
+A focus app for Android, with a little company from Pebble.
 
-## Features
+Pick a task, block the apps that interrupt it, and start a session. Your focus time earns new clothes for Pebble,
+daily quest rewards, and a record of the work you put in.
 
-- **Today.** Screen time, unlocks, the last 7 days and the most used apps. Tap an app to set a limit.
-- **App limits.** A daily budget per app. A gentle limit lets you take 5 more minutes after a 10 second wait. A strict limit holds until midnight.
-- **Schedules.** Block a list of apps, or all apps except a list, in a time window on chosen days.
-- **Focus.** A timer with rounds and breaks. It blocks the chosen apps, can lock the home screen, can refuse to end early, and can play white, pink or brown noise. Sessions have tags, notes, a daily goal and a streak.
-- **Short videos.** Closes YouTube Shorts, Instagram Reels, Snapchat Spotlight and Facebook Reels, and keeps the rest of the app.
-- **Websites.** Blocks domains and their subdomains in common browsers, with an optional adult-site list.
-- **Held notifications.** Removes notifications from chosen apps during focus and schedules, or all day, and keeps them in a list.
-- **Strict mode.** While a block runs, the settings pages that can turn off or remove Stillpoint close at once, and the Blocks tab is locked.
-- **Widgets.** Screen time today, and a one-tap focus start.
-- **Backup.** Save and restore limits, schedules, sites, settings and history as a JSON file.
+Free and open source. No account, ads, or analytics. Focus works offline.
 
-## How it works
+<p>
+  <img src="docs/images/home.png" alt="Home with Pebble, a daily focus goal, and quests" width="30%">
+  <img src="docs/images/focus.png" alt="A focus timer against the animated Dawn scene" width="30%">
+  <img src="docs/images/wardrobe-dark.png" alt="Pebble wearing a beanie and overalls in the dark-mode wardrobe" width="30%">
+</p>
 
-| Part | File |
-|---|---|
-| Blocking rules, as plain functions | `guard/Rules.kt` |
-| Accessibility service that finds the app in front and applies the rules | `guard/GuardService.kt` |
-| View ids for Shorts feeds and browser address bars | `guard/Detectors.kt` |
-| Screen time and unlocks from usage events | `usage/UsageReader.kt` |
-| Focus session state machine | `focus/Focus.kt` |
-| Room database, one `Settings` row | `data/` |
+## Get Stillpoint
 
-Apps change their view ids. If a Shorts feed or a browser stops being detected, update the table in `guard/Detectors.kt`.
+Stillpoint supports **Android 9 and later**. The first public release is still in preparation.
+The APK will be available on the [Releases page](https://github.com/agneswd/Stillpoint/releases).
 
-## Build
+Once available, download and open the APK. Android may ask you to allow installation from your browser or file manager.
+Then follow Pebble's setup guide, choose your distracting apps, and start your first session.
 
-```sh
-./gradlew assembleDebug
-```
+## Make time for a task
 
-On Android 13 and later, a sideloaded app needs "Allow restricted settings" in App info before you can turn on its accessibility service.
+Use a countdown timer, an open-ended stopwatch, or Pomodoro sessions with breaks.
+Give the session a name, choose one of five animated scenes, and settle in.
+Rain, waves, and white, pink, or brown noise are bundled with the app, so you can listen without a connection.
 
-## End-to-end test
+Save a note when you finish. Review your focus time by day, week, or month to see what worked.
+Home-screen widgets let you start another session quickly.
 
-Start an emulator or connect a phone, then:
+The app follows your phone's light or dark theme. You can also choose either theme in Settings.
 
-```sh
-./gradlew assembleDebug && python3 e2e/e2e.py
-python3 e2e/demo.py   # optional: records e2e/artifacts/demo.mp4
-```
+## Give distractions a limit
 
-The test grants the permissions with adb and drives the real UI. It saves screenshots, `report.md` and `crash.log` to `e2e/artifacts/<run>/`.
+Set daily app budgets or block selected apps while you focus. Create schedules for study, work, or bedtime,
+with an icon you choose. Use short passes when you need flexibility, or a strict session that prevents an early exit.
 
-A UI dump attaches a second accessibility client, and Android pauses other accessibility services while it runs. So the test sets things up through the UI first. It then turns the guard on again and checks enforcement with `dumpsys` and the `Stillpoint` log tag only.
+Stillpoint can also hold selected app notifications in an inbox. Read them later or choose times for a summary.
+Separate settings control focus updates, planned reminders, and inbox summaries.
+
+<p>
+  <img src="docs/images/blocks.png" alt="App limits, an evening schedule, and controls for short videos and websites" width="30%">
+  <img src="docs/images/progress.png" alt="Progress with a level, active streak, and focus totals" width="30%">
+</p>
+
+Screen-time reports separate productive apps, distracting apps, and other apps. You choose which apps count as productive.
+Your focus block list defines distracting apps.
+
+Blocking needs Android permissions to work. Strict mode cannot prevent force-stop, safe mode, or every uninstall method.
+Website and short-video detection also depend on what other apps expose. Current YouTube compatibility still needs verification.
+
+## A wardrobe you earn
+
+Pebble reacts when you tap and changes mood with your recent focus habits. Rest days and streak freezes protect that mood.
+As you level up, unlock **36 colors, clothes, hats, and accessories across levels 1 to 20**.
+There is also a hidden outfit to discover.
+
+Open **Pebble wardrobe** from Home or Progress to try things on. Preview locked items before you earn them.
+Wearing an unlocked item costs no XP, and you can change your outfit whenever you want.
+
+Four daily quests rotate through 24 task templates. Some ask for focus minutes; others ask you to finish a named task
+or reflect on a session. Tap a quest for its exact rules. Completed quests add their XP automatically.
+There are also 30 badges for milestones in your focus time, sessions, and habits.
+
+## Your data stays on your phone
+
+Stillpoint keeps your settings, focus history, screen time, and held messages on your device. It does not upload them.
+Automatic Android backup is disabled.
+
+Internet access is used only to check GitHub for updates and download an update you choose.
+Focus and blocking work without a connection.
+
+Save a password-protected backup in Settings to move your settings and history to another phone.
+Choose a password with at least 12 characters and keep it safe. Stillpoint cannot recover a forgotten password.
+Backups exclude held message text, active sessions, and temporary passes. Restoring a backup does not refill used passes on the same phone.
+Only encrypted Stillpoint backups are accepted; older unencrypted JSON files cannot be restored.
+
+<details>
+<summary>Which permissions does Stillpoint need?</summary>
+
+| Permission | Purpose |
+| --- | --- |
+| Usage access | Measures time spent in apps. |
+| Accessibility | Detects blocked apps, websites, and supported short-video screens. |
+| Notification access, optional | Holds notifications from apps you select. |
+| Notifications | Shows focus status, reminders, and summaries. |
+| Alarms and reminders | Starts planned focus on time. Android may delay reminders without this access. |
+| Install unknown apps, when updating | Opens an update you chose in Android's installer. You still confirm each installation. |
+
+On Android 13 and later, open Stillpoint's **App info** menu and select **Allow restricted settings**
+if Android blocks you from enabling accessibility.
+
+</details>
+
+## Updates
+
+Open **Settings > App updates** to check for a release. Automatic checks are on by default and run about once a day,
+when Android permits. You can turn them off.
+
+Choose **Download**, then **Install**. Stillpoint checks the APK's identity, version, and signing key before opening Android's installer.
+Nothing downloads or installs automatically.
+
+## Help and contribute
+
+[Report a problem](https://github.com/agneswd/Stillpoint/issues) with your Android version and steps to reproduce it.
+Leave private messages and backups out of reports.
+
+For builds and device checks, read the [development guide](docs/development.md).
+The [feature map](docs/regain-parity.md) lists completed work and known gaps.
+
+Stillpoint code and original artwork use [GPL-3.0-only](LICENSE).
+Nunito uses the [SIL Open Font License](licenses/Nunito-OFL.txt).
+[Kenney UI sounds](licenses/Kenney-Interface-Sounds-CC0.txt) and [Freesound focus recordings](docs/focus-audio-sources.md) use CC0.
+See [NOTICE](NOTICE) for credits. License texts are also included in the app.

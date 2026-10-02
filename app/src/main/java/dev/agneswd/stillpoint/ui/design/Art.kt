@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.ui.design
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -134,7 +135,8 @@ fun DayPartIcon(part: DayPart, modifier: Modifier = Modifier, size: Dp = 52.dp) 
 @Composable
 fun ShortsScene(modifier: Modifier = Modifier) {
     val c = Sp.colors
-    val t = loop(2400, "shorts")
+    // One loop swipes through all three colors, so the end matches the start.
+    val t = loop(3 * 1600, "shorts")
     Box(modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(170.dp, 300.dp).offset(x = (-40).dp)) {
             val w = size.width
@@ -144,21 +146,29 @@ fun ShortsScene(modifier: Modifier = Modifier) {
             val screen = Path().apply {
                 addRoundRect(androidx.compose.ui.geometry.RoundRect(w * 0.06f, w * 0.06f, w * 0.94f, h - w * 0.06f, CornerRadius(w * 0.12f)))
             }
-            // Video cards slide up, the endless feed.
+            // Video cards swipe up one at a time, like a short-video feed: hold, then swipe.
             val cardH = h * 0.42f
-            val shift = t * (cardH + w * 0.05f)
-            clipPath(screen) { repeat(3) { i ->
-                val y = w * 0.1f + i * (cardH + w * 0.05f) - shift
-                val colors = listOf(c.rose, c.brand, c.flame)[i % 3]
-                drawRoundRect(
-                    Brush.verticalGradient(listOf(colors.copy(alpha = 0.55f), colors), startY = y, endY = y + cardH),
-                    Offset(w * 0.1f, y), Size(w * 0.8f, cardH), CornerRadius(w * 0.08f),
-                )
-                val play = Path().apply {
-                    moveTo(w * 0.44f, y + cardH * 0.4f); lineTo(w * 0.6f, y + cardH * 0.5f); lineTo(w * 0.44f, y + cardH * 0.6f); close()
+            val pitch = cardH + w * 0.05f
+            val step = (t * 3).toInt().coerceAtMost(2)
+            val local = t * 3 - step
+            val swipe = FastOutSlowInEasing.transform(((local - 0.45f) / 0.55f).coerceIn(0f, 1f))
+            val shift = (step + swipe) * pitch
+            val colors = listOf(c.rose, c.brand, c.flame)
+            clipPath(screen) {
+                for (i in 0 until 6) {
+                    val y = w * 0.1f + i * pitch - shift
+                    if (y > h || y + cardH < 0f) continue
+                    val color = colors[i % 3]
+                    drawRoundRect(
+                        Brush.verticalGradient(listOf(color.copy(alpha = 0.55f), color), startY = y, endY = y + cardH),
+                        Offset(w * 0.1f, y), Size(w * 0.8f, cardH), CornerRadius(w * 0.08f),
+                    )
+                    val play = Path().apply {
+                        moveTo(w * 0.44f, y + cardH * 0.4f); lineTo(w * 0.6f, y + cardH * 0.5f); lineTo(w * 0.44f, y + cardH * 0.6f); close()
+                    }
+                    drawPath(play, Color.White.copy(alpha = 0.9f))
                 }
-                drawPath(play, Color.White.copy(alpha = 0.9f))
-            } }
+            }
             // The stop badge.
             val badge = Offset(w * 0.86f, h * 0.18f)
             drawCircle(c.dangerLip, w * 0.2f, badge + Offset(0f, w * 0.025f))
@@ -182,7 +192,12 @@ fun NotificationScene(modifier: Modifier = Modifier) {
                 val p = (t + i / 3f) % 1f
                 val y = w * 0.05f + p * w * 0.5f
                 val x = w * (0.22f + i * 0.2f)
-                val alpha = if (p > 0.85f) (1f - p) / 0.15f else 1f
+                // Fade in at the top and out into the box, so the restart never pops.
+                val alpha = when {
+                    p < 0.12f -> p / 0.12f
+                    p > 0.85f -> (1f - p) / 0.15f
+                    else -> 1f
+                }
                 drawRoundRect(c.surfaceHigh.copy(alpha = alpha), Offset(x - w * 0.12f, y), Size(w * 0.3f, w * 0.1f), CornerRadius(w * 0.04f))
                 drawCircle(listOf(c.rose, c.brand, c.mint)[i].copy(alpha = alpha), w * 0.025f, Offset(x - w * 0.06f, y + w * 0.05f))
                 drawRoundRect(c.textDim.copy(alpha = alpha * 0.6f), Offset(x - w * 0.02f, y + w * 0.035f), Size(w * 0.12f, w * 0.03f), CornerRadius(w * 0.015f))
@@ -215,10 +230,12 @@ fun StrictScene(modifier: Modifier = Modifier) {
             val center = Offset(w / 2, h * 0.63f)
             drawCircle(Color.White, w * 0.24f, center)
             drawArc(c.surfaceHigh, 0f, 360f, false, center - Offset(w * 0.19f, w * 0.19f), Size(w * 0.38f, w * 0.38f), style = Stroke(w * 0.05f))
-            drawArc(c.brand, -90f, 360f * (1f - t), false, center - Offset(w * 0.19f, w * 0.19f), Size(w * 0.38f, w * 0.38f), style = Stroke(w * 0.05f, cap = StrokeCap.Round))
+            // The timer runs down, then refills quickly, so the loop has no jump.
+            val left = if (t < 0.85f) 1f - t / 0.85f else FastOutSlowInEasing.transform((t - 0.85f) / 0.15f)
+            drawArc(c.brand, -90f, 360f * left, false, center - Offset(w * 0.19f, w * 0.19f), Size(w * 0.38f, w * 0.38f), style = Stroke(w * 0.05f, cap = StrokeCap.Round))
             drawCircle(c.text, w * 0.03f, center)
         }
-        Pebble(Mood.PROUD, Modifier.offset(x = 95.dp, y = 80.dp), size = 100.dp)
+        Pebble(Mood.STRICT, Modifier.offset(x = 95.dp, y = 80.dp), size = 100.dp)
     }
 }
 

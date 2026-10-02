@@ -11,6 +11,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.rotate
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -32,12 +34,14 @@ fun FocusBackdrop(theme: FocusTheme, modifier: Modifier, center: Offset = Offset
     val slow = loop(14000, "slow")
     val mid = loop(5000, "mid")
     val fast = loop(1200, "fast")
+    // Space stars drift on a long loop of their own, so whole-number speeds stay calm.
+    val drift = loop(36000, "drift")
     Canvas(modifier) {
         when (theme) {
             FocusTheme.LAKE -> lake(slow, mid, center)
             FocusTheme.DAWN -> dawn(slow, mid)
             FocusTheme.FOREST -> forest(slow, mid)
-            FocusTheme.SPACE -> space(slow, mid)
+            FocusTheme.SPACE -> space(drift, mid)
             FocusTheme.RAIN -> rain(fast, mid)
         }
     }
@@ -66,7 +70,7 @@ private fun DrawScope.lake(slow: Float, mid: Float, center: Offset) {
     repeat(5) { i ->
         val p = (mid + i / 5f) % 1f
         val r = size.width * (0.3f + p * 0.9f)
-        drawCircle(Color.White.copy(alpha = (1f - p) * 0.16f), r, c, style = Stroke(2.5f))
+        drawCircle(Color.White.copy(alpha = sin(p * PI).toFloat() * 0.16f), r, c, style = Stroke(2.5f))
     }
     // The far shore.
     val shore = Path().apply {
@@ -82,21 +86,31 @@ private fun DrawScope.lake(slow: Float, mid: Float, center: Offset) {
 
 private fun DrawScope.dawn(slow: Float, mid: Float) {
     drawRect(Brush.verticalGradient(listOf(Color(0xFF3A2C6E), Color(0xFFB45A8C), Color(0xFFFFA77A), Color(0xFFFFD3A1))))
-    val sunY = size.height * (0.66f - 0.04f * sin(slow * 2 * PI).toFloat())
+    val sunY = size.height * (0.66f - 0.015f * sin(slow * 2 * PI).toFloat())
     drawCircle(Brush.radialGradient(listOf(Color(0x66FFE7B3), Color.Transparent), Offset(size.width / 2, sunY), size.width * 0.6f), size.width * 0.6f, Offset(size.width / 2, sunY))
     drawCircle(Color(0xFFFFE4A8), size.width * 0.16f, Offset(size.width / 2, sunY))
-    repeat(4) { i ->
-        val y = size.height * (0.18f + i * 0.12f)
-        val x = ((slow + hash(i, 7)) % 1f) * (size.width * 1.6f) - size.width * 0.3f
-        cloud(Offset(x, y), size.width * (0.18f + hash(i, 8) * 0.1f), Color.White.copy(alpha = 0.22f))
-    }
-    drawRect(Color(0xFF4A2F5E).copy(alpha = 0.9f), Offset(0f, size.height * 0.78f), Size(size.width, size.height * 0.22f))
-    stars(14, mid, 0f, 0.25f, 0.6f)
+    stars(14, mid, 0f, 0.22f, 0.45f)
+    // Solid silhouettes drift in place. Their edges never jump at the loop boundary.
+    val drift = sin(slow * 2 * PI).toFloat() * size.width * 0.035f
+    cloud(Offset(-size.width * 0.08f + drift, size.height * 0.19f), size.width * 0.39f, Color(0xFFE9B6C6))
+    cloud(Offset(size.width * 0.72f - drift, size.height * 0.29f), size.width * 0.35f, Color(0xFFF5C3CA))
+    cloud(Offset(-size.width * 0.12f - drift, size.height * 0.53f), size.width * 0.32f, Color(0xFFFFD5C1))
+    hills(0.76f, Color(0xFFAD6A8B), 3)
+    hills(0.83f, Color(0xFF805276), 4)
+    hills(0.91f, Color(0xFF4A2F5E), 3)
 }
 
+/** One filled outline keeps the cloud lobes solid where they meet. */
 private fun DrawScope.cloud(at: Offset, w: Float, color: Color) {
-    drawOval(color, Offset(at.x, at.y), Size(w, w * 0.32f))
-    drawOval(color, Offset(at.x + w * 0.2f, at.y - w * 0.14f), Size(w * 0.5f, w * 0.36f))
+    val outline = Path().apply {
+        moveTo(at.x + w * 0.14f, at.y + w * 0.25f)
+        cubicTo(at.x - w * 0.03f, at.y + w * 0.25f, at.x - w * 0.04f, at.y + w * 0.04f, at.x + w * 0.16f, at.y + w * 0.03f)
+        cubicTo(at.x + w * 0.18f, at.y - w * 0.17f, at.x + w * 0.47f, at.y - w * 0.20f, at.x + w * 0.54f, at.y - w * 0.02f)
+        cubicTo(at.x + w * 0.67f, at.y - w * 0.13f, at.x + w * 0.84f, at.y - w * 0.03f, at.x + w * 0.84f, at.y + w * 0.06f)
+        cubicTo(at.x + w * 1.05f, at.y + w * 0.04f, at.x + w * 1.09f, at.y + w * 0.25f, at.x + w * 0.90f, at.y + w * 0.25f)
+        close()
+    }
+    drawPath(outline, color)
 }
 
 private fun DrawScope.forest(slow: Float, mid: Float) {
@@ -111,8 +125,10 @@ private fun DrawScope.forest(slow: Float, mid: Float) {
         val x = hash(i, 12) * size.width + sin((p + i) * 2 * PI).toFloat() * 20f
         val y = size.height * (0.45f + hash(i, 13) * 0.5f) - p * 40f
         val glow = ((sin((p * 3 + hash(i, 14)) * 2 * PI) + 1) / 2).toFloat()
-        drawCircle(Color(0xFFE4FF8A).copy(alpha = 0.15f * glow), 10f, Offset(x, y))
-        drawCircle(Color(0xFFF2FFB8).copy(alpha = 0.9f * glow), 2.6f, Offset(x, y))
+        // Each firefly fades in and out over its path, so the restart at the bottom is invisible.
+        val life = sin(p * PI).toFloat()
+        drawCircle(Color(0xFFE4FF8A).copy(alpha = 0.15f * glow * life), 10f, Offset(x, y))
+        drawCircle(Color(0xFFF2FFB8).copy(alpha = 0.9f * glow * life), 2.6f, Offset(x, y))
     }
 }
 
@@ -134,29 +150,71 @@ private fun DrawScope.space(slow: Float, mid: Float) {
     drawCircle(Brush.radialGradient(listOf(Color(0x447C5CFF), Color.Transparent), Offset(size.width * 0.2f, size.height * 0.3f), size.width * 0.7f), size.width * 0.7f, Offset(size.width * 0.2f, size.height * 0.3f))
     // Two star layers drift at different speeds.
     repeat(70) { i ->
-        val speed = if (i % 3 == 0) 1f else 0.4f
-        val y = ((hash(i, 21) + slow * speed) % 1f) * size.height
+        // Whole-number speeds put every star back at its start when the loop restarts.
+        val near = i % 3 == 0
+        val y = ((hash(i, 21) + slow * if (near) 2f else 1f) % 1f) * size.height
         val tw = 0.5f + 0.5f * sin((mid + hash(i, 23)) * 2 * PI).toFloat()
-        drawCircle(Color.White.copy(alpha = 0.3f + 0.7f * tw * speed), if (speed == 1f) 2.2f else 1.2f, Offset(hash(i, 22) * size.width, y))
+        drawCircle(Color.White.copy(alpha = 0.3f + 0.7f * tw * if (near) 1f else 0.4f), if (near) 2.2f else 1.2f, Offset(hash(i, 22) * size.width, y))
     }
-    val planet = Offset(size.width * 0.8f, size.height * 0.78f)
-    val r = size.width * 0.16f
-    drawCircle(Brush.linearGradient(listOf(Color(0xFFFF9CB0), Color(0xFF8391FF)), planet - Offset(r, r), planet + Offset(r, r)), r, planet)
-    drawOval(Color(0xFFFFD39A).copy(alpha = 0.7f), planet - Offset(r * 1.7f, r * 0.25f), Size(r * 3.4f, r * 0.5f), style = Stroke(5f))
+    // Keep the planet beside the heading, clear of the timer and bottom controls.
+    val planet = Offset(size.width * 0.82f, size.height * 0.17f)
+    val r = size.width * 0.115f
+    val ringAt = planet - Offset(r * 1.65f, r * 0.34f)
+    val ringSize = Size(r * 3.3f, r * 0.68f)
+    val ringStroke = Stroke((r * 0.12f).coerceAtLeast(2f))
+    rotate(-16f, planet) {
+        drawOval(Color(0xFFB68CAA), ringAt, ringSize, style = ringStroke)
+        drawCircle(Color(0xFFB6A4ED), r, planet)
+        val disc = Path().apply {
+            addOval(androidx.compose.ui.geometry.Rect(planet - Offset(r, r), Size(r * 2, r * 2)))
+        }
+        clipPath(disc) {
+            drawOval(Color(0xFFD8B6ED), planet - Offset(r * 1.3f, r * 0.8f), Size(r * 2.6f, r * 0.65f))
+            drawOval(Color(0xFF9589CE), planet - Offset(r * 1.3f, -r * 0.25f), Size(r * 2.6f, r * 0.7f))
+        }
+        drawArc(Color(0xFFFFD7AF), 0f, 180f, false, ringAt, ringSize, style = ringStroke)
+    }
 }
 
 private fun DrawScope.rain(fast: Float, mid: Float) {
-    drawRect(Brush.verticalGradient(listOf(Color(0xFF1A2333), Color(0xFF2B3A52), Color(0xFF3D5070))))
-    repeat(90) { i ->
-        val x = hash(i, 31) * size.width
-        val len = 18f + hash(i, 32) * 22f
-        val y = ((hash(i, 33) + fast * (0.8f + hash(i, 34) * 0.6f)) % 1f) * (size.height + len) - len
-        drawLine(Color(0xFFBFD4F2).copy(alpha = 0.25f + hash(i, 35) * 0.3f), Offset(x, y), Offset(x - 4f, y + len), 1.6f, StrokeCap.Round)
+    drawRect(Brush.verticalGradient(listOf(Color(0xFF1B293C), Color(0xFF354D65), Color(0xFF607E8E))))
+    val drift = sin(mid * 2 * PI).toFloat() * size.width * 0.008f
+    cloud(Offset(-size.width * 0.12f + drift, size.height * 0.12f), size.width * 0.48f, Color(0xFF35485E))
+    cloud(Offset(size.width * 0.71f - drift, size.height * 0.23f), size.width * 0.41f, Color(0xFF405970))
+    hills(0.69f, Color(0xFF354F5E), 4)
+    hills(0.73f, Color(0xFF293F4D), 3)
+    drawRect(Brush.verticalGradient(listOf(Color(0xFF4D7284), Color(0xFF233C50)), startY = size.height * 0.74f),
+        Offset(0f, size.height * 0.74f), Size(size.width, size.height * 0.26f))
+    // Wide, quiet ripples make the lower scene read as a pond.
+    repeat(12) { i ->
+        val p = (mid + hash(i, 36)) % 1f
+        val at = Offset(hash(i, 37) * size.width, size.height * (0.76f + hash(i, 38) * 0.22f))
+        val radius = size.width * (0.018f + p * 0.055f)
+        drawOval(Color(0xFFB6D4DC).copy(alpha = sin(p * PI).toFloat() * 0.28f),
+            at - Offset(radius, radius * 0.18f), Size(radius * 2, radius * 0.36f), style = Stroke(size.width * 0.002f))
     }
-    // Small splashes on the ground.
-    repeat(10) { i ->
-        val p = (mid * 4 + hash(i, 36)) % 1f
-        val at = Offset(hash(i, 37) * size.width, size.height * (0.9f + hash(i, 38) * 0.08f))
-        drawOval(Color.White.copy(alpha = (1f - p) * 0.3f), at - Offset(12f * p, 3f * p), Size(24f * p, 6f * p), style = Stroke(1.5f))
+    repeat(64) { i ->
+        val near = i % 3 == 0
+        val x = hash(i, 31) * size.width
+        val len = size.width * if (near) 0.034f else 0.022f
+        // Whole-number speeds keep the fall continuous when the loop restarts.
+        val speed = if (near) 1f else 2f
+        val y = ((hash(i, 33) + fast * speed) % 1f) * (size.height + len) - len
+        drawLine(Color(0xFFCEE2EC).copy(alpha = if (near) 0.32f else 0.15f),
+            Offset(x, y), Offset(x - len * 0.16f, y + len),
+            size.width * if (near) 0.003f else 0.0018f, StrokeCap.Round)
+    }
+    // Small reeds frame the pond without covering the central controls.
+    repeat(2) { side ->
+        repeat(4) { i ->
+            val x = size.width * if (side == 0) (0.01f + i * 0.018f) else (0.99f - i * 0.018f)
+            val y = size.height * (0.92f + hash(i, 42) * 0.045f)
+            val lean = size.width * if (side == 0) 0.018f else -0.018f
+            val reed = Path().apply {
+                moveTo(x, size.height)
+                quadraticTo(x + lean, y + size.height * 0.025f, x + lean, y)
+            }
+            drawPath(reed, Color(0xFF172E3D), style = Stroke(size.width * 0.008f, cap = StrokeCap.Round))
+        }
     }
 }

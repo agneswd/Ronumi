@@ -55,8 +55,8 @@ val LightPalette = Palette(
     surfaceHigh = Color(0xFFECECF8),
     border = Color(0xFFE3E4F0),
     text = Color(0xFF262841),
-    textDim = Color(0xFF7F839E),
-    brand = Color(0xFF6C7BFF),
+    textDim = Color(0xFF626780),
+    brand = Color(0xFF5362D6),
     brandLip = Color(0xFF4C59D6),
     brandSoft = Color(0xFFE6E9FF),
     rose = Color(0xFFFF6F91),
@@ -77,9 +77,9 @@ val DarkPalette = Palette(
     background = Color(0xFF12131C),
     surface = Color(0xFF1C1E2B),
     surfaceHigh = Color(0xFF262939),
-    border = Color(0xFF2E3146),
+    border = Color(0xFF42465F),
     text = Color(0xFFF1F2FA),
-    textDim = Color(0xFF9599B3),
+    textDim = Color(0xFFB2B7D0),
     brand = Color(0xFF8391FF),
     brandLip = Color(0xFF5865E0),
     brandSoft = Color(0xFF262B55),
@@ -93,7 +93,7 @@ val DarkPalette = Palette(
     mintLip = Color(0xFF22A97A),
     danger = Color(0xFFFF6B70),
     dangerLip = Color(0xFFD9474D),
-    onFill = Color.White,
+    onFill = Color(0xFF171A30),
 )
 
 private val LocalPalette = staticCompositionLocalOf { LightPalette }
@@ -145,15 +145,23 @@ private val Type = Typography().let { base ->
 val NumberStyle = TextStyle(fontFamily = Nunito, fontWeight = FontWeight.Black, fontSize = 64.sp, letterSpacing = (-2).sp)
 
 @Composable
-fun StillpointTheme(content: @Composable () -> Unit) {
-    val palette = if (isSystemInDarkTheme()) DarkPalette else LightPalette
+fun StillpointTheme(themeMode: String = "SYSTEM", content: @Composable () -> Unit) {
+    val systemDark = isSystemInDarkTheme()
+    val dark = when (themeMode) {
+        "LIGHT" -> false
+        "DARK" -> true
+        else -> systemDark
+    }
+    val palette = if (dark) DarkPalette else LightPalette
     val scheme = if (palette.dark) {
         darkColorScheme(
             primary = palette.brand, onPrimary = palette.onFill, secondary = palette.rose, onSecondary = palette.onFill,
             background = palette.background, onBackground = palette.text, surface = palette.background, onSurface = palette.text,
             surfaceVariant = palette.surfaceHigh, onSurfaceVariant = palette.textDim, outline = palette.border, outlineVariant = palette.border,
             surfaceContainerLowest = palette.background, surfaceContainerLow = palette.surface, surfaceContainer = palette.surface,
-            surfaceContainerHigh = palette.surfaceHigh, surfaceContainerHighest = palette.surfaceHigh, error = palette.danger,
+            surfaceContainerHigh = palette.surfaceHigh, surfaceContainerHighest = palette.surfaceHigh, error = palette.danger, onError = Color(0xFF171A30),
+            tertiary = palette.mint, onTertiary = Color(0xFF171A30),
+            inverseSurface = palette.text, inverseOnSurface = palette.background,
             primaryContainer = palette.brandSoft, onPrimaryContainer = palette.text, secondaryContainer = palette.brandSoft, onSecondaryContainer = palette.brand,
         )
     } else {
@@ -162,7 +170,9 @@ fun StillpointTheme(content: @Composable () -> Unit) {
             background = palette.background, onBackground = palette.text, surface = palette.background, onSurface = palette.text,
             surfaceVariant = palette.surfaceHigh, onSurfaceVariant = palette.textDim, outline = palette.border, outlineVariant = palette.border,
             surfaceContainerLowest = palette.background, surfaceContainerLow = palette.surface, surfaceContainer = palette.surface,
-            surfaceContainerHigh = palette.surfaceHigh, surfaceContainerHighest = palette.surfaceHigh, error = palette.danger,
+            surfaceContainerHigh = palette.surfaceHigh, surfaceContainerHighest = palette.surfaceHigh, error = palette.danger, onError = Color(0xFF171A30),
+            tertiary = palette.mint, onTertiary = Color(0xFF171A30),
+            inverseSurface = palette.text, inverseOnSurface = palette.background,
             primaryContainer = palette.brandSoft, onPrimaryContainer = palette.text, secondaryContainer = palette.brandSoft, onSecondaryContainer = palette.brand,
         )
     }

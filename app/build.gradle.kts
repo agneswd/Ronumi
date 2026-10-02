@@ -15,20 +15,31 @@ android {
         minSdk = 28
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "0.1.0"
     }
 
     buildFeatures {
         compose = true
     }
+    sourceSets.getByName("main").assets.srcDir(rootProject.file("licenses"))
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    val releaseKeystore = providers.environmentVariable("STILLPOINT_KEYSTORE").orNull
+    signingConfigs {
+        if (releaseKeystore != null) create("release") {
+            storeFile = file(releaseKeystore)
+            storePassword = providers.environmentVariable("STILLPOINT_STORE_PASSWORD").get()
+            keyAlias = providers.environmentVariable("STILLPOINT_KEY_ALIAS").orElse("stillpoint").get()
+            keyPassword = providers.environmentVariable("STILLPOINT_KEY_PASSWORD").get()
+        }
+    }
     buildTypes {
         release {
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

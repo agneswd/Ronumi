@@ -1,8 +1,10 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,12 +27,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -54,7 +58,8 @@ import dev.agneswd.stillpoint.ui.design.ChunkyButton
 import dev.agneswd.stillpoint.ui.design.ChunkyCard
 import dev.agneswd.stillpoint.ui.design.ChunkyProgress
 import dev.agneswd.stillpoint.ui.design.DayPart
-import dev.agneswd.stillpoint.ui.design.DayPartIcon
+import dev.agneswd.stillpoint.ui.design.ScheduleIcon
+import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Sp
 import dev.agneswd.stillpoint.ui.design.Tag
@@ -91,6 +96,12 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
             }
             val (mood, line) = greeting(game)
             PebbleSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60), pebbleSize = 96.dp)
+            Text(
+                "Pebble wardrobe",
+                Modifier.align(Alignment.End).clip(RoundedCornerShape(12.dp)).clickable { navigator.push(Route.Wardrobe) }
+                    .padding(horizontal = ScreenPadding, vertical = 12.dp),
+                style = MaterialTheme.typography.labelLarge, color = Sp.colors.brand,
+            )
             GoalCard(game, Modifier.padding(horizontal = ScreenPadding).appear(120))
             SectionTitle("Daily quests", action = { Tag("Resets at midnight", Sp.colors.textDim) })
             QuestCard(game?.quests.orEmpty(), Modifier.padding(horizontal = ScreenPadding).appear(180))
@@ -101,7 +112,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
                 SectionTitle("Up next")
                 ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(300), onClick = { navigator.tab = Tab.PLANNER }, contentPadding = 12.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        DayPartIcon(dayPartAt(next.first.startMinute), size = 48.dp)
+                        ScheduleIcon(next.first.icon, next.first.startMinute, size = 48.dp)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(next.first.name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
@@ -117,8 +128,9 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Sp.colors.background.copy(alpha = 0.94f))
-                .padding(horizontal = ScreenPadding, vertical = 12.dp),
+                // Cards fade out under the button instead of meeting a hard edge.
+                .background(Brush.verticalGradient(0f to Sp.colors.background.copy(alpha = 0f), 0.35f to Sp.colors.background))
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 28.dp, bottom = 12.dp),
         ) {
             ChunkyButton(
                 "Start focus",
@@ -135,14 +147,17 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
 /** Pebble's mood and line for the home screen. It reacts to the streak, the goal and the time. */
 private fun greeting(game: GameState?): Pair<Mood, String> {
     val hour = LocalTime.now().hour
+    val feeling = game?.disposition?.feeling
     return when {
         game == null -> Mood.IDLE to "Hi there!"
-        game.todayMinutes >= game.goalMinutes -> Mood.CELEBRATE to "You hit today's goal! I'm so proud of you."
-        !game.streakSafeToday && game.streak > 0 && hour >= 18 -> Mood.SAD to "Your ${game.streak} day streak ends tonight. Just 10 minutes saves it!"
-        !game.streakSafeToday && game.streak > 0 -> Mood.HAPPY to "Day ${game.streak + 1} is waiting. Let's keep the flame going!"
-        game.todayMinutes > 0 -> Mood.HAPPY to "Nice work so far. ${formatMinutes(game.goalMinutes - game.todayMinutes)} to go!"
-        hour < 11 -> Mood.WAVE to "Good morning! A short focus now makes the whole day easier."
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.CELEBRATE -> Mood.CELEBRATE to "You hit today's goal! I'm so proud of you."
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.PROUD -> Mood.PROUD to "Look at us keeping a rhythm. Nice work!"
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.HAPPY -> Mood.HAPPY to "Nice work so far. ${formatMinutes(game.goalMinutes - game.todayMinutes)} to go!"
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.DOWN -> Mood.SAD to "I've missed our focus time. One small session is a fresh start."
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.QUIET -> Mood.THINK to "Let's ease back in. A few focused minutes will help."
         hour >= 22 -> Mood.SLEEPY to "It's late. Put the phone down and rest. I will too."
+        game.streak > 0 -> Mood.IDLE to "Our ${game.streak} day streak is still going. Ready for a little focus?"
+        hour < 11 -> Mood.WAVE to "Good morning! A short focus now makes the whole day easier."
         else -> Mood.IDLE to "Ready when you are. One session at a time."
     }
 }
@@ -188,12 +203,12 @@ private fun GoalCard(game: GameState?, modifier: Modifier) {
                                     .background(if (met) Sp.colors.flame else if (some) Sp.colors.flame.copy(alpha = 0.3f) else Sp.colors.surfaceHigh),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                if (met) Icon(painterResource(R.drawable.ic_check), null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                if (met) Icon(painterResource(R.drawable.ic_check), null, tint = LightPalette.text, modifier = Modifier.size(14.dp))
                             }
                             Text(
                                 date.dayOfWeek.name.take(1),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (date == LocalDate.now()) Sp.colors.flame else Sp.colors.textDim,
+                                color = if (date == LocalDate.now()) Sp.colors.text else Sp.colors.textDim,
                             )
                         }
                     }
@@ -223,30 +238,53 @@ fun GoalRing(fraction: Float, modifier: Modifier, color: Color = Sp.colors.flame
 
 @Composable
 fun QuestCard(quests: List<Quest>, modifier: Modifier) {
+    var expanded by remember { mutableStateOf<String?>(null) }
     ChunkyCard(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             quests.forEach { quest ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (quest.done) Sp.colors.gold else Sp.colors.gold.copy(alpha = 0.18f)),
-                        contentAlignment = Alignment.Center,
+                Column {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClickLabel = "Show quest details") {
+                            expanded = if (expanded == quest.id) null else quest.id
+                        },
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (quest.done) Icon(painterResource(R.drawable.ic_check), null, tint = Color.White, modifier = Modifier.size(22.dp)) else XpBolt(size = 22.dp)
+                        Box(
+                            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (quest.done) Sp.colors.gold else Sp.colors.gold.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (quest.done) Icon(painterResource(R.drawable.ic_check), null, tint = LightPalette.text, modifier = Modifier.size(22.dp)) else XpBolt(size = 22.dp)
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(quest.title, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+                            Spacer(Modifier.height(6.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ChunkyProgress(quest.fraction, Modifier.weight(1f), color = Sp.colors.gold, height = 12.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text("${quest.progress} / ${quest.target}", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+                            }
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Text("+${quest.xp} XP", style = MaterialTheme.typography.labelMedium, color = Sp.colors.text)
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(quest.title, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
-                        Spacer(Modifier.height(6.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            ChunkyProgress(quest.fraction, Modifier.weight(1f), color = Sp.colors.gold, height = 12.dp)
-                            Spacer(Modifier.width(8.dp))
-                            Text("${quest.progress} / ${quest.target}", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+                    AnimatedVisibility(expanded == quest.id) {
+                        Column(Modifier.padding(start = 52.dp, top = 10.dp)) {
+                            Text(quest.category, style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
+                            Text(
+                                quest.detail,
+                                style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                            )
+                            Text(
+                                if (quest.done) "${quest.xp} XP earned. This reward is already in your total."
+                                else "${quest.xp} XP is added automatically when you finish this quest.",
+                                Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                            )
                         }
                     }
-                    Spacer(Modifier.width(10.dp))
-                    Tag("+${quest.xp} XP", Sp.colors.goldLip)
                 }
             }
+            Text("Tap a quest for its rules.", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
         }
     }
 }
