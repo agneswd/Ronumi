@@ -32,12 +32,14 @@ fun FocusBackdrop(theme: FocusTheme, modifier: Modifier, center: Offset = Offset
     val slow = loop(14000, "slow")
     val mid = loop(5000, "mid")
     val fast = loop(1200, "fast")
+    // Space stars drift on a long loop of their own, so whole-number speeds stay calm.
+    val drift = loop(36000, "drift")
     Canvas(modifier) {
         when (theme) {
             FocusTheme.LAKE -> lake(slow, mid, center)
             FocusTheme.DAWN -> dawn(slow, mid)
             FocusTheme.FOREST -> forest(slow, mid)
-            FocusTheme.SPACE -> space(slow, mid)
+            FocusTheme.SPACE -> space(drift, mid)
             FocusTheme.RAIN -> rain(fast, mid)
         }
     }
@@ -66,7 +68,7 @@ private fun DrawScope.lake(slow: Float, mid: Float, center: Offset) {
     repeat(5) { i ->
         val p = (mid + i / 5f) % 1f
         val r = size.width * (0.3f + p * 0.9f)
-        drawCircle(Color.White.copy(alpha = (1f - p) * 0.16f), r, c, style = Stroke(2.5f))
+        drawCircle(Color.White.copy(alpha = sin(p * PI).toFloat() * 0.16f), r, c, style = Stroke(2.5f))
     }
     // The far shore.
     val shore = Path().apply {
@@ -111,8 +113,10 @@ private fun DrawScope.forest(slow: Float, mid: Float) {
         val x = hash(i, 12) * size.width + sin((p + i) * 2 * PI).toFloat() * 20f
         val y = size.height * (0.45f + hash(i, 13) * 0.5f) - p * 40f
         val glow = ((sin((p * 3 + hash(i, 14)) * 2 * PI) + 1) / 2).toFloat()
-        drawCircle(Color(0xFFE4FF8A).copy(alpha = 0.15f * glow), 10f, Offset(x, y))
-        drawCircle(Color(0xFFF2FFB8).copy(alpha = 0.9f * glow), 2.6f, Offset(x, y))
+        // Each firefly fades in and out over its path, so the restart at the bottom is invisible.
+        val life = sin(p * PI).toFloat()
+        drawCircle(Color(0xFFE4FF8A).copy(alpha = 0.15f * glow * life), 10f, Offset(x, y))
+        drawCircle(Color(0xFFF2FFB8).copy(alpha = 0.9f * glow * life), 2.6f, Offset(x, y))
     }
 }
 
@@ -134,10 +138,11 @@ private fun DrawScope.space(slow: Float, mid: Float) {
     drawCircle(Brush.radialGradient(listOf(Color(0x447C5CFF), Color.Transparent), Offset(size.width * 0.2f, size.height * 0.3f), size.width * 0.7f), size.width * 0.7f, Offset(size.width * 0.2f, size.height * 0.3f))
     // Two star layers drift at different speeds.
     repeat(70) { i ->
-        val speed = if (i % 3 == 0) 1f else 0.4f
-        val y = ((hash(i, 21) + slow * speed) % 1f) * size.height
+        // Whole-number speeds put every star back at its start when the loop restarts.
+        val near = i % 3 == 0
+        val y = ((hash(i, 21) + slow * if (near) 2f else 1f) % 1f) * size.height
         val tw = 0.5f + 0.5f * sin((mid + hash(i, 23)) * 2 * PI).toFloat()
-        drawCircle(Color.White.copy(alpha = 0.3f + 0.7f * tw * speed), if (speed == 1f) 2.2f else 1.2f, Offset(hash(i, 22) * size.width, y))
+        drawCircle(Color.White.copy(alpha = 0.3f + 0.7f * tw * if (near) 1f else 0.4f), if (near) 2.2f else 1.2f, Offset(hash(i, 22) * size.width, y))
     }
     val planet = Offset(size.width * 0.8f, size.height * 0.78f)
     val r = size.width * 0.16f
@@ -150,7 +155,9 @@ private fun DrawScope.rain(fast: Float, mid: Float) {
     repeat(90) { i ->
         val x = hash(i, 31) * size.width
         val len = 18f + hash(i, 32) * 22f
-        val y = ((hash(i, 33) + fast * (0.8f + hash(i, 34) * 0.6f)) % 1f) * (size.height + len) - len
+        // Whole-number speeds keep the fall continuous when the loop restarts.
+        val speed = if (hash(i, 34) > 0.6f) 2f else 1f
+        val y = ((hash(i, 33) + fast * speed) % 1f) * (size.height + len) - len
         drawLine(Color(0xFFBFD4F2).copy(alpha = 0.25f + hash(i, 35) * 0.3f), Offset(x, y), Offset(x - 4f, y + len), 1.6f, StrokeCap.Round)
     }
     // Small splashes on the ground.
