@@ -168,7 +168,7 @@ private fun greeting(game: GameState?): Pair<Mood, String> {
 private fun SetupNudge(modifier: Modifier, onFix: () -> Unit) {
     ChunkyCard(modifier.fillMaxWidth().padding(bottom = 8.dp), fill = Sp.colors.danger.copy(alpha = 0.1f), onClick = onFix) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("⚠️", style = MaterialTheme.typography.headlineSmall)
+            Icon(painterResource(R.drawable.ic_warning), null, tint = Sp.colors.danger, modifier = Modifier.size(28.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text("Finish setup", style = MaterialTheme.typography.titleMedium, color = Sp.colors.danger)
