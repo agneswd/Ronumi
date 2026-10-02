@@ -41,7 +41,7 @@ private val ReleaseSaver = listSaver<UpdateRelease?, String>(
 )
 
 @Composable
-fun UpdateSettings(settings: Settings) {
+fun UpdateSettings(settings: Settings, showTitle: Boolean = true) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
@@ -50,7 +50,8 @@ fun UpdateSettings(settings: Settings) {
     var downloadedPath by rememberSaveable { mutableStateOf<String?>(null) }
     var progress by remember { mutableStateOf(0) }
 
-    SectionTitle("App updates")
+    if (showTitle) SectionTitle("App updates")
+    else Spacer(Modifier.height(12.dp))
     Group {
         SwitchRow("Check for updates automatically", "Checks GitHub about once a day. Downloads start only when you choose.", settings.autoUpdateChecks) { on ->
             context.app.scope.launch { context.app.dao.updateSettings { it.copy(autoUpdateChecks = on) } }
@@ -118,7 +119,7 @@ fun UpdatesScreen(onClose: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         TopBar("App updates", onClose)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            settings?.let { UpdateSettings(it) }
+            settings?.let { UpdateSettings(it, showTitle = false) }
         }
     }
 }
