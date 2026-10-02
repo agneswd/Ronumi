@@ -171,7 +171,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
+                modifier = Modifier.trackTextFieldFocus().fillMaxWidth().padding(horizontal = ScreenPadding),
             )
             if (recentTags.isNotEmpty()) {
                 FlowRow(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -557,7 +557,7 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                     minLines = 3,
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.trackTextFieldFocus().fillMaxWidth(),
                 )
             }
             if (!noteOpen) {

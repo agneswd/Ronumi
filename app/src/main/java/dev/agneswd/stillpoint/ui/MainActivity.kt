@@ -126,7 +126,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) openFrom(intent)
         setContent {
             StillpointTheme {
-                App(navigator)
+                KeyboardDismissHost { App(navigator) }
             }
         }
     }

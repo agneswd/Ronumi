@@ -334,7 +334,7 @@ private fun AddField(placeholder: String, keyboard: KeyboardType, clean: (String
             colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
             keyboardOptions = KeyboardOptions(keyboardType = keyboard, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.trackTextFieldFocus().weight(1f),
         )
         Spacer(Modifier.width(8.dp))
         ChunkyButton("Add", submit, enabled = value != null, height = 52.dp)

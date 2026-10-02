@@ -93,7 +93,7 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
                 { query = it },
                 label = { Text("Search") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp),
+                modifier = Modifier.trackTextFieldFocus().fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp),
             )
             val shown = apps.orEmpty().filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
                 // Chosen apps first, so the user sees the current choice at the top.
@@ -145,7 +145,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 { draft = draft.copy(name = it) },
                 label = { Text("Name") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp),
+                modifier = Modifier.trackTextFieldFocus().fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp),
             )
             ListRow("Starts", minuteText(draft.startMinute), onClick = { picking = true })
             ListRow(
