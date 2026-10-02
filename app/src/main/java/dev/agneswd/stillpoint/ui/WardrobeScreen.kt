@@ -15,16 +15,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,16 +54,18 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val app = context.app
     val settings by app.dao.settings().collectAsState(null)
     val saved = settings ?: return
     val worn = PebbleStyles.resolve(saved.pebbleItems, game.level.number)
-    var slot by remember { mutableStateOf(PebbleSlot.OUTFIT) }
-    var previewId by remember(slot, worn) {
+    var slot by rememberSaveable { mutableStateOf(PebbleSlot.OUTFIT) }
+    var previewId by rememberSaveable(slot, worn) {
         mutableStateOf(PebbleStyles.items.firstOrNull { it.slot == slot && it.id in worn }?.id)
     }
-    var saving by remember { mutableStateOf(false) }
+    var saving by androidx.compose.runtime.remember { mutableStateOf(false) }
     val selected = PebbleStyles.items.firstOrNull { it.id == previewId }
     val slotIds = PebbleStyles.items.filter { it.slot == slot }.mapTo(mutableSetOf()) { it.id }
     val preview = (worn - slotIds) + listOfNotNull(previewId)
@@ -102,65 +107,76 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         TopBar("Pebble's wardrobe", onClose)
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Pebble(Mood.HAPPY, size = 126.dp, style = preview)
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(selected?.name ?: originalLabel(slot), style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
-                Text(
-                    when {
-                        !available -> "Preview - level ${selected.level} required"
-                        equipped -> "Wearing now"
-                        else -> "Ready to wear"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Sp.colors.textDim,
-                )
-                ChunkyButton(
-                    when { saving -> "Saving..."; equipped -> "Equipped"; !available -> "Locked"; else -> "Wear" },
-                    onClick = { wear() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = available && !equipped && !saving,
-                    height = 44.dp,
-                )
+        LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState) {
+            item(key = "preview") {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Pebble(Mood.HAPPY, size = 126.dp, style = preview)
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(selected?.name ?: originalLabel(slot), style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
+                        Text(
+                            when {
+                                !available -> "Preview - level ${selected.level} required"
+                                equipped -> "Wearing now"
+                                else -> "Ready to wear"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Sp.colors.textDim,
+                        )
+                        ChunkyButton(
+                            when { saving -> "Saving..."; equipped -> "Equipped"; !available -> "Locked"; else -> "Wear" },
+                            onClick = { wear() },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = available && !equipped && !saving,
+                            height = 44.dp,
+                        )
+                    }
+                }
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Level ${game.level.number}", Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
+                        Text("$unlocked / ${PebbleStyles.items.size} unlocked",
+                            style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+                    }
+                    if (nextLevel != null) {
+                        LinearProgressIndicator(
+                            progress = { game.level.fraction.coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                            color = Sp.colors.brand,
+                            trackColor = Sp.colors.brandSoft,
+                        )
+                        Text("More items at level $nextLevel",
+                            style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+                    }
+                }
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    PebbleSlot.entries.forEach { category ->
+                        Text(
+                            slotLabel(category),
+                            Modifier.clip(RoundedCornerShape(12.dp))
+                                .background(if (slot == category) Sp.colors.brandSoft else Sp.colors.background)
+                                .selectable(slot == category, role = Role.Tab) { slot = category }
+                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (slot == category) Sp.colors.brand else Sp.colors.textDim,
+                        )
+                    }
+                }
             }
-        }
-        Text(
-            "Level ${game.level.number} - $unlocked of ${PebbleStyles.items.size} items unlocked",
-            Modifier.padding(horizontal = 20.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = Sp.colors.text,
-        )
-        Text(
-            if (nextLevel == null) "Your collection is complete. Mix your favorite pieces."
-            else "Next: ${PebbleStyles.items.filter { it.level == nextLevel }.joinToString { it.name }} at level $nextLevel.",
-            Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = Sp.colors.textDim,
-        )
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            PebbleSlot.entries.forEach { category ->
-                Text(
-                    slotLabel(category),
-                    Modifier.clip(RoundedCornerShape(12.dp))
-                        .background(if (slot == category) Sp.colors.brandSoft else Sp.colors.background)
-                        .selectable(slot == category, role = Role.Tab) { slot = category }
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (slot == category) Sp.colors.brand else Sp.colors.textDim,
-                )
-            }
-        }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
             item(key = "original-${slot.name}") {
-                WardrobeItemRow(originalLabel(slot), if (worn.none { it in slotIds }) "Equipped" else "Always available", previewId == null) {
+                WardrobeItemRow(originalLabel(slot), if (worn.none { it in slotIds }) "Equipped" else "Always available", previewId == null, worn - slotIds) {
                     previewId = null
+                    scope.launch { listState.animateScrollToItem(0) }
                 }
             }
             items(PebbleStyles.items.filter { it.slot == slot }, key = { it.id }) { item ->
@@ -169,10 +185,14 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     when {
                         item.id in worn -> "Equipped"
                         item.level > game.level.number -> "Unlocks at level ${item.level}"
-                        else -> "Unlocked at level ${item.level}"
+                        else -> "Ready to wear"
                     },
                     previewId == item.id,
-                ) { previewId = item.id }
+                    (worn - slotIds) + item.id,
+                ) {
+                    previewId = item.id
+                    scope.launch { listState.animateScrollToItem(0) }
+                }
             }
             item {
                 Text(
@@ -192,18 +212,20 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
 }
 
 @Composable
-private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, onClick: () -> Unit) {
+private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, look: Set<String>, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().selectable(selected, role = Role.RadioButton, onClick = onClick)
             .background(if (selected) Sp.colors.brandSoft else Sp.colors.background)
-            .padding(horizontal = 24.dp, vertical = 15.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
+        Pebble(Mood.IDLE, size = 58.dp, style = look)
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
             Text(detail, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
         }
-        if (selected) Text("Preview", style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
+        if (selected) Text("Selected", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
     }
 }
 

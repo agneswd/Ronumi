@@ -151,6 +151,7 @@ fun DrawScope.drawPebble(
     style: Set<String> = emptySet(),
 ) {
     val palette = paletteFor(style)
+    val closedHat = style.any { it in ClosedHats }
     val u = size.width / 100f
     val b = sin(breath * 2 * PI).toFloat()
     val jump = when (mood) {
@@ -173,15 +174,18 @@ fun DrawScope.drawPebble(
     translate(top = -jump * u) {
         scale(1f - b * 0.008f + squash, 1f + b * 0.015f - squash, pivot = Offset(50f * u, 100f * u)) {
             val raised = mood in setOf(Mood.CELEBRATE, Mood.WAVE, Mood.GUARD, Mood.THINK, Mood.STRICT)
+            if ("outfit_cape" in style) drawCape(u)
             if (!raised) drawArms(mood, u, wave, palette)
             drawFeet(u, palette)
-            drawBody(u, palette)
+            // A closed hat replaces the top of the head. The cap cannot leak around its edges.
+            clipRect(top = if (closedHat) 23f * u else 0f) { drawBody(u, palette) }
             drawOutfit(u, style)
+            if ("accessory_glasses" !in style) drawAccessory(u, style)
             if (raised) drawArms(mood, u, wave, palette)
-            drawSprout(mood, u, b, wave)
+            if (!closedHat) drawSprout(mood, u, b, wave)
             drawHat(u, style)
             drawFace(mood, u, blink, look)
-            drawAccessory(u, style)
+            if ("accessory_glasses" in style) drawAccessory(u, style)
         }
     }
     drawExtras(mood, u, drift, hop)
@@ -482,21 +486,49 @@ private fun DrawScope.drawOutfit(u: Float, style: Set<String>) {
         else -> return
     }
     clipPath(bodyPath(u)) {
+        val bib = id == "outfit_overalls" || id == "outfit_apron"
         val garment = Path().apply {
-            moveTo(7f * u, 73f * u)
-            lineTo(30f * u, 71f * u)
-            quadraticTo(50f * u, 83f * u, 70f * u, 71f * u)
-            lineTo(93f * u, 73f * u)
-            lineTo(93f * u, 102f * u); lineTo(7f * u, 102f * u); close()
+            when {
+                bib -> {
+                    moveTo(32f * u, 79f * u); lineTo(68f * u, 79f * u)
+                    lineTo(72f * u, 87f * u)
+                    if (id == "outfit_overalls") lineTo(93f * u, 87f * u)
+                    lineTo((if (id == "outfit_overalls") 93f else 76f) * u, 102f * u)
+                    lineTo((if (id == "outfit_overalls") 7f else 24f) * u, 102f * u)
+                    if (id == "outfit_overalls") lineTo(7f * u, 87f * u)
+                    lineTo(28f * u, 87f * u)
+                }
+                id == "outfit_cape" -> {
+                    moveTo(17f * u, 70f * u)
+                    quadraticTo(50f * u, 89f * u, 83f * u, 70f * u)
+                    lineTo(79f * u, 80f * u)
+                    quadraticTo(50f * u, 96f * u, 21f * u, 80f * u)
+                }
+                else -> {
+                    moveTo(7f * u, 65f * u)
+                    lineTo(23f * u, 68f * u)
+                    quadraticTo(50f * u, 90f * u, 77f * u, 68f * u)
+                    lineTo(93f * u, 65f * u)
+                    lineTo(93f * u, 102f * u); lineTo(7f * u, 102f * u)
+                }
+            }
+            close()
         }
         drawPath(garment, fabric)
+        if (!bib && id != "outfit_cape") {
+            val collar = Path().apply {
+                moveTo(23f * u, 68f * u)
+                quadraticTo(50f * u, 90f * u, 77f * u, 68f * u)
+            }
+            drawPath(collar, Color.White.copy(alpha = 0.28f), style = Stroke(2f * u, cap = StrokeCap.Round))
+        }
         when (id) {
             "outfit_stripes" -> repeat(3) { i ->
                 drawRect(Color(0xFF688BAA), Offset(7f * u, (80f + i * 7f) * u), Size(86f * u, 3f * u))
             }
             "outfit_overalls", "outfit_apron" -> {
-                drawLine(fabric, Offset(30f * u, 71f * u), Offset(34f * u, 87f * u), 7f * u)
-                drawLine(fabric, Offset(70f * u, 71f * u), Offset(66f * u, 87f * u), 7f * u)
+                drawLine(fabric, Offset(24f * u, 69f * u), Offset(36f * u, 83f * u), 7f * u)
+                drawLine(fabric, Offset(76f * u, 69f * u), Offset(64f * u, 83f * u), 7f * u)
                 drawRoundRect(fabric.copy(red = fabric.red * 0.83f, green = fabric.green * 0.83f, blue = fabric.blue * 0.83f),
                     Offset(38f * u, 84f * u), Size(24f * u, 12f * u), CornerRadius(3f * u))
                 drawCircle(Spark, 1.8f * u, Offset(34f * u, 79f * u))
@@ -529,35 +561,58 @@ private fun DrawScope.drawOutfit(u: Float, style: Set<String>) {
                 sparkle(it * u, 3.2f * u, Color(0xFFFFE6A2))
             }
             "outfit_cape" -> {
-                val opening = Path().apply { moveTo(50f * u, 79f * u); lineTo(33f * u, 102f * u); lineTo(67f * u, 102f * u); close() }
-                drawPath(opening, Color(0xFFD8B8E5))
-                drawCircle(Spark, 3f * u, Offset(50f * u, 80f * u))
+                drawCircle(Spark, 3f * u, Offset(50f * u, 82f * u))
             }
             else -> Unit
         }
     }
 }
 
+private val ClosedHats = setOf(
+    "hat_beanie", "hat_bucket", "hat_sun", "hat_beret", "hat_sleep", "hat_captain", "hat_wizard",
+)
+
+private fun DrawScope.drawCape(u: Float) {
+    val cape = Path().apply {
+        moveTo(20f * u, 66f * u)
+        quadraticTo(2f * u, 79f * u, 1f * u, 96f * u)
+        quadraticTo(18f * u, 108f * u, 50f * u, 99f * u)
+        quadraticTo(82f * u, 108f * u, 99f * u, 96f * u)
+        quadraticTo(98f * u, 79f * u, 80f * u, 66f * u)
+        close()
+    }
+    drawPath(cape, Color(0xFF81539A))
+}
+
 private fun DrawScope.drawHat(u: Float, style: Set<String>) {
     val id = style.firstOrNull { it.startsWith("hat_") } ?: return
-    fun brim(color: Color, x: Float = 19f, y: Float = 27f, width: Float = 62f) {
-        drawRoundRect(color, Offset(x * u, y * u), Size(width * u, 7f * u), CornerRadius(3.5f * u))
+    fun brim(color: Color, x: Float = 19f, width: Float = 62f) {
+        drawRoundRect(color, Offset(x * u, 22f * u), Size(width * u, 6f * u), CornerRadius(3f * u))
     }
     when (id) {
         "hat_beanie" -> {
-            drawOval(Color(0xFFE7A57F), Offset(27f * u, 8f * u), Size(46f * u, 30f * u))
-            brim(Color(0xFFBD7C68), 26f, 26f, 48f)
-            repeat(7) { i -> drawLine(Color(0xFFDEA087), Offset((30f + i * 6f) * u, 27f * u), Offset((30f + i * 6f) * u, 32f * u), 1.4f * u) }
-            drawCircle(Color(0xFFF3C2A0), 6f * u, Offset(50f * u, 8f * u))
+            val cap = Path().apply {
+                moveTo(25f * u, 24f * u)
+                cubicTo(25f * u, -1f * u, 75f * u, -1f * u, 75f * u, 24f * u)
+                close()
+            }
+            drawPath(cap, Color(0xFFE7A57F))
+            brim(Color(0xFFBD7C68), 25f, 50f)
+            repeat(8) { i -> drawLine(Color(0xFFDEA087), Offset((29f + i * 6f) * u, 23f * u), Offset((29f + i * 6f) * u, 27f * u), 1.4f * u) }
+            drawCircle(Color(0xFFF3C2A0), 4.5f * u, Offset(50f * u, 5f * u))
         }
         "hat_bucket", "hat_sun", "hat_captain" -> {
             val color = when (id) { "hat_sun" -> Color(0xFFEAC887); "hat_captain" -> Color(0xFFF1EBD5); else -> Color(0xFF90C5B0) }
-            val crown = Path().apply { moveTo(30f * u, 28f * u); lineTo(35f * u, 11f * u); quadraticTo(50f * u, 6f * u, 65f * u, 11f * u); lineTo(70f * u, 28f * u); close() }
-            drawPath(crown, color)
-            brim(if (id == "hat_captain") Ink else color, if (id == "hat_sun") 10f else 20f, 27f, if (id == "hat_sun") 80f else 60f)
+            val cap = Path().apply {
+                moveTo(26f * u, 24f * u); lineTo(31f * u, 9f * u)
+                quadraticTo(50f * u, 3f * u, 69f * u, 9f * u)
+                lineTo(74f * u, 24f * u); close()
+            }
+            drawPath(cap, color)
+            brim(if (id == "hat_captain") Ink else color, if (id == "hat_sun") 9f else 19f, if (id == "hat_sun") 82f else 62f)
             drawLine(if (id == "hat_captain") Color(0xFFCDA758) else color.copy(red = color.red * 0.8f, green = color.green * 0.8f, blue = color.blue * 0.8f),
-                Offset(31f * u, 24f * u), Offset(69f * u, 24f * u), 3f * u)
-            if (id == "hat_captain") sparkle(Offset(50f * u, 18f * u), 4f * u, Spark)
+                Offset(28f * u, 20f * u), Offset(72f * u, 20f * u), 3f * u)
+            if (id == "hat_captain") sparkle(Offset(50f * u, 13f * u), 4f * u, Spark)
         }
         "hat_flower" -> {
             repeat(6) { i -> rotate(i * 60f, Offset(69f * u, 22f * u)) {
@@ -566,34 +621,40 @@ private fun DrawScope.drawHat(u: Float, style: Set<String>) {
             drawCircle(Spark, 4.4f * u, Offset(69f * u, 22f * u))
         }
         "hat_beret" -> {
-            drawOval(Color(0xFFD78380), Offset(20f * u, 9f * u), Size(57f * u, 23f * u))
-            brim(Color(0xFFA96471), 28f, 26f, 44f)
-            drawLine(Color(0xFFA96471), Offset(48f * u, 11f * u), Offset(51f * u, 6f * u), 3f * u, StrokeCap.Round)
+            drawOval(Color(0xFFD78380), Offset(18f * u, 5f * u), Size(62f * u, 21f * u))
+            brim(Color(0xFFA96471), 24f, 52f)
+            drawLine(Color(0xFFA96471), Offset(48f * u, 8f * u), Offset(51f * u, 3f * u), 3f * u, StrokeCap.Round)
         }
         "hat_sleep", "hat_wizard" -> {
             val night = id == "hat_sleep"
             val cap = Path().apply {
-                moveTo(26f * u, 29f * u)
-                if (night) { quadraticTo(55f * u, -1f * u, 77f * u, 18f * u); quadraticTo(61f * u, 15f * u, 73f * u, 29f * u) }
-                else { lineTo(49f * u, 0f); lineTo(74f * u, 29f * u) }
+                moveTo(25f * u, 25f * u)
+                if (night) {
+                    quadraticTo(43f * u, -2f * u, 66f * u, 6f * u)
+                    quadraticTo(81f * u, 10f * u, 80f * u, 19f * u)
+                    quadraticTo(68f * u, 10f * u, 75f * u, 25f * u)
+                } else {
+                    quadraticTo(30f * u, 14f * u, 49f * u, 1f * u)
+                    quadraticTo(65f * u, 11f * u, 75f * u, 25f * u)
+                }
                 close()
             }
             drawPath(cap, if (night) Color(0xFF86A9BD) else Color(0xFF7764AC))
-            brim(if (night) Color(0xFFD9EBEC) else Color(0xFF5E508E), 24f, 27f, 52f)
-            if (night) drawCircle(Color(0xFFD9EBEC), 5f * u, Offset(77f * u, 18f * u))
-            else sparkle(Offset(49f * u, 19f * u), 5f * u, Spark)
+            brim(if (night) Color(0xFFD9EBEC) else Color(0xFF5E508E), 23f, 54f)
+            if (night) drawCircle(Color(0xFFD9EBEC), 4f * u, Offset(80f * u, 19f * u))
+            else sparkle(Offset(49f * u, 15f * u), 4.5f * u, Spark)
         }
         "hat_bow" -> drawBow(Offset(68f * u, 20f * u), 11f * u, Color(0xFFD987AC))
         "hat_crown" -> {
             val crown = Path().apply {
-                moveTo(29f * u, 29f * u); lineTo(24f * u, 10f * u); lineTo(39f * u, 18f * u)
-                lineTo(50f * u, 5f * u); lineTo(61f * u, 18f * u); lineTo(76f * u, 10f * u)
-                lineTo(71f * u, 29f * u); close()
+                moveTo(26f * u, 25f * u); lineTo(23f * u, 9f * u); lineTo(38f * u, 16f * u)
+                lineTo(50f * u, 4f * u); lineTo(62f * u, 16f * u); lineTo(77f * u, 9f * u)
+                lineTo(74f * u, 25f * u); close()
             }
             drawPath(crown, Spark)
-            brim(Color(0xFFE3A633), 29f, 26f, 42f)
-            drawCircle(Color(0xFFD582A6), 3f * u, Offset(50f * u, 22f * u))
-            listOf(24f to 10f, 50f to 5f, 76f to 10f).forEach { (x, y) -> drawCircle(Color(0xFFFFE4A4), 2.5f * u, Offset(x * u, y * u)) }
+            brim(Color(0xFFE3A633), 26f, 48f)
+            drawCircle(Color(0xFFD582A6), 3f * u, Offset(50f * u, 19f * u))
+            listOf(23f to 9f, 50f to 4f, 77f to 9f).forEach { (x, y) -> drawCircle(Color(0xFFFFE4A4), 2f * u, Offset(x * u, y * u)) }
         }
     }
 }
