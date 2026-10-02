@@ -135,7 +135,8 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         }
 
         ListRow("Pebble wardrobe", "Clothes, colors, hats, and accessories. Unlock more as you level up.",
-            onClick = { navigator.push(Route.Wardrobe) })
+            onClick = { navigator.push(Route.Wardrobe) },
+            trailing = { Chevron() })
 
         // An active streak stays lit while today's next step is still pending.
         val activeStreak = g.streak > 0 || g.streakSafeToday
@@ -417,15 +418,20 @@ fun Bars(values: List<Pair<String, Float>>, goal: Float?, color: Color, label: (
     val track = Sp.colors.surfaceHigh
     val goalColor = Sp.colors.flame
     Column {
-        Text("Most: ${label(values.maxOf { it.second })}", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Most: ${label(values.maxOf { it.second })}", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+            // Names the dashed line, so it does not read as the top of the scale.
+            if (goal != null && goal > 0f) Text("Goal: ${label(goal)}", style = MaterialTheme.typography.labelMedium, color = goalColor)
+        }
         Spacer(Modifier.height(8.dp))
         Canvas(Modifier.fillMaxWidth().height(110.dp)) {
             val gap = 10.dp.toPx()
             val w = (size.width - gap * (values.size - 1)) / values.size
             values.forEachIndexed { i, (_, v) ->
                 val x = i * (w + gap)
-                drawRoundRect(track, Offset(x, 0f), Size(w, size.height), CornerRadius(8.dp.toPx()))
-                val h = size.height * (v / max) * grow.value
+                drawRoundRect(track.copy(alpha = 0.5f), Offset(x, 0f), Size(w, size.height), CornerRadius(8.dp.toPx()))
+                // A short day still shows a small bar, so it does not look like an empty day.
+                val h = (if (v > 0f) maxOf(size.height * v / max, 10.dp.toPx()) else 0f) * grow.value
                 if (h > 0f) {
                     val c = if (i == values.lastIndex) color else color.copy(alpha = 0.55f)
                     drawRoundRect(c, Offset(x, size.height - h), Size(w, h), CornerRadius(8.dp.toPx()))
