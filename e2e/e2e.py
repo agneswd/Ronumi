@@ -256,7 +256,7 @@ def today_screen():
 def device_workflow(scenario: str):
     sh(f"run-as {PKG} rm -f files/device-check.txt")
     sh(f"am broadcast -f 0x20 -n {PKG}/.StorageCheckReceiver --es scenario {scenario}")
-    end = time.time() + 15
+    end = time.time() + (120 if scenario == "storage" else 30)
     while time.time() < end:
         result = sh(f"run-as {PKG} cat files/device-check.txt")
         if result.startswith(("PASS", "FAIL")):

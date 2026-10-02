@@ -6,9 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import dev.agneswd.stillpoint.ui.design.Sfx
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,17 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.agneswd.stillpoint.app
-import dev.agneswd.stillpoint.data.exportBackup
-import dev.agneswd.stillpoint.data.importBackup
 import dev.agneswd.stillpoint.data.settings
 import dev.agneswd.stillpoint.data.updateSettings
 import dev.agneswd.stillpoint.guard.Rules
 import dev.agneswd.stillpoint.guard.formatMinutes
 import dev.agneswd.stillpoint.ui.design.Mood
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Composable
@@ -46,20 +38,6 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
     val schedules by app.dao.schedules().collectAsState(emptyList())
     val focus by app.dao.activeFocusFlow().collectAsState(null)
     val locked = settings?.protection == true && Rules(schedules = schedules, focus = focus).locked(LocalDateTime.now())
-
-    fun report(action: String, work: suspend () -> Unit) {
-        app.scope.launch {
-            val message = runCatching { work() }.fold({ "$action done" }, { "$action failed: ${it.message}" })
-            withContext(Dispatchers.Main) { Toast.makeText(context, message, Toast.LENGTH_LONG).show() }
-        }
-    }
-
-    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        uri?.let { report("Backup") { exportBackup(context, app.dao, it) } }
-    }
-    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { report("Restore") { importBackup(context, app.dao, it) } }
-    }
 
     // Keep the stored scroll offset until the full settings content is ready.
     val s = settings ?: return
@@ -136,17 +114,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
 
             UpdateSettings(s)
 
-            SectionTitle("Backup")
-            Group {
-                ListRow("Save a backup", "Limits, schedules, sites, settings and focus history in one file.", onClick = {
-                    export.launch("stillpoint-${LocalDate.now()}.json")
-                }) { Chevron() }
-                ListRow(
-                    "Restore a backup",
-                    if (locked || focus != null) "Locked while a focus session or protected schedule runs." else "Replaces everything with the content of the file.",
-                    onClick = if (locked || focus != null) null else ({ import.launch(arrayOf("application/json", "*/*")) }),
-                ) { if (!locked && focus == null) Chevron() }
-            }
+            BackupSettings(restoreLocked = locked || focus != null)
 
             SectionTitle("About")
             PebbleSays(

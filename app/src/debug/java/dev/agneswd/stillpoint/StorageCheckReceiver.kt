@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.room.withTransaction
 import dev.agneswd.stillpoint.data.*
 import dev.agneswd.stillpoint.game.gameState
 import dev.agneswd.stillpoint.game.applyStreakFreezes
@@ -71,7 +72,7 @@ private suspend fun prepareDemoRewards(context: Context): String {
 private suspend fun preparePlan(context: Context): String {
     val dao = context.app.dao
     check(dao.activeFocus() == null)
-    exportBackup(context, dao, Uri.fromFile(File(context.filesDir, "plan-original.json")))
+    exportFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "plan-original.stillpoint")))
     dao.updateSettings { it.copy(focusStrict = false, focusLockHome = false, focusSound = FocusSound.OFF, protection = false) }
     val now = java.time.LocalTime.now()
     val start = (now.hour * 60 + now.minute + 1) % 1440
@@ -94,13 +95,13 @@ private suspend fun checkPlan(context: Context): String {
     } finally {
         dao.clearActiveFocus()
         dev.agneswd.stillpoint.focus.Celebrations.consume()
-        importBackup(context, dao, Uri.fromFile(File(context.filesDir, "plan-original.json")))
+        importFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "plan-original.stillpoint")))
     }
 }
 
 private suspend fun prepareNotifications(context: Context): String {
     val dao = context.app.dao
-    exportBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.json")))
+    exportFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.stillpoint")))
     dao.clearHeld()
     val day = LocalDate.now().toString()
     val usage = dao.usageDay(day) ?: UsageDay(day, emptyMap(), 0)
@@ -137,7 +138,7 @@ private suspend fun checkNotifications(context: Context): String {
         check(manager.activeNotifications.single { it.id == 10 }.postTime == first)
         return "Held messages survived muted summaries and process restart. Enabling summaries delivered pending content once."
     } finally {
-        importBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.json")))
+        importFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.stillpoint")))
         context.getSystemService(android.app.NotificationManager::class.java).cancel(10)
     }
 }
@@ -160,15 +161,24 @@ private suspend fun checkMigration(context: Context): String {
     check(dao.allSchedules().single().icon == "auto")
     check(dao.currentSettings().petTapCount == 0)
     check(dao.currentSettings().themeMode == "SYSTEM" && dao.currentSettings().autoUpdateChecks)
-    return "Schema 1 upgraded to schema 5. Original data, quest rules, notification defaults, and automatic icons were preserved."
+    check(dao.currentSettings().freezeRewardedThrough.isEmpty())
+    check(dao.allSessions().single().rewardDay.isEmpty() && dao.allSessions().single().rewardStartHour == -1)
+    return "Schema 1 upgraded to schema 6. Original data, quest rules, notification defaults, and automatic icons were preserved."
 }
 
 /** Exercises actual file I/O, Room transactions, and policy changes in the installed app. */
 private suspend fun checkStorage(context: Context): String {
     val dao = context.app.dao
     check(dao.activeFocus() == null) { "End the session before the storage check" }
-    val original = File(context.filesDir, "check-original.json")
-    exportBackup(context, dao, Uri.fromFile(original))
+    val originalPasses = context.app.database.withTransaction {
+        context.app.database.openHelper.readableDatabase.query("SELECT day, packageName, expiresAt, uses FROM LimitPass").use { rows ->
+            buildList {
+                while (rows.moveToNext()) add(LimitPass(rows.getString(0), rows.getString(1), rows.getLong(2), rows.getInt(3)))
+            }
+        }
+    }
+    val original = File(context.filesDir, "check-original.stillpoint")
+    exportFixtureBackup(context, dao, Uri.fromFile(original))
     val results = mutableListOf<String>()
     try {
         val today = LocalDate.now()
@@ -179,24 +189,34 @@ private suspend fun checkStorage(context: Context): String {
             limits = listOf(AppLimit("com.google.android.deskclock", 1)),
             schedules = listOf(Schedule(1, "Overnight", 23 * 60, 6 * 60, days = 127, icon = "sleep")),
             sites = listOf(BlockedSite("example.com")),
-            sessions = listOf(FocusSession(1, start, start + 25 * 60_000, 25 * 60_000, true, "Reading", "Local notes", 25)),
+            sessions = listOf(FocusSession(1, start, start + 25 * 60_000, 25 * 60_000, true, "Reading", "Local notes", 25, rewardDay = yesterday.toString(), rewardStartHour = 9)),
             usageDays = listOf(UsageDay(yesterday.toString(), mapOf("com.google.android.deskclock" to 12 * 60_000), 7, 2,
                 limitMinutes = mapOf("com.google.android.deskclock" to 17))))
-        val file = File(context.filesDir, "check-backup.json")
-        file.writeText(Json.encodeToString(fixture))
-        importBackup(context, dao, Uri.fromFile(file))
+        val file = File(context.filesDir, "check-backup.stillpoint")
+        dao.replaceAll(fixture)
+        val exported = File(context.filesDir, "check-export.stillpoint")
+        exportFixtureBackup(context, dao, Uri.fromFile(exported))
+        dao.clearPasses()
+        val usedPass = LimitPass(today.toString(), "dev.agneswd.stillpoint.fixture", System.currentTimeMillis() + 60_000, 2)
+        dao.savePass(usedPass)
+        dao.updateSettings { it.copy(focusGoalMinutes = 60) }
+        importFixtureBackup(context, dao, Uri.fromFile(exported))
+        check(dao.currentSettings() == fixture.settings)
+        check(dao.pass(usedPass.day, usedPass.packageName) == usedPass.copy(expiresAt = 0))
+        check(dao.passesUsed(today.toString()) == 2)
+        dao.clearPasses()
+        results += "Restoring an older backup kept local pass usage and ended active passes."
         check(dao.allSessions() == fixture.sessions && dao.allUsageDays().containsAll(fixture.usageDays))
-        val exported = File(context.filesDir, "check-export.json")
-        exportBackup(context, dao, Uri.fromFile(exported))
-        val roundTrip = Json.decodeFromString<Backup>(exported.readText())
-        check(roundTrip.copy(usageDays = fixture.usageDays) == fixture)
-        check(roundTrip.usageDays.containsAll(fixture.usageDays))
-        results += "Backup round trip preserved settings, limits, schedules, sites, notes, focus and usage history."
+        check(dao.allLimits() == fixture.limits && dao.allSchedules() == fixture.schedules && dao.allSites() == fixture.sites)
+        results += "Encrypted backup round trip preserved settings, limits, schedules, sites, notes, focus and usage history."
 
         val oldTree = Json.parseToJsonElement(Json.encodeToString(fixture)).jsonObject
         val oldBackup = JsonObject(oldTree.toMutableMap().apply {
             put("settings", JsonObject(oldTree.getValue("settings").jsonObject.filterKeys {
-                it !in setOf("notifyFocusEvents", "notifyPlanReminders", "notifyInboxSummaries", "petTapCount", "themeMode", "autoUpdateChecks")
+                it !in setOf("notifyFocusEvents", "notifyPlanReminders", "notifyInboxSummaries", "petTapCount", "themeMode", "autoUpdateChecks", "freezeRewardedThrough")
+            }))
+            put("sessions", JsonArray(oldTree.getValue("sessions").jsonArray.map {
+                JsonObject(it.jsonObject.filterKeys { key -> key !in setOf("rewardDay", "rewardStartHour") })
             }))
             put("schedules", JsonArray(oldTree.getValue("schedules").jsonArray.map {
                 JsonObject(it.jsonObject.filterKeys { key -> key != "icon" })
@@ -206,26 +226,41 @@ private suspend fun checkStorage(context: Context): String {
         check(defaults.settings.let { it.notifyFocusEvents && it.notifyPlanReminders && it.notifyInboxSummaries })
         check(defaults.schedules.single().icon == "auto" && defaults.settings.petTapCount == 0)
         check(defaults.settings.themeMode == "SYSTEM" && defaults.settings.autoUpdateChecks)
-        results += "Old backups use enabled notification defaults and automatic schedule icons."
+        check(defaults.settings.freezeRewardedThrough.isEmpty())
+        check(defaults.sessions.single().rewardDay.isEmpty() && defaults.sessions.single().rewardStartHour == -1)
+        results += "Older record schemas preserve defaults for notifications, schedule icons, and reward dates."
 
-        file.writeText(Json.encodeToString(fixture.copy(limits = listOf(AppLimit("bad", -1)))))
-        check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
+        writeEncryptedFixture(file, Json.encodeToString(fixture.copy(limits = listOf(AppLimit("bad", -1)))))
+        check(runCatching { importFixtureBackup(context, dao, Uri.fromFile(file)) }.isFailure)
         check(dao.allSessions() == fixture.sessions && dao.allLimits() == fixture.limits)
-        file.writeText(Json.encodeToString(fixture.copy(schedules = fixture.schedules.map { it.copy(icon = "unknown") })))
-        check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
-        check(dao.allSchedules() == fixture.schedules)
+        check(runCatching { fixture.copy(schedules = fixture.schedules.map { it.copy(icon = "unknown") }).validated() }.isFailure)
         for (badCount in listOf(-1, 1001)) {
-            file.writeText(Json.encodeToString(fixture.copy(settings = fixture.settings.copy(petTapCount = badCount))))
-            check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
-            check(dao.currentSettings().petTapCount == 1000)
+            check(runCatching { fixture.copy(settings = fixture.settings.copy(petTapCount = badCount)).validated() }.isFailure)
         }
-        file.writeText(Json.encodeToString(fixture.copy(settings = fixture.settings.copy(themeMode = "unknown"))))
-        check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
-        check(dao.currentSettings().themeMode == "DARK" && !dao.currentSettings().autoUpdateChecks)
-        file.writeText("{broken")
-        check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
+        check(runCatching { fixture.copy(settings = fixture.settings.copy(themeMode = "unknown")).validated() }.isFailure)
+        check(runCatching { Json.decodeFromString<Backup>("{broken").validated() }.isFailure)
+        check(runCatching { fixture.copy(sessions = listOf(
+            fixture.sessions.single().copy(endedAt = start + 172_800_001L, focusedMillis = 172_800_001L)
+        )).validated() }.isFailure)
+        check(runCatching { fixture.copy(settings = fixture.settings.copy(freezeRewardedThrough = "not-a-date")).validated() }.isFailure)
+        check(runCatching { fixture.copy(sessions = fixture.sessions.map { it.copy(rewardDay = "2026-02-30") }).validated() }.isFailure)
+        check(runCatching { fixture.copy(sessions = fixture.sessions.map { it.copy(rewardStartHour = 24) }).validated() }.isFailure)
+        results += "Record validation rejected invalid icons, counters, themes, focus durations, reward dates, and malformed records."
+
+        val encrypted = exported.readBytes()
+        val tampered = encrypted.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }
+        file.writeBytes(tampered)
+        check(runCatching { importFixtureBackup(context, dao, Uri.fromFile(file)) }.isFailure)
         check(dao.allSessions() == fixture.sessions && dao.allLimits() == fixture.limits)
-        results += "Malformed and invalid backups left stored data unchanged."
+        val wrongPassword = "wrong fixture password".toCharArray()
+        try {
+            check(runCatching { importBackup(context, dao, Uri.fromFile(exported), wrongPassword) }.isFailure)
+        } finally { wrongPassword.fill('\u0000') }
+        check(dao.allSessions() == fixture.sessions && dao.allSchedules() == fixture.schedules)
+        file.writeText(Json.encodeToString(fixture))
+        check(runCatching { importFixtureBackup(context, dao, Uri.fromFile(file)) }.isFailure)
+        check(dao.allSessions() == fixture.sessions && dao.allLimits() == fixture.limits)
+        results += "Wrong passwords, changed ciphertext, and plaintext files left stored data unchanged."
 
         val xp = gameState(dao.allSessions(), dao.currentSettings(), today).xp
         dao.updateSettings { it.copy(focusGoalMinutes = 600) }
@@ -264,13 +299,20 @@ private suspend fun checkStorage(context: Context): String {
         check(!PolicyActions.saveSchedule(context, Schedule(2, "All day", 0, 0, enabled = false)))
         check(dao.allSchedules().any { it.id == 2L && it.enabled })
         check(!PolicyActions.pauseBlocks(context, 10))
-        file.writeText(Json.encodeToString(fixture))
-        check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
+        val lockedRestore = runCatching { importFixtureBackup(context, dao, Uri.fromFile(exported)) }.exceptionOrNull()
+        check(lockedRestore?.message == "Restore is locked while a protected schedule runs")
         results += "Protected schedules refused editor changes, block pause and backup restore."
     } finally {
         dao.clearActiveFocus()
         dao.updateSettings { it.copy(protection = false) }
-        importBackup(context, dao, Uri.fromFile(original))
+        try {
+            importFixtureBackup(context, dao, Uri.fromFile(original))
+        } finally {
+            context.app.database.withTransaction {
+                dao.clearPasses()
+                originalPasses.forEach { dao.savePass(it) }
+            }
+        }
     }
     return results.joinToString("\n")
 }
@@ -370,4 +412,21 @@ private suspend fun prepareDemoWardrobe(context: Context): String {
     dao.replaceAll(Backup(settings = settings, sessions = sessions,
         limits = emptyList(), schedules = emptyList(), sites = emptyList()))
     return "Sample wardrobe history ready at level ${state.level.number}. This fixture replaced the previous history."
+}
+
+
+private inline fun <T> withFixturePassword(block: (CharArray) -> T): T {
+    val password = "Stillpoint debug backup fixture".toCharArray()
+    return try { block(password) } finally { password.fill('\u0000') }
+}
+
+private suspend fun exportFixtureBackup(context: Context, dao: StillpointDao, target: Uri) =
+    withFixturePassword { exportBackup(context, dao, target, it) }
+
+private suspend fun importFixtureBackup(context: Context, dao: StillpointDao, source: Uri) =
+    withFixturePassword { importBackup(context, dao, source, it) }
+
+private fun writeEncryptedFixture(file: File, text: String) = withFixturePassword { password ->
+    val bytes = text.encodeToByteArray()
+    try { file.writeBytes(BackupCrypto.encrypt(bytes, password)) } finally { bytes.fill(0) }
 }

@@ -192,6 +192,9 @@ interface StillpointDao {
             limitMinutes = budgets + previous?.limitMinutes.orEmpty()))
     }
 
+    @Query("UPDATE LimitPass SET expiresAt = 0")
+    suspend fun expirePasses()
+
     /** Replaces every user-made row with the content of a backup. */
     @Transaction
     suspend fun replaceAll(backup: Backup) {
@@ -201,7 +204,7 @@ interface StillpointDao {
         clearSessions()
         clearUsageDays()
         clearHeld()
-        clearPasses()
+        expirePasses()
         backup.usageDays.forEach { saveUsageDay(it) }
         backup.limits.forEach { saveLimit(it) }
         backup.schedules.forEach { saveSchedule(it) }
