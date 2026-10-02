@@ -55,10 +55,10 @@ private fun colorsFor(kind: ButtonKind): ButtonColors {
     val c = Sp.colors
     return when (kind) {
         ButtonKind.PRIMARY -> ButtonColors(c.brand, c.brandLip, c.onFill, null)
-        ButtonKind.ROSE -> ButtonColors(c.rose, c.roseLip, c.onFill, null)
-        ButtonKind.MINT -> ButtonColors(c.mint, c.mintLip, c.onFill, null)
-        ButtonKind.FLAME -> ButtonColors(c.flame, c.flameLip, c.onFill, null)
-        ButtonKind.DANGER -> ButtonColors(c.danger, c.dangerLip, c.onFill, null)
+        ButtonKind.ROSE -> ButtonColors(c.rose, c.roseLip, Color(0xFF262841), null)
+        ButtonKind.MINT -> ButtonColors(c.mint, c.mintLip, Color(0xFF262841), null)
+        ButtonKind.FLAME -> ButtonColors(c.flame, c.flameLip, Color(0xFF262841), null)
+        ButtonKind.DANGER -> ButtonColors(c.danger, c.dangerLip, Color(0xFF262841), null)
         ButtonKind.SECONDARY -> ButtonColors(c.background, c.border, c.brand, c.border)
         ButtonKind.GHOST -> ButtonColors(Color.Transparent, Color.Transparent, c.brand, null)
     }

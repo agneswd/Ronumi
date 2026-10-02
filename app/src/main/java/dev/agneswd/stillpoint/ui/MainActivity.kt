@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -98,7 +99,7 @@ sealed interface Route {
 }
 
 /** Opens new screens. The tabs and editors get it instead of a navigation library. */
-class Navigator {
+class Navigator : androidx.lifecycle.ViewModel() {
     val settingsScroll = androidx.compose.foundation.ScrollState(0)
     var tab by mutableStateOf(Tab.HOME)
     val stack = mutableStateListOf<Route>()
@@ -117,12 +118,12 @@ class Navigator {
 }
 
 class MainActivity : ComponentActivity() {
-    private val navigator = Navigator()
+    private val navigator by viewModels<Navigator>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        openFrom(intent)
+        if (savedInstanceState == null) openFrom(intent)
         setContent {
             StillpointTheme {
                 App(navigator)

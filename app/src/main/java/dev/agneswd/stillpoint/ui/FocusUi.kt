@@ -528,7 +528,7 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (levelUp) {
                             Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Sp.colors.brand), contentAlignment = Alignment.Center) {
-                                Text("${after.level.number}", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                                Text("${after.level.number}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.onFill)
                             }
                         } else {
                             Flame(size = 44.dp)
@@ -588,7 +588,7 @@ private fun RewardTile(label: String, color: Color, modifier: Modifier, value: @
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
+            color = if (color == Sp.colors.brand) Sp.colors.onFill else Color(0xFF262841),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().background(color).padding(vertical = 4.dp),
         )
@@ -620,7 +620,7 @@ fun FocusChip(focus: ActiveFocus, onOpen: () -> Unit, modifier: Modifier = Modif
         Text(
             "${if (focus.phase == FocusPhase.BREAK) "Break" else "Focusing"} ${clockText(shown)}",
             style = MaterialTheme.typography.labelLarge,
-            color = Color.White,
+            color = Sp.colors.onFill,
         )
     }
 }

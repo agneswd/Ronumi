@@ -51,6 +51,7 @@ import dev.agneswd.stillpoint.game.GameState
 import dev.agneswd.stillpoint.ui.design.ButtonKind
 import dev.agneswd.stillpoint.ui.design.ChunkyButton
 import dev.agneswd.stillpoint.ui.design.Flame
+import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Pebble
 import dev.agneswd.stillpoint.ui.design.Sfx
@@ -120,7 +121,7 @@ fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, leading
             onCheckedChange = toggle,
             colors = SwitchDefaults.colors(
                 checkedTrackColor = Sp.colors.mint,
-                checkedThumbColor = Color.White,
+                checkedThumbColor = LightPalette.text,
                 uncheckedTrackColor = Sp.colors.surfaceHigh,
                 uncheckedBorderColor = Sp.colors.border,
                 uncheckedThumbColor = Sp.colors.textDim,
@@ -236,16 +237,16 @@ fun GameBar(game: GameState?, modifier: Modifier = Modifier, onOpen: () -> Unit 
     ) {
         Stat(onOpen) {
             Flame(size = 26.dp, lit = game?.streakSafeToday == true)
-            Counter(game?.streak ?: 0, if (game?.streakSafeToday == true) c.flame else c.textDim)
+            Counter(game?.streak ?: 0, if (game?.streakSafeToday == true) c.text else c.textDim)
         }
         Stat(onOpen) {
             XpBolt(size = 24.dp)
-            Counter(game?.xp ?: 0, c.goldLip)
+            Counter(game?.xp ?: 0, c.text)
         }
         Spacer(Modifier.weight(1f))
         Stat(onOpen) {
             Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(c.brand), contentAlignment = Alignment.Center) {
-                Text("${game?.level?.number ?: 1}", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                Text("${game?.level?.number ?: 1}", style = MaterialTheme.typography.labelMedium, color = c.onFill)
             }
             Text("LEVEL", style = MaterialTheme.typography.labelLarge, color = c.brand)
         }

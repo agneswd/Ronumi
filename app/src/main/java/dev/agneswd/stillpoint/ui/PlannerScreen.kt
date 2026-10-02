@@ -50,6 +50,7 @@ import dev.agneswd.stillpoint.ui.design.ChunkyCard
 import dev.agneswd.stillpoint.ui.design.DayPart
 import dev.agneswd.stillpoint.ui.design.DayPartIcon
 import dev.agneswd.stillpoint.ui.design.ScreenTitle
+import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Sp
 import dev.agneswd.stillpoint.ui.design.appear
 import kotlinx.coroutines.Dispatchers
@@ -108,7 +109,7 @@ fun PlannerScreen(navigator: Navigator) {
                 ChunkyCard(Modifier.fillMaxWidth(), fill = Sp.colors.surface, contentPadding = 12.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(if (session.completed) Sp.colors.mint else Sp.colors.surfaceHigh), contentAlignment = Alignment.Center) {
-                            Text(if (session.completed) "✓" else "~", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                            Text(if (session.completed) "✓" else "~", style = MaterialTheme.typography.titleLarge, color = if (session.completed) LightPalette.text else Sp.colors.textDim)
                         }
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
@@ -180,16 +181,16 @@ private fun WeekStrip(selected: LocalDate, goalMet: Map<LocalDate, Boolean>, onS
                 Text(
                     date.dayOfWeek.getDisplayName(TextStyle.SHORT, androidx.compose.ui.platform.LocalLocale.current.platformLocale),
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (on) Color.White.copy(alpha = 0.85f) else Sp.colors.textDim,
+                    color = if (on) Sp.colors.onFill else Sp.colors.textDim,
                 )
                 Text(
                     "${date.dayOfMonth}",
                     style = MaterialTheme.typography.titleLarge,
-                    color = if (on) Color.White else if (today) Sp.colors.brand else Sp.colors.text,
+                    color = if (on) Sp.colors.onFill else if (today) Sp.colors.brand else Sp.colors.text,
                 )
                 Box(
                     Modifier.size(6.dp).clip(RoundedCornerShape(3.dp))
-                        .background(if (goalMet[date] == true) (if (on) Color.White else Sp.colors.flame) else Color.Transparent),
+                        .background(if (goalMet[date] == true) (if (on) Sp.colors.onFill else Sp.colors.flame) else Color.Transparent),
                 )
             }
         }
