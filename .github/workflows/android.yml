@@ -34,7 +34,7 @@ jobs:
         with:
           log-accepted-android-sdk-licenses: false
       - name: Install build SDK
-        run: sdkmanager "platforms;android-37" "build-tools;37.0.0"
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
       - name: Build and check the release
         run: ./gradlew assembleDebug assembleRelease lintRelease --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs=-Xmx2g
       - name: Enable KVM
