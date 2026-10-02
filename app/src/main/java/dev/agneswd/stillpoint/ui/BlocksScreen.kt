@@ -358,8 +358,8 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
     }
 }
 
-fun scheduleSummary(schedule: Schedule): String {
-    val window = if (schedule.startMinute == schedule.endMinute) "All day" else "${minuteText(schedule.startMinute)} to ${minuteText(schedule.endMinute)}"
+fun scheduleSummary(schedule: Schedule, use24: Boolean): String {
+    val window = if (schedule.startMinute == schedule.endMinute) "All day" else "${minuteText(schedule.startMinute, use24)} to ${minuteText(schedule.endMinute, use24)}"
     val apps = when (schedule.mode) {
         BlockMode.LISTED -> "${appCount(schedule.packages.size)} blocked"
         BlockMode.ALL_EXCEPT -> "all but ${appCount(schedule.packages.size)} blocked"

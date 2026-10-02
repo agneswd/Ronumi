@@ -179,6 +179,7 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
     val held by app.dao.held().collectAsState(emptyList())
     val access = rememberAccess()
     var picking by remember { mutableStateOf(false) }
+    val use24 = rememberUse24Hour()
     BlockPage("Notifications", "I keep them in a box until you finish.", Mood.CALM, onClose) { s, update ->
         if (!access.listener) {
             Group(Modifier.padding(bottom = 12.dp)) {
@@ -216,7 +217,7 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             times.forEach { minute ->
-                Chip(minuteText(minute)) { update { it.copy(notificationDeliveryTimes = it.notificationDeliveryTimes - minute.toString()) } }
+                Chip(minuteText(minute, use24)) { update { it.copy(notificationDeliveryTimes = it.notificationDeliveryTimes - minute.toString()) } }
             }
             AddChip("Add time") { picking = true }
         }

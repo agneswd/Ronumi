@@ -140,6 +140,12 @@ The Android 9 encrypted storage workflow passes, including wrong passwords, alte
 Encryption protects backup contents from someone without the password. A password owner can still create modified records.
 Do not describe this as an anti-cheat guarantee. Export excludes held notification text, active sessions, and temporary passes.
 
+## Schema 8
+
+Migration 7 to 8 adds `Settings.clockFormat` with the default `SYSTEM`.
+`SYSTEM` follows the phone clock. `H12` shows AM and PM. `H24` shows a 24-hour clock.
+Older backups omit the field and restore as `SYSTEM`.
+
 ## Built-in updates
 
 The app now declares Internet access for its optional GitHub updater. Focus, blocking, reports, and audio remain local.

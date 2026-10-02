@@ -8,7 +8,6 @@ import dev.agneswd.stillpoint.data.LimitMode
 import dev.agneswd.stillpoint.data.Schedule
 import dev.agneswd.stillpoint.data.Settings
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 enum class BlockKind { FOCUS, SCHEDULE, LIMIT, SHORTS, SITE, PROTECTION, STUDY, MULTI_WINDOW }
 
@@ -55,13 +54,14 @@ data class Rules(
         essentials: Set<String>,
         launchers: Set<String>,
         allowedUntil: Long,
+        use24Hour: Boolean = true,
         usedToday: () -> Long,
     ): Verdict {
         val focus = focus
         if (focus != null && focusing) {
             if (focus.lockHome && pkg in launchers) return Verdict.ReturnToFocus
             if (pkg !in essentials && focus.mode.blocks(pkg, focus.packages)) {
-                return Verdict.Block(BlockReason(BlockKind.FOCUS, "$label is blocked during focus", "Your focus round ends at ${time(focus.phaseEndsAt)}."))
+                return Verdict.Block(BlockReason(BlockKind.FOCUS, "$label is blocked during focus", "Your focus round ends at ${time(focus.phaseEndsAt, use24Hour)}."))
             }
         }
 
@@ -70,7 +70,7 @@ data class Rules(
         if (pkg !in essentials) {
             activeSchedules(now).firstOrNull { it.mode.blocks(pkg, it.packages) }?.let { schedule ->
                 return Verdict.Block(
-                    BlockReason(BlockKind.SCHEDULE, "$label is blocked during ${schedule.name}", "The block ends at ${minuteText(schedule.endMinute)}."),
+                    BlockReason(BlockKind.SCHEDULE, "$label is blocked during ${schedule.name}", "The block ends at ${minuteText(schedule.endMinute, use24Hour)}."),
                 )
             }
         }
@@ -109,7 +109,23 @@ fun Schedule.isActive(now: LocalDateTime): Boolean {
     }
 }
 
-fun minuteText(minuteOfDay: Int): String = "%02d:%02d".format(minuteOfDay / 60 % 24, minuteOfDay % 60)
+/** True when [style] or the phone setting uses a 24-hour clock. */
+fun android.content.Context.uses24HourClock(style: String): Boolean = when (style) {
+    "H12" -> false
+    "H24" -> true
+    else -> android.text.format.DateFormat.is24HourFormat(this)
+}
+
+/** A clock time. 12-hour text uses AM and PM. */
+fun minuteText(minuteOfDay: Int, use24: Boolean): String {
+    val minute = minuteOfDay.coerceIn(0, 1439)
+    val hour = minute / 60
+    val mins = minute % 60
+    if (use24) return "%02d:%02d".format(hour, mins)
+    val hour12 = if (hour % 12 == 0) 12 else hour % 12
+    val suffix = if (hour < 12) "AM" else "PM"
+    return "%d:%02d %s".format(hour12, mins, suffix)
+}
 
 fun formatMinutes(minutes: Int): String = when {
     minutes < 60 -> "${minutes}m"
@@ -119,7 +135,7 @@ fun formatMinutes(minutes: Int): String = when {
 
 fun formatDuration(millis: Long): String = formatMinutes((millis / 60_000).toInt())
 
-private val clock = DateTimeFormatter.ofPattern("HH:mm")
-
-fun time(epochMillis: Long): String =
-    java.time.Instant.ofEpochMilli(epochMillis).atZone(java.time.ZoneId.systemDefault()).format(clock)
+fun time(epochMillis: Long, use24: Boolean): String {
+    val zoned = java.time.Instant.ofEpochMilli(epochMillis).atZone(java.time.ZoneId.systemDefault())
+    return minuteText(zoned.hour * 60 + zoned.minute, use24)
+}

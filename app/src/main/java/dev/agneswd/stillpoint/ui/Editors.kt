@@ -130,6 +130,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
     var draft by route::draft
     var picking by remember { mutableStateOf<Boolean?>(null) } // true = start, false = end
     var pickingIcon by remember { mutableStateOf(false) }
+    val use24 = rememberUse24Hour()
     val save: () -> Unit = {
         context.app.scope.launch {
             if (dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, draft.copy(name = draft.name.trim()))) {
@@ -189,10 +190,10 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 "Schedule icon", scheduleIconChoices.firstOrNull { it.first == draft.icon }?.second ?: "Automatic",
                 onClick = { pickingIcon = true },
             ) { ScheduleIcon(draft.icon, draft.startMinute, size = 40.dp) }
-            ListRow("Starts", minuteText(draft.startMinute), onClick = { picking = true })
+            ListRow("Starts", minuteText(draft.startMinute, use24), onClick = { picking = true })
             ListRow(
                 "Ends",
-                minuteText(draft.endMinute) + when {
+                minuteText(draft.endMinute, use24) + when {
                     draft.startMinute == draft.endMinute -> ", blocks all day"
                     draft.endMinute < draft.startMinute -> ", next day"
                     else -> ""
@@ -271,7 +272,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimeDialog(minute: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
-    val state = rememberTimePickerState(minute / 60, minute % 60, is24Hour = true)
+    val state = rememberTimePickerState(minute / 60, minute % 60, is24Hour = rememberUse24Hour())
     AlertDialog(
         onDismissRequest = onDismiss,
         text = { TimePicker(state) },
@@ -285,6 +286,7 @@ fun HeldScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val dao = context.app.dao
     val held by dao.held().collectAsState(emptyList())
+    val use24 = rememberUse24Hour()
     EditorFrame("Held notifications", onClose, action = "Clear all", onAction = { context.app.scope.launch {
         dao.clearHeld()
         context.getSharedPreferences("delivery", android.content.Context.MODE_PRIVATE).edit().remove("lastDelivered").apply()
@@ -294,7 +296,7 @@ fun HeldScreen(onClose: () -> Unit) {
             items(held, key = { it.id }) { item ->
                 ListRow(
                     title = item.title.ifBlank { context.app.catalog.label(item.packageName) },
-                    subtitle = listOf(item.text, "${context.app.catalog.label(item.packageName)}, ${time(item.postedAt)}")
+                    subtitle = listOf(item.text, "${context.app.catalog.label(item.packageName)}, ${time(item.postedAt, use24)}")
                         .filter { it.isNotBlank() }.joinToString("\n"),
                     leading = { AppIcon(item.packageName, 32.dp) },
                     onClick = {

@@ -160,7 +160,7 @@ private suspend fun checkMigration(context: Context): String {
     check(dao.currentSettings().let { it.notifyFocusEvents && it.notifyPlanReminders && it.notifyInboxSummaries })
     check(dao.allSchedules().single().icon == "auto")
     check(dao.currentSettings().petTapCount == 0)
-    check(dao.currentSettings().themeMode == "SYSTEM" && dao.currentSettings().autoUpdateChecks)
+    check(dao.currentSettings().themeMode == "SYSTEM" && dao.currentSettings().clockFormat == "SYSTEM" && dao.currentSettings().autoUpdateChecks)
     check(dao.currentSettings().freezeRewardedThrough.isEmpty())
     check(dao.allSessions().single().rewardDay.isEmpty() && dao.allSessions().single().rewardStartHour == -1)
     return "Schema 1 upgraded to schema 6. Original data, quest rules, notification defaults, and automatic icons were preserved."
@@ -213,7 +213,7 @@ private suspend fun checkStorage(context: Context): String {
         val oldTree = Json.parseToJsonElement(Json.encodeToString(fixture)).jsonObject
         val oldBackup = JsonObject(oldTree.toMutableMap().apply {
             put("settings", JsonObject(oldTree.getValue("settings").jsonObject.filterKeys {
-                it !in setOf("notifyFocusEvents", "notifyPlanReminders", "notifyInboxSummaries", "petTapCount", "themeMode", "autoUpdateChecks", "freezeRewardedThrough")
+                it !in setOf("notifyFocusEvents", "notifyPlanReminders", "notifyInboxSummaries", "petTapCount", "themeMode", "clockFormat", "autoUpdateChecks", "freezeRewardedThrough")
             }))
             put("sessions", JsonArray(oldTree.getValue("sessions").jsonArray.map {
                 JsonObject(it.jsonObject.filterKeys { key -> key !in setOf("rewardDay", "rewardStartHour") })
@@ -225,7 +225,7 @@ private suspend fun checkStorage(context: Context): String {
         val defaults = Json.decodeFromString<Backup>(oldBackup.toString()).validated()
         check(defaults.settings.let { it.notifyFocusEvents && it.notifyPlanReminders && it.notifyInboxSummaries })
         check(defaults.schedules.single().icon == "auto" && defaults.settings.petTapCount == 0)
-        check(defaults.settings.themeMode == "SYSTEM" && defaults.settings.autoUpdateChecks)
+        check(defaults.settings.themeMode == "SYSTEM" && defaults.settings.clockFormat == "SYSTEM" && defaults.settings.autoUpdateChecks)
         check(defaults.settings.freezeRewardedThrough.isEmpty())
         check(defaults.sessions.single().rewardDay.isEmpty() && defaults.sessions.single().rewardStartHour == -1)
         results += "Older record schemas preserve defaults for notifications, schedule icons, and reward dates."
@@ -238,6 +238,7 @@ private suspend fun checkStorage(context: Context): String {
             check(runCatching { fixture.copy(settings = fixture.settings.copy(petTapCount = badCount)).validated() }.isFailure)
         }
         check(runCatching { fixture.copy(settings = fixture.settings.copy(themeMode = "unknown")).validated() }.isFailure)
+        check(runCatching { fixture.copy(settings = fixture.settings.copy(clockFormat = "unknown")).validated() }.isFailure)
         check(runCatching { Json.decodeFromString<Backup>("{broken").validated() }.isFailure)
         check(runCatching { fixture.copy(sessions = listOf(
             fixture.sessions.single().copy(endedAt = start + 172_800_001L, focusedMillis = 172_800_001L)

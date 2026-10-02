@@ -20,6 +20,7 @@ import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.focus.Focus
 import dev.agneswd.stillpoint.guard.formatDuration
 import dev.agneswd.stillpoint.guard.time
+import dev.agneswd.stillpoint.guard.uses24HourClock
 import dev.agneswd.stillpoint.ui.MainActivity
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -98,7 +99,7 @@ object Widgets {
                     val mood = if (!focus.running) Mood.SLEEPY else if (focus.phase == FocusPhase.FOCUS) Mood.CALM else Mood.HAPPY
                     views.setImageViewBitmap(R.id.widget_art, pebbleArt(context, mood, style = style))
                     views.setTextViewText(R.id.widget_value, if (!focus.running) "Paused" else if (focus.phase == FocusPhase.FOCUS) "Focusing" else "On a break")
-                    views.setTextViewText(R.id.widget_detail, if (!focus.running) "Tap to resume" else "Until ${time(System.currentTimeMillis() + focus.remainingMillis())}")
+                    views.setTextViewText(R.id.widget_detail, if (!focus.running) "Tap to resume" else "Until ${time(System.currentTimeMillis() + focus.remainingMillis(), context.uses24HourClock(settings.clockFormat))}")
                     views.setTextViewText(R.id.widget_action, "OPEN")
                     views.setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingFocus(context))
                 }

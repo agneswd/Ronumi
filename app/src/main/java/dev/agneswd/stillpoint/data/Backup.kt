@@ -82,6 +82,7 @@ fun Backup.validated(): Backup {
         s.longBreakMinutes in 0..120 && s.focusRounds in 1..12 && s.goalDays in 1..127 &&
         s.emergencyPassesPerDay in 0..10 && s.streakFreezes in 0..2 && s.freezeWeeksRewarded >= 0) { "Invalid focus or game settings" }
     require(s.themeMode in setOf("SYSTEM", "LIGHT", "DARK")) { "Invalid theme mode" }
+    require(s.clockFormat in setOf("SYSTEM", "H12", "H24")) { "Invalid clock format" }
     require(s.petTapCount in 0..1000) { "Invalid Pebble tap count" }
     require(s.pebbleItems.size <= 8 && s.pebbleItems.all { it.matches(Regex("[a-z][a-z0-9_]{0,63}")) }) { "Invalid Pebble items" }
     require(s.notificationDeliveryTimes.all { it.toIntOrNull() in 0..1439 }) { "Invalid notification delivery time" }

@@ -81,6 +81,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
     val app = context.app
     val access = rememberAccess()
     val schedules by app.dao.schedules().collectAsState(emptyList())
+    val use24 = rememberUse24Hour()
     var refresh by remember { mutableIntStateOf(0) }
     LifecycleResumeEffect(Unit) {
         refresh++
@@ -118,7 +119,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(next.first.name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                            Text("${minuteText(next.first.startMinute)} to ${minuteText(next.first.endMinute)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                            Text("${minuteText(next.first.startMinute, use24)} to ${minuteText(next.first.endMinute, use24)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                         }
                         Tag(next.second, if (next.second == "Now") Sp.colors.mint else Sp.colors.brand)
                     }

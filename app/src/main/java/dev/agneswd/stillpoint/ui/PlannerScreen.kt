@@ -70,6 +70,7 @@ fun PlannerScreen(navigator: Navigator) {
     val schedules by app.dao.schedules().collectAsState(emptyList())
     val sessions by app.dao.sessions().collectAsState(emptyList())
     val settings by app.dao.settings().collectAsState(null)
+    val use24 = rememberUse24Hour()
     var selected by remember { mutableStateOf(LocalDate.now()) }
     val usage by produceState(0L, selected) {
         value = withContext(Dispatchers.IO) { app.usage.day(selected).totalMillis }
@@ -121,7 +122,7 @@ fun PlannerScreen(navigator: Navigator) {
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(session.tag.ifBlank { "Focus session" }, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                            Text("${time(session.startedAt)} to ${time(session.endedAt)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                            Text("${time(session.startedAt, use24)} to ${time(session.endedAt, use24)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                         }
                         Text(formatDuration(session.focusedMillis), style = MaterialTheme.typography.titleMedium, color = Sp.colors.brand)
                     }
@@ -139,7 +140,7 @@ fun PlannerScreen(navigator: Navigator) {
                             Spacer(Modifier.width(14.dp))
                             Column(Modifier.weight(1f)) {
                                 Text("${part.label} focus", style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                                Text("${minuteText(part.start)} to ${minuteText(part.end)}, every day", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                                Text("${minuteText(part.start, use24)} to ${minuteText(part.end, use24)}, every day", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                             }
                             ChunkyButton(
                                 "Add",
@@ -222,7 +223,7 @@ fun ScheduleCard(schedule: Schedule, modifier: Modifier = Modifier, onClick: () 
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(schedule.name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                Text(scheduleSummary(schedule), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim, textAlign = TextAlign.Start)
+                Text(scheduleSummary(schedule, rememberUse24Hour()), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim, textAlign = TextAlign.Start)
             }
             MintSwitch(schedule.enabled, onToggle)
         }
