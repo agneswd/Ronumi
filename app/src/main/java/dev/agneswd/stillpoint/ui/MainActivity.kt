@@ -331,7 +331,6 @@ private fun TabBar(navigator: Navigator) {
                     Modifier
                         .weight(1f)
                         .clickable(remember { MutableInteractionSource() }, indication = null) {
-                            if (navigator.tab != tab) Sfx.play(Sound.TAP)
                             navigator.tab = tab
                         }
                         .padding(vertical = 2.dp),

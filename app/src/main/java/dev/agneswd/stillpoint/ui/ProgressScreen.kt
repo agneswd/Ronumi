@@ -222,7 +222,6 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     chunk.forEachIndexed { i, badge ->
                         BadgeView(badge, Modifier.weight(1f).popIn(300 + (row * 3 + i) * 60)) {
-                            Sfx.play(if (badge.unlocked) Sound.QUEST else Sound.TAP)
                             openBadge = badge
                         }
                     }

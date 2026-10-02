@@ -299,7 +299,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
         if (multi) Text("Pick all that fit.", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim, modifier = Modifier.padding(bottom = 8.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             options.forEachIndexed { i, option ->
-                ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(option.value) }, selected = option.value in selected, sound = Sound.SELECT) {
+                ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(option.value) }, selected = option.value in selected) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(option.emoji, style = MaterialTheme.typography.headlineMedium)
                         Spacer(Modifier.width(16.dp))
@@ -318,7 +318,7 @@ private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () 
         PebbleSays("When do you want to focus each day?", Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             DayPart.entries.forEachIndexed { i, part ->
-                ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(part) }, selected = part == selected, contentPadding = 12.dp, sound = Sound.SELECT) {
+                ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(part) }, selected = part == selected, contentPadding = 12.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         DayPartIcon(part)
                         Spacer(Modifier.width(16.dp))

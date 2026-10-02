@@ -79,7 +79,7 @@ fun ChunkyButton(
     enabled: Boolean = true,
     icon: Painter? = null,
     height: Dp = 54.dp,
-    sound: Sound? = Sound.TAP,
+    sound: Sound? = null,
 ) {
     val source = remember { MutableInteractionSource() }
     val haptics = LocalHapticFeedback.current
@@ -140,7 +140,7 @@ fun ChunkyCard(
     selected: Boolean = false,
     fill: Color = Sp.colors.background,
     contentPadding: Dp = 16.dp,
-    sound: Sound = Sound.TAP,
+    sound: Sound? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val c = Sp.colors
@@ -157,7 +157,7 @@ fun ChunkyCard(
                 if (onClick != null) {
                     Modifier.clickable(source, indication = null) {
                         haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
-                        Sfx.play(sound)
+                        sound?.let(Sfx::play)
                         onClick()
                     }
                 } else Modifier,

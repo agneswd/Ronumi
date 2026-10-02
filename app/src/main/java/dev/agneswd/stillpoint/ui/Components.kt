@@ -112,7 +112,6 @@ fun ListRow(
 @Composable
 fun SwitchRow(title: String, subtitle: String? = null, checked: Boolean, leading: (@Composable () -> Unit)? = null, onChange: (Boolean) -> Unit) {
     val toggle: (Boolean) -> Unit = { on ->
-        Sfx.play(if (on) Sound.TOGGLE_ON else Sound.TOGGLE_OFF)
         onChange(on)
     }
     ListRow(title, subtitle, onClick = { toggle(!checked) }, leading = leading) {
@@ -308,5 +307,5 @@ fun appCount(count: Int): String = if (count == 1) "1 app" else "$count apps"
 /** A button in a row of choices. The chosen one is filled. */
 @Composable
 fun ChoiceButton(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    ChunkyButton(text, onClick, modifier, kind = if (selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY, height = 46.dp, sound = Sound.SELECT)
+    ChunkyButton(text, onClick, modifier, kind = if (selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY, height = 46.dp)
 }

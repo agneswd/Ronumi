@@ -371,8 +371,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
-                            Sfx.play(Sound.TAP)
-                            askGiveUp = true
+                                askGiveUp = true
                         }.padding(14.dp),
                     )
                 } else {
@@ -467,7 +466,7 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
     var notes by remember { mutableStateOf(session.notes) }
     // The reward sounds play in the same order as the reward animations.
     LaunchedEffect(sessionId) {
-        Sfx.play(if (session.completed) Sound.COMPLETE else Sound.TAP)
+        if (session.completed) Sfx.play(Sound.COMPLETE)
         if (questsDone) {
             kotlinx.coroutines.delay(900)
             Sfx.play(Sound.QUEST)

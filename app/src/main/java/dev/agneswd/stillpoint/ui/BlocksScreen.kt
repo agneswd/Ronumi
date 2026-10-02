@@ -252,7 +252,6 @@ fun MintSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
     Switch(
         checked,
         { on ->
-            Sfx.play(if (on) Sound.TOGGLE_ON else Sound.TOGGLE_OFF)
             onChange(on)
         },
         colors = SwitchDefaults.colors(checkedTrackColor = Sp.colors.mint, uncheckedTrackColor = Sp.colors.surfaceHigh, uncheckedBorderColor = Sp.colors.border),
