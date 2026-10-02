@@ -5,21 +5,19 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
     android:orientation="vertical"
-    android:gravity="start"
+    android:gravity="center_horizontal"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
     android:paddingTop="12dp"
     android:paddingBottom="16dp">
-    <TextView
-        android:id="@+id/widget_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/nunito_bold"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="Screen time"
-        android:textColor="@color/widget_dim"
-        android:textSize="12sp" />
+
+    <ImageView
+        android:id="@+id/widget_art"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter" />
     <TextView
         android:id="@+id/widget_value"
         android:layout_width="wrap_content"
@@ -27,9 +25,9 @@
         android:fontFamily="@font/nunito_bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="0m"
+        android:text="0m of 2h"
         android:textColor="@color/widget_text"
-        android:textSize="26sp" />
+        android:textSize="16sp" />
     <TextView
         android:id="@+id/widget_detail"
         android:layout_width="wrap_content"
@@ -37,16 +35,7 @@
         android:fontFamily="@font/nunito_bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="0 unlocks today"
-        android:textColor="@color/widget_brand"
+        android:text="Start a streak"
+        android:textColor="@color/widget_flame"
         android:textSize="12sp" />
-
-    <ImageView
-        android:id="@+id/widget_art"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="6dp"
-        android:layout_weight="1"
-        android:contentDescription="@null"
-        android:scaleType="fitXY" />
 </LinearLayout>

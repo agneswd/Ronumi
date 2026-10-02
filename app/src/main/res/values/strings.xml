@@ -2,5 +2,7 @@
     <string name="app_name">Stillpoint</string>
     <string name="guard_description">Stillpoint sees which app is open so it can block apps, short video feeds and sites you chose. It does not read your messages and has no internet access.</string>
     <string name="widget_usage_description">Today\'s screen time and unlocks</string>
+    <string name="widget_goal_description">Pebble and your daily focus goal</string>
+    <string name="widget_calendar_description">Your focus days and streak</string>
     <string name="widget_focus_description">Start a focus session with one tap</string>
 </resources>

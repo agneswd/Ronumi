@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape>
+            <solid android:color="@color/widget_mint_lip" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    <item android:bottom="3dp">
+        <shape>
+            <solid android:color="@color/widget_mint" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+</layer-list>

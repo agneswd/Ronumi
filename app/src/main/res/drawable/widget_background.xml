@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="@color/ink_raised" />
-    <corners android:radius="24dp" />
-</shape>
+<!-- A chunky card: a darker lip under a bordered face, like the cards in the app. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape>
+            <solid android:color="@color/widget_lip" />
+            <corners android:radius="26dp" />
+        </shape>
+    </item>
+    <item android:bottom="4dp">
+        <shape>
+            <solid android:color="@color/widget_face" />
+            <stroke android:width="2dp" android:color="@color/widget_lip" />
+            <corners android:radius="26dp" />
+        </shape>
+    </item>
+</layer-list>

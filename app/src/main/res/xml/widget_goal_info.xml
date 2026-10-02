@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:description="@string/widget_usage_description"
-    android:initialLayout="@layout/widget_usage"
-    android:previewLayout="@layout/widget_usage"
+    android:description="@string/widget_goal_description"
+    android:initialLayout="@layout/widget_goal"
+    android:previewLayout="@layout/widget_goal"
     android:minWidth="110dp"
     android:minHeight="110dp"
     android:targetCellWidth="2"

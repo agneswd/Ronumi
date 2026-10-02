@@ -4,25 +4,59 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
+    android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:orientation="vertical"
-    android:paddingStart="18dp"
-    android:paddingEnd="18dp">
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="10dp">
 
+    <ImageView
+        android:id="@+id/widget_art"
+        android:layout_width="64dp"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/widget_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/nunito_bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="Focus"
+            android:textColor="@color/widget_text"
+            android:textSize="18sp" />
+        <TextView
+            android:id="@+id/widget_detail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/nunito_bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="Ready when you are"
+            android:textColor="@color/widget_dim"
+            android:textSize="12sp" />
+    </LinearLayout>
     <TextView
-        android:id="@+id/widget_value"
+        android:id="@+id/widget_action"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-light"
-        android:text="Focus"
-        android:textColor="@color/mist"
-        android:textSize="28sp" />
-
-    <TextView
-        android:id="@+id/widget_detail"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Tap to start"
-        android:textColor="@color/periwinkle"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/widget_pill"
+        android:fontFamily="@font/nunito_bold"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="11dp"
+        android:text="START"
+        android:textColor="#FFFFFFFF"
         android:textSize="13sp" />
 </LinearLayout>
