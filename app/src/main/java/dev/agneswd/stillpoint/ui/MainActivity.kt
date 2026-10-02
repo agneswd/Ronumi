@@ -248,31 +248,33 @@ private fun App(navigator: Navigator) {
                     if (session != null) {
                         FocusSession(session, onMinimize = { navigator.focusMinimized = true })
                     } else {
-                        BackHandler(enabled = visibleRoute != null) { navigator.pop() }
-                        AnimatedContent(
-                            visibleRoute,
-                            transitionSpec = { (slideInVertically(tween(260)) { it / 8 } + fadeIn(tween(260))) togetherWith fadeOut(tween(160)) },
-                            label = "route",
-                        ) { current ->
-                            when (current) {
-                                is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
-                                is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
-                                Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
-                                Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
-                                Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
-                                Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
-                                Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
-                                Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
-                                Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
-                                null -> Tabs(navigator, game)
+                        Box(Modifier.fillMaxSize()) {
+                            BackHandler(enabled = visibleRoute != null) { navigator.pop() }
+                            AnimatedContent(
+                                visibleRoute,
+                                transitionSpec = { (slideInVertically(tween(260)) { it / 8 } + fadeIn(tween(260))) togetherWith fadeOut(tween(160)) },
+                                label = "route",
+                            ) { current ->
+                                when (current) {
+                                    is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
+                                    is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
+                                    Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
+                                    Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
+                                    Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
+                                    Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
+                                    Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
+                                    Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
+                                    Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
+                                    null -> Tabs(navigator, game)
+                                }
                             }
-                        }
-                        if (running != null && visibleRoute == null) {
-                            FocusChip(
-                                running,
-                                onOpen = { navigator.focusMinimized = false },
-                                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
-                            )
+                            if (running != null && visibleRoute == null) {
+                                FocusChip(
+                                    running,
+                                    onOpen = { navigator.focusMinimized = false },
+                                    modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
+                                )
+                            }
                         }
                     }
                 }
