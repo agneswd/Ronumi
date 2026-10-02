@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -110,7 +111,12 @@ fun PlannerScreen(navigator: Navigator) {
                 ChunkyCard(Modifier.fillMaxWidth(), fill = Sp.colors.surface, contentPadding = 12.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(if (session.completed) Sp.colors.mint else Sp.colors.surfaceHigh), contentAlignment = Alignment.Center) {
-                            Text(if (session.completed) "✓" else "~", style = MaterialTheme.typography.titleLarge, color = if (session.completed) LightPalette.text else Sp.colors.textDim)
+                            Icon(
+                                painterResource(if (session.completed) R.drawable.ic_check else R.drawable.ic_timer),
+                                null,
+                                Modifier.size(24.dp),
+                                tint = if (session.completed) LightPalette.text else Sp.colors.textDim,
+                            )
                         }
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {

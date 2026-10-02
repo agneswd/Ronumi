@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -262,7 +264,8 @@ fun QuestCard(quests: List<Quest>, modifier: Modifier) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 ChunkyProgress(quest.fraction, Modifier.weight(1f), color = Sp.colors.gold, height = 12.dp)
                                 Spacer(Modifier.width(8.dp))
-                                Text("${quest.progress} / ${quest.target}", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+                                // A minimum width keeps the bars the same length on every row.
+                                Text("${quest.progress} / ${quest.target}", Modifier.widthIn(min = 52.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim, textAlign = TextAlign.End)
                             }
                         }
                         Spacer(Modifier.width(10.dp))
