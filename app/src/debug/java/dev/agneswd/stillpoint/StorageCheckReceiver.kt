@@ -74,8 +74,8 @@ private suspend fun prepareNotifications(context: Context): String {
     val usage = dao.usageDay(day) ?: UsageDay(day, emptyMap(), 0)
     dao.saveUsageDay(usage.copy(heldCount = 0))
     context.getSharedPreferences("delivery", Context.MODE_PRIVATE).edit().clear().apply()
-    dao.updateSettings { it.copy(heldPackages = setOf("com.android.shell"), holdAlways = true) }
-    return "Notification listener prepared for Android shell messages."
+    dao.updateSettings { it.copy(heldPackages = setOf("dev.agneswd.stillpoint.e2e"), holdAlways = true) }
+    return "Notification listener prepared for device test messages."
 }
 
 private suspend fun checkNotifications(context: Context): String {

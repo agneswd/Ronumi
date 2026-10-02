@@ -9,12 +9,24 @@ import java.io.StringWriter
 
 /** Reads the actual accessibility tree without requiring animated screens to become idle. */
 class E2eDriver : Instrumentation() {
+    private var notificationTitle: String? = null
+
     override fun onCreate(arguments: Bundle?) {
+        notificationTitle = arguments?.getString("notificationTitle")
         super.onCreate(arguments)
         start()
     }
 
     override fun onStart() {
+        notificationTitle?.let { title ->
+            val manager = targetContext.getSystemService(android.app.NotificationManager::class.java)
+            manager.createNotificationChannel(android.app.NotificationChannel("fixture", "Test messages", android.app.NotificationManager.IMPORTANCE_DEFAULT))
+            manager.notify(1, android.app.Notification.Builder(targetContext, "fixture")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title).setContentText("Device test message").build())
+            finish(0, Bundle())
+            return
+        }
         val writer = StringWriter()
         val xml = Xml.newSerializer()
         xml.setOutput(writer)

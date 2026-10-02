@@ -309,9 +309,10 @@ def focus_survives_restart():
 def notification_workflow():
     home()
     device_workflow("notifications-start")
-    sh("cmd notification post -t 'First test' stillpoint-e2e 'First message'")
+    sh(f"pm grant {PKG}.e2e android.permission.POST_NOTIFICATIONS")
+    sh(f"am instrument -w -e notificationTitle 'First test' {PKG}.e2e/{PKG}.e2e.E2eDriver")
     time.sleep(2)
-    sh("cmd notification post -t 'Updated test' stillpoint-e2e 'Updated message'")
+    sh(f"am instrument -w -e notificationTitle 'Updated test' {PKG}.e2e/{PKG}.e2e.E2eDriver")
     time.sleep(2)
     sh(f"am force-stop {PKG}")
     open_stillpoint("HOME")
