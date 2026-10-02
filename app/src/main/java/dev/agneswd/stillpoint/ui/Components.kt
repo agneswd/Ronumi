@@ -89,7 +89,7 @@ fun ListRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick) else Modifier)
             .padding(horizontal = ScreenPadding, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

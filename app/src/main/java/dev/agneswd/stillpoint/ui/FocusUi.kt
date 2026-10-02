@@ -128,7 +128,8 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                     val on = theme.name == s.focusTheme
                     // The picture and its label are one tap target.
                     Column(
-                        Modifier.clickable { update { it.copy(focusTheme = theme.name) } },
+                        Modifier.clip(RoundedCornerShape(16.dp))
+                            .clickable { update { it.copy(focusTheme = theme.name) } }.padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box(
