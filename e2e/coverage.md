@@ -54,6 +54,7 @@ The throwaway audio harness was removed. No audio files are needed by the app.
 - Move the clock backward while a blocked app remains open. Content checks and block screens must continue.
 - Cross midnight with a foreground app, a used pass, and an overnight protected schedule.
 - Reboot with a pending plan, a snoozed plan, and a running focus session.
+- Kill the process during alarm refresh. Existing alarms must remain until their replacements are set.
 - Change the time zone around a pending plan and notification delivery time.
 - Deliver during the spring gap and autumn overlap. Confirm one delivery per resolved occurrence.
 - Apply a freeze twice and cross a week reward boundary after rest days and missed days.
@@ -61,7 +62,7 @@ The throwaway audio harness was removed. No audio files are needed by the app.
 - Scroll the smaller onboarding viewport to the fifth choice. CI uses the existing 1080x2400 test viewport.
 
 CI runs on the backend branch and the PR. It uploads APKs and lint reports only.
-It prints failure diagnostics from the disposable CI device. It does not upload e2e/artifacts/.
+It prints crash, alarm, clock, and screen diagnostics from the disposable CI device. It does not upload e2e/artifacts/.
 
 The Android 9 shell has no notification-post command. CI reports that workflow as SKIP when the command is unavailable.
 Android 16 continues to run the real notification workflow. Android 9 notification behavior still needs another posting fixture.

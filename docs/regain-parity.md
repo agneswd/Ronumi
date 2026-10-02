@@ -32,6 +32,7 @@ Real-app detection and manufacturer-specific permission flows need device covera
 Plans resolve local times before comparing instants. A time in a missing hour shifts forward by the clock-change gap.
 An overlapping local time runs once, at its first occurrence. Notification delivery uses the same time selection.
 Snooze stores a ten-minute absolute deadline. Reboot and time-change broadcasts rebuild the next alarm.
+Alarm refresh replaces each pending alarm after reading its next deadline. It no longer cancels alarms before database reads.
 Guard throttling uses elapsed time, so a backward clock edit cannot suppress enforcement until the old wall time returns.
 
 The backend review found these remaining data and timing limits:
