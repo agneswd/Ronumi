@@ -22,7 +22,7 @@ enum class LimitMode {
     STRICT,
 }
 
-enum class FocusSound { OFF, WHITE, PINK, BROWN }
+enum class FocusSound { OFF, WHITE, PINK, BROWN, RAIN, WAVES }
 
 enum class FocusPhase { FOCUS, BREAK }
 
