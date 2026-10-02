@@ -482,92 +482,102 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
 
     Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(24.dp).verticalScroll(rememberScrollState()),
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(24.dp))
-            Pebble(if (session.completed) Mood.CELEBRATE else Mood.HAPPY, Modifier.popIn(), size = 170.dp)
-            Spacer(Modifier.height(12.dp))
-            Text(
-                if (session.completed) "Session complete!" else "Nice effort!",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Sp.colors.text,
-                modifier = Modifier.appear(150),
-            )
-            Text(
-                if (session.completed) "You stayed with it to the end." else "Every minute counts. Next time, go all the way!",
-                style = MaterialTheme.typography.titleMedium,
-                color = Sp.colors.textDim,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.appear(250),
-            )
-            Spacer(Modifier.height(24.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                RewardTile("FOCUS", Sp.colors.brand, Modifier.weight(1f).popIn(400)) {
-                    CountUp((session.focusedMillis / 60_000).toInt(), MaterialTheme.typography.headlineSmall, Sp.colors.brand, delayMillis = 400) { "${it}m" }
-                }
-                RewardTile("XP", Sp.colors.goldLip, Modifier.weight(1f).popIn(550)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        XpBolt(size = 22.dp)
-                        CountUp(xpGained, MaterialTheme.typography.headlineSmall, Sp.colors.goldLip, delayMillis = 550) { "+$it" }
-                    }
-                }
-                RewardTile("STREAK", Sp.colors.flame, Modifier.weight(1f).popIn(700)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Flame(size = 24.dp, lit = after.streakSafeToday)
-                        Text("${after.streak}", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.flame)
-                    }
-                }
-            }
-            if (streakUp || levelUp) {
-                Spacer(Modifier.height(16.dp))
-                ChunkyCard(Modifier.fillMaxWidth().popIn(900), fill = Sp.colors.flame.copy(alpha = 0.1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (levelUp) {
-                            Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Sp.colors.brand), contentAlignment = Alignment.Center) {
-                                Text("${after.level.number}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.onFill)
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val compact = maxHeight < 560.dp
+                val heroSize = (maxHeight * 0.22f).coerceIn(80.dp, 140.dp)
+                val gap = if (compact) 10.dp else 16.dp
+                Column(
+                    Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Pebble(if (session.completed) Mood.CELEBRATE else Mood.HAPPY, Modifier.popIn(), size = heroSize)
+                    Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
+                    Text(
+                        if (session.completed) "Session complete!" else "Nice effort!",
+                        style = if (compact) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineLarge,
+                        color = Sp.colors.text,
+                        modifier = Modifier.appear(150),
+                    )
+                    Text(
+                        if (session.completed) "You stayed with it to the end." else "Every minute counts. Next time, go all the way!",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Sp.colors.textDim,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.appear(250),
+                    )
+                    Spacer(Modifier.height(gap))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        RewardTile("FOCUS", Sp.colors.brand, Modifier.weight(1f).popIn(400), compact) {
+                            CountUp((session.focusedMillis / 60_000).toInt(), MaterialTheme.typography.headlineSmall, Sp.colors.brand, delayMillis = 400) { "${it}m" }
+                        }
+                        RewardTile("XP", Sp.colors.goldLip, Modifier.weight(1f).popIn(550), compact) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                XpBolt(size = 22.dp)
+                                CountUp(xpGained, MaterialTheme.typography.headlineSmall, Sp.colors.goldLip, delayMillis = 550) { "+$it" }
                             }
-                        } else {
-                            Flame(size = 44.dp)
                         }
-                        Spacer(Modifier.width(14.dp))
-                        Column {
-                            Text(
-                                if (levelUp) "Level up!" else "Streak extended!",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = if (levelUp) Sp.colors.brand else Sp.colors.flame,
-                            )
-                            Text(
-                                if (levelUp) "You reached level ${after.level.number}." else "${after.streak} day${if (after.streak == 1) "" else "s"} in a row. Come back tomorrow!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Sp.colors.text,
-                            )
+                        RewardTile("STREAK", Sp.colors.flame, Modifier.weight(1f).popIn(700), compact) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Flame(size = 24.dp, lit = after.streak > 0 || after.streakSafeToday)
+                                Text("${after.streak}", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.flame)
+                            }
                         }
+                    }
+                    if (streakUp || levelUp) {
+                        Spacer(Modifier.height(gap))
+                        ChunkyCard(Modifier.fillMaxWidth().popIn(900), fill = Sp.colors.flame.copy(alpha = 0.1f), contentPadding = if (compact) 12.dp else 16.dp) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (levelUp) {
+                                    Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Sp.colors.brand), contentAlignment = Alignment.Center) {
+                                        Text("${after.level.number}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.onFill)
+                                    }
+                                } else {
+                                    Flame(size = 44.dp)
+                                }
+                                Spacer(Modifier.width(14.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        if (levelUp) "Level up!" else "Streak extended!",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = if (levelUp) Sp.colors.brand else Sp.colors.flame,
+                                    )
+                                    Text(
+                                        if (levelUp) "You reached level ${after.level.number}." else "${after.streak} day${if (after.streak == 1) "" else "s"} in a row. Come back tomorrow!",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Sp.colors.text,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(gap))
+                    AnimatedVisibility(noteOpen) {
+                        OutlinedTextField(
+                            notes, { notes = it },
+                            placeholder = { Text("What did you get done?") },
+                            minLines = 3,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
+                            modifier = Modifier.trackTextFieldFocus().fillMaxWidth(),
+                        )
+                    }
+                    if (!noteOpen) {
+                        ChunkyButton("Add a note", { noteOpen = true }, Modifier.fillMaxWidth(), kind = ButtonKind.GHOST, height = 44.dp)
                     }
                 }
             }
-            Spacer(Modifier.height(16.dp))
-            AnimatedVisibility(noteOpen) {
-                OutlinedTextField(
-                    notes, { notes = it },
-                    placeholder = { Text("What did you get done?") },
-                    minLines = 3,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
-                    modifier = Modifier.trackTextFieldFocus().fillMaxWidth(),
-                )
-            }
-            if (!noteOpen) {
-                ChunkyButton("Add a note", { noteOpen = true }, Modifier.fillMaxWidth(), kind = ButtonKind.GHOST)
-            }
-            Spacer(Modifier.weight(1f))
             ChunkyButton(
                 "Continue",
                 {
                     if (notes != session.notes) app.scope.launch { app.dao.saveSession(session.copy(notes = notes.trim())) }
                     onDone()
                 },
-                Modifier.fillMaxWidth().padding(top = 16.dp),
+                Modifier.fillMaxWidth().padding(top = 12.dp),
             )
         }
         Confetti(sessionId, Modifier.fillMaxSize())
@@ -575,7 +585,7 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
 }
 
 @Composable
-private fun RewardTile(label: String, color: Color, modifier: Modifier, value: @Composable () -> Unit) {
+private fun RewardTile(label: String, color: Color, modifier: Modifier, compact: Boolean, value: @Composable () -> Unit) {
     Column(
         modifier
             .clip(RoundedCornerShape(18.dp))
@@ -589,7 +599,7 @@ private fun RewardTile(label: String, color: Color, modifier: Modifier, value: @
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().background(color).padding(vertical = 4.dp),
         )
-        Box(Modifier.padding(vertical = 14.dp), contentAlignment = Alignment.Center) { value() }
+        Box(Modifier.padding(vertical = if (compact) 8.dp else 12.dp), contentAlignment = Alignment.Center) { value() }
     }
 }
 
