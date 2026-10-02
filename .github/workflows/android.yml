@@ -2,7 +2,7 @@ name: Android
 
 on:
   push:
-    branches: [main]
+    branches: [main, sol/backend]
   pull_request:
   workflow_dispatch:
 
@@ -48,7 +48,7 @@ jobs:
           api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
-          profile: pixel_2
+          profile: pixel_7
           script: python3 e2e/e2e.py --only schema_upgrade,onboarding,today_screen,storage_workflow,notification_workflow,planned_focus_workflow
       - name: Save test evidence and build files
         if: always()
@@ -58,5 +58,4 @@ jobs:
           path: |
             app/build/outputs/apk/
             app/build/reports/lint-results-release.*
-            e2e/artifacts/
           retention-days: 14
