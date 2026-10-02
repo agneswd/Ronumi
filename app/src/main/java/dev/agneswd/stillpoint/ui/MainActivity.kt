@@ -89,6 +89,7 @@ sealed interface Route {
         var draft by mutableStateOf(original ?: Schedule(name = "Evening focus", startMinute = 18 * 60, endMinute = 20 * 60))
     }
 
+    data object Wardrobe : Route
     data object Held : Route
     data object Settings : Route
     data object FocusSetup : Route
@@ -239,57 +240,63 @@ private fun App(navigator: Navigator) {
             }
         }
     }
-    Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
-        val running = focus
-        val celebrateId = celebrate
-        val route = navigator.stack.lastOrNull()
-        when {
-            s == null -> Unit
-            !s.onboarded -> Onboarding(onDone = { navigator.tab = Tab.HOME })
-            celebrateId != null -> Celebration(celebrateId, onDone = Celebrations::consume)
-            else -> {
-                // Keep the outgoing route until the focus screen covers it.
-                val fullFocus = running?.takeIf { !navigator.focusMinimized && route == null }
-                AnimatedContent(
-                    targetState = fullFocus to route,
-                    contentKey = { (session, _) -> session != null },
-                    transitionSpec = {
-                        (fadeIn(tween(420)) + scaleIn(
-                            tween(420, easing = FastOutSlowInEasing), initialScale = 0.985f,
-                        )) togetherWith fadeOut(tween(260))
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                    label = "focusScreen",
-                ) { (session, visibleRoute) ->
-                    if (session != null) {
-                        FocusSession(session, onMinimize = { navigator.focusMinimized = true })
-                    } else {
-                        Box(Modifier.fillMaxSize()) {
-                            BackHandler(enabled = visibleRoute != null) { navigator.pop() }
-                            AnimatedContent(
-                                visibleRoute,
-                                transitionSpec = { (slideInVertically(tween(260)) { it / 8 } + fadeIn(tween(260))) togetherWith fadeOut(tween(160)) },
-                                label = "route",
-                            ) { current ->
-                                when (current) {
-                                    is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
-                                    is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
-                                    Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
-                                    Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
-                                    Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
-                                    Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
-                                    Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
-                                    Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
-                                    Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
-                                    null -> Tabs(navigator, game)
+    androidx.compose.runtime.CompositionLocalProvider(
+        dev.agneswd.stillpoint.ui.design.LocalPebbleStyle provides
+            dev.agneswd.stillpoint.game.PebbleStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1),
+    ) {
+        Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
+            val running = focus
+            val celebrateId = celebrate
+            val route = navigator.stack.lastOrNull()
+            when {
+                s == null -> Unit
+                !s.onboarded -> Onboarding(onDone = { navigator.tab = Tab.HOME })
+                celebrateId != null -> Celebration(celebrateId, onDone = Celebrations::consume)
+                else -> {
+                    // Keep the outgoing route until the focus screen covers it.
+                    val fullFocus = running?.takeIf { !navigator.focusMinimized && route == null }
+                    AnimatedContent(
+                        targetState = fullFocus to route,
+                        contentKey = { (session, _) -> session != null },
+                        transitionSpec = {
+                            (fadeIn(tween(420)) + scaleIn(
+                                tween(420, easing = FastOutSlowInEasing), initialScale = 0.985f,
+                            )) togetherWith fadeOut(tween(260))
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        label = "focusScreen",
+                    ) { (session, visibleRoute) ->
+                        if (session != null) {
+                            FocusSession(session, onMinimize = { navigator.focusMinimized = true })
+                        } else {
+                            Box(Modifier.fillMaxSize()) {
+                                BackHandler(enabled = visibleRoute != null) { navigator.pop() }
+                                AnimatedContent(
+                                    visibleRoute,
+                                    transitionSpec = { (slideInVertically(tween(260)) { it / 8 } + fadeIn(tween(260))) togetherWith fadeOut(tween(160)) },
+                                    label = "route",
+                                ) { current ->
+                                    when (current) {
+                                        is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
+                                        is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
+                                        Route.Wardrobe -> Page { game?.let { WardrobeScreen(it, navigator::pop) } }
+                                        Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
+                                        Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
+                                        Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
+                                        Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
+                                        Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
+                                        Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
+                                        Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
+                                        null -> Tabs(navigator, game)
+                                    }
                                 }
-                            }
-                            if (running != null && visibleRoute == null) {
-                                FocusChip(
-                                    running,
-                                    onOpen = { navigator.focusMinimized = false },
-                                    modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
-                                )
+                                if (running != null && visibleRoute == null) {
+                                    FocusChip(
+                                        running,
+                                        onOpen = { navigator.focusMinimized = false },
+                                        modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
+                                    )
+                                }
                             }
                         }
                     }

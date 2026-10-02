@@ -4,6 +4,9 @@ import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sfx
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -89,6 +92,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
     val days by produceState(emptyList<DayUsage>(), refresh) {
         value = withContext(Dispatchers.IO) { app.usage.recentDays(7) }
     }
+    var badgeFilter by remember { mutableStateOf("Next") }
     var openBadge by remember { mutableStateOf<Badge?>(null) }
     val sessions by app.dao.sessions().collectAsState(emptyList())
     val settings by app.dao.settings().collectAsState(null)
@@ -128,6 +132,9 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                 )
             }
         }
+
+        ListRow("Pebble wardrobe", "Clothes, colors, hats, and accessories. Unlock more as you level up.",
+            onClick = { navigator.push(Route.Wardrobe) })
 
         // Streak.
         ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(80), fill = Sp.colors.flame.copy(alpha = 0.08f)) {
@@ -235,8 +242,36 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         }
 
         SectionTitle("Badges", action = { Text("${g.badges.count { it.unlocked }} / ${g.badges.size}", style = MaterialTheme.typography.titleMedium, color = Sp.colors.textDim) })
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            listOf("Next", "Earned", "Sessions", "Time", "Rhythm", "Purpose", "Quests").forEach { filter ->
+                Text(
+                    filter,
+                    Modifier.clip(RoundedCornerShape(12.dp))
+                        .background(if (badgeFilter == filter) Sp.colors.brandSoft else Sp.colors.background)
+                        .selectable(badgeFilter == filter, role = Role.Tab) { badgeFilter = filter }
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (badgeFilter == filter) Sp.colors.brand else Sp.colors.textDim,
+                )
+            }
+        }
+        val visibleBadges = when (badgeFilter) {
+            "Next" -> g.badges.filterNot { it.unlocked }.sortedByDescending { it.progress }.take(6)
+            "Earned" -> g.badges.filter { it.unlocked }
+            else -> g.badges.filter { badgeGroup(it.id) == badgeFilter }
+        }
+        if (visibleBadges.isEmpty()) {
+            Text(
+                if (badgeFilter == "Earned") "Your first badge starts with one completed session." else "You have earned every badge in this group.",
+                Modifier.padding(horizontal = ScreenPadding, vertical = 12.dp),
+                style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim,
+            )
+        }
         Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            g.badges.chunked(3).forEachIndexed { row, chunk ->
+            visibleBadges.chunked(3).forEachIndexed { row, chunk ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     chunk.forEachIndexed { i, badge ->
                         BadgeView(badge, Modifier.weight(1f).popIn(300 + (row * 3 + i) * 60)) {
@@ -260,7 +295,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                     Text(badge.detail, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(14.dp))
                     if (badge.unlocked) {
-                        Text("Unlocked!", style = MaterialTheme.typography.titleMedium, color = Sp.colors.mintLip)
+                        Text("Unlocked!", style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
                     } else {
                         ChunkyProgress(badge.progress, color = Sp.colors.gold)
                         Text("${(badge.progress * 100).toInt()}%", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim, modifier = Modifier.padding(top = 6.dp))
@@ -327,7 +362,7 @@ private fun ReportCard(totals: Report, modifier: Modifier) {
                     Text("notifications held", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(totals.timeSavedMillis?.let(::formatDuration) ?: "Soon", style = MaterialTheme.typography.titleLarge, color = Sp.colors.mintLip)
+                    Text(totals.timeSavedMillis?.let(::formatDuration) ?: "Soon", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
                     Text(if (totals.timeSavedMillis == null) "time saved, after 7 days of data" else "time saved", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
                 }
             }
@@ -395,14 +430,35 @@ fun Bars(values: List<Pair<String, Float>>, goal: Float?, color: Color, label: (
 }
 
 private val badgeLooks = mapOf(
-    "first" to "🌱", "streak3" to "🔥", "streak7" to "🎯", "streak30" to "🏔️", "hours10" to "🌊",
-    "hours50" to "⛰️", "marathon" to "🏃", "early" to "🌅", "night" to "🦉", "sessions50" to "🧱",
+    "first" to "🌱", "sessions5" to "🎵", "sessions10" to "🪴", "sessions25" to "🛠️",
+    "sessions50" to "🧱", "sessions100" to "🏡",
+    "hours1" to "⌛", "hours5" to "🌿", "hours10" to "🌊", "hours25" to "🌳",
+    "hours50" to "⛰️", "hours100" to "🌲",
+    "streak3" to "🔥", "streak7" to "🎯", "streak14" to "🗓️", "streak30" to "🏔️",
+    "days7" to "👣", "days30" to "🔁", "days100" to "🧭",
+    "goals1" to "🏁", "goals7" to "🪺", "goals30" to "✅",
+    "named1" to "🏷️", "named10" to "📝", "notes1" to "✏️", "notes10" to "📖",
+    "quests10" to "🔎", "quests50" to "🎒", "questday1" to "☀️", "questday7" to "🌈",
+    "marathon" to "🏃", "early" to "🌅", "night" to "🦉",
 )
+
+private fun badgeGroup(id: String): String = when {
+    id == "first" || id.startsWith("sessions") -> "Sessions"
+    id.startsWith("hours") || id in setOf("marathon", "early", "night") -> "Time"
+    id.startsWith("streak") || id.startsWith("days") || id.startsWith("goals") -> "Rhythm"
+    id.startsWith("named") || id.startsWith("notes") -> "Purpose"
+    else -> "Quests"
+}
 
 @Composable
 private fun BadgeMedal(badge: Badge, size: androidx.compose.ui.unit.Dp) {
-    val colors = listOf(Sp.colors.brand to Sp.colors.brandLip, Sp.colors.flame to Sp.colors.flameLip, Sp.colors.mint to Sp.colors.mintLip, Sp.colors.rose to Sp.colors.roseLip, Sp.colors.gold to Sp.colors.goldLip)
-    val (fill, lip) = colors[kotlin.math.abs(badge.id.hashCode()) % colors.size]
+    val (fill, lip) = when (badgeGroup(badge.id)) {
+        "Sessions" -> Sp.colors.mint to Sp.colors.mintLip
+        "Time" -> Sp.colors.brand to Sp.colors.brandLip
+        "Rhythm" -> Sp.colors.flame to Sp.colors.flameLip
+        "Purpose" -> Sp.colors.rose to Sp.colors.roseLip
+        else -> Sp.colors.gold to Sp.colors.goldLip
+    }
     Box(contentAlignment = Alignment.Center) {
         Medal(fill, lip, locked = !badge.unlocked, size = size)
         if (badge.unlocked) {
@@ -423,7 +479,7 @@ private fun BadgeView(badge: Badge, modifier: Modifier, onClick: () -> Unit) {
             style = MaterialTheme.typography.labelMedium,
             color = if (badge.unlocked) Sp.colors.text else Sp.colors.textDim,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 3,
         )
         if (!badge.unlocked) {
             Spacer(Modifier.height(4.dp))

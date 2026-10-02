@@ -28,6 +28,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import dev.agneswd.stillpoint.data.settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,6 +89,12 @@ class BlockActivity : ComponentActivity() {
         val leave = { if (kind in homeKinds) goHome() else finish() }
         setContent {
             StillpointTheme {
+                val settings by app.dao.settings().collectAsState(null)
+                val sessions by app.dao.sessions().collectAsState(emptyList())
+                val style = settings?.let {
+                    dev.agneswd.stillpoint.game.PebbleStyles.resolve(it.pebbleItems, dev.agneswd.stillpoint.game.gameState(sessions, it).level.number)
+                }.orEmpty()
+                androidx.compose.runtime.CompositionLocalProvider(dev.agneswd.stillpoint.ui.design.LocalPebbleStyle provides style) {
                 BackHandler(onBack = leave)
                 BlockScreen(
                     kind = kind,
@@ -106,6 +115,7 @@ class BlockActivity : ComponentActivity() {
                         }
                     },
                 )
+                }
             }
         }
     }

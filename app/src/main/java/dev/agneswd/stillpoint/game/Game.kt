@@ -9,7 +9,7 @@ import java.time.ZoneId
 /**
  * The game layer: XP, levels, streaks, daily quests and badges.
  * Everything here is computed from the focus history, so it never gets out of sync
- * and needs no extra storage. Only streak freezes are stored, in [Settings].
+ * and needs no extra reward ledger. [Settings] stores freezes and equipped items.
  */
 
 /** A day counts for the streak with at least this much focus. */

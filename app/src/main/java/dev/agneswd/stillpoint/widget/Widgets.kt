@@ -36,9 +36,10 @@ object Widgets {
             val settings = app.dao.currentSettings()
             val goalIds = ids(GoalWidget::class.java)
             val calendarIds = ids(CalendarWidget::class.java)
-            // Only the goal and calendar widgets need the session history.
-            val sessions = if (goalIds.isEmpty() && calendarIds.isEmpty()) emptyList() else app.dao.allSessions()
+            // Session history also determines which Pebble items are unlocked.
+            val sessions = app.dao.allSessions()
             val game = gameState(sessions, settings)
+            val style = dev.agneswd.stillpoint.game.PebbleStyles.resolve(settings.pebbleItems, game.level.number)
 
             ids(UsageWidget::class.java).forEach { id ->
                 val history = app.dao.allUsageDays().associate { it.day to it.perApp.values.sum() }
@@ -62,7 +63,7 @@ object Widgets {
                     else -> Mood.WAVE
                 }
                 manager.updateAppWidget(id, RemoteViews(context.packageName, R.layout.widget_goal).apply {
-                    setImageViewBitmap(R.id.widget_art, goalArt(context, fraction, mood))
+                    setImageViewBitmap(R.id.widget_art, goalArt(context, fraction, mood, style = style))
                     setTextViewText(R.id.widget_value, "${formatMinutes(g.todayMinutes)} of ${formatMinutes(g.goalMinutes)}")
                     setTextViewText(R.id.widget_detail, streakText(g.streak, g.streakSafeToday))
                     setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingHome(context))
@@ -86,7 +87,7 @@ object Widgets {
                 val focus = app.dao.activeFocus()
                 val views = RemoteViews(context.packageName, R.layout.widget_focus)
                 if (focus == null) {
-                    views.setImageViewBitmap(R.id.widget_art, pebbleArt(context, Mood.IDLE))
+                    views.setImageViewBitmap(R.id.widget_art, pebbleArt(context, Mood.IDLE, style = style))
                     views.setTextViewText(R.id.widget_value, "Focus")
                     views.setTextViewText(R.id.widget_detail, "${formatMinutes(settings.focusMinutes)} session")
                     views.setTextViewText(R.id.widget_action, "START")
@@ -94,7 +95,7 @@ object Widgets {
                     views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getBroadcast(context, 0, start, PendingIntent.FLAG_IMMUTABLE))
                 } else {
                     val mood = if (!focus.running) Mood.SLEEPY else if (focus.phase == FocusPhase.FOCUS) Mood.CALM else Mood.HAPPY
-                    views.setImageViewBitmap(R.id.widget_art, pebbleArt(context, mood))
+                    views.setImageViewBitmap(R.id.widget_art, pebbleArt(context, mood, style = style))
                     views.setTextViewText(R.id.widget_value, if (!focus.running) "Paused" else if (focus.phase == FocusPhase.FOCUS) "Focusing" else "On a break")
                     views.setTextViewText(R.id.widget_detail, if (!focus.running) "Tap to resume" else "Until ${time(focus.phaseEndsAt)}")
                     views.setTextViewText(R.id.widget_action, "OPEN")

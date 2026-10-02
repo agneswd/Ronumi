@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui.design
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -9,10 +11,18 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -26,7 +36,11 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.abs
@@ -34,6 +48,8 @@ import kotlin.math.sin
 
 /** What Pebble feels. Each mood changes the face, the arms and the motion. */
 enum class Mood { IDLE, HAPPY, CELEBRATE, CALM, SLEEPY, SAD, GUARD, WAVE, THINK, PROUD, STRICT }
+
+val LocalPebbleStyle = staticCompositionLocalOf<Set<String>> { emptySet() }
 
 private val Ink = Color(0xFF262841)
 private val BodyTop = Color(0xFFA3AEFF)
@@ -52,7 +68,17 @@ private val Spark = Color(0xFFFFC53D)
  * [look] moves the pupils, from -1 to 1 on each axis.
  */
 @Composable
-fun Pebble(mood: Mood, modifier: Modifier = Modifier, size: Dp = 160.dp, look: Offset = Offset.Zero) {
+fun Pebble(
+    mood: Mood,
+    modifier: Modifier = Modifier,
+    size: Dp = 160.dp,
+    look: Offset = Offset.Zero,
+    style: Set<String> = LocalPebbleStyle.current,
+) {
+    val pet = remember { Animatable(0f) }
+    var petting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val interaction = remember { MutableInteractionSource() }
     val time = rememberInfiniteTransition(label = "pebble")
     val breath by time.animateFloat(0f, 1f, infiniteRepeatable(tween(2600, easing = LinearEasing)), label = "breath")
     val blink by time.animateFloat(
@@ -72,7 +98,41 @@ fun Pebble(mood: Mood, modifier: Modifier = Modifier, size: Dp = 160.dp, look: O
     val wave by time.animateFloat(-1f, 1f, infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wave")
     val drift by time.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing)), label = "drift")
 
-    Canvas(modifier.size(size, size * 1.1f)) { drawPebble(mood, breath, blink, hop, wave, drift, look) }
+    Canvas(
+        modifier.size(size, size * 1.1f)
+            .semantics { contentDescription = "Pebble" }
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = "Pet Pebble") {
+                // Ignore extra taps until the response ends. Keep the current mood and its animation phase.
+                if (!petting) {
+                    petting = true
+                    scope.launch {
+                        try {
+                            pet.animateTo(1f, tween(180))
+                            pet.animateTo(0f, spring(dampingRatio = 0.42f, stiffness = 65f))
+                        } finally {
+                            petting = false
+                        }
+                    }
+                }
+            },
+    ) {
+        val response = pet.value
+        val gentle = when (mood) {
+            Mood.SLEEPY -> 0.35f
+            Mood.CALM, Mood.STRICT -> 0.5f
+            Mood.SAD, Mood.THINK -> 0.7f
+            Mood.CELEBRATE, Mood.HAPPY -> 1.2f
+            else -> 1f
+        }
+        val lean = if (mood == Mood.WAVE || mood == Mood.GUARD) -1f else 1f
+        rotate(response * 5f * gentle * lean, Offset(this.size.width * 0.5f, this.size.height * 0.9f)) {
+            scale(1f + response * 0.055f * gentle, 1f - response * 0.055f * gentle,
+                pivot = Offset(this.size.width * 0.5f, this.size.height * 0.9f)) {
+                drawPebble(mood, breath, blink, hop, wave, drift, look, style)
+            }
+        }
+        if (response > 0f) drawPetHearts(response)
+    }
 }
 
 /**
@@ -88,7 +148,9 @@ fun DrawScope.drawPebble(
     wave: Float = 0f,
     drift: Float = 0.3f,
     look: Offset = Offset.Zero,
+    style: Set<String> = emptySet(),
 ) {
+    val palette = paletteFor(style)
     val u = size.width / 100f
     val b = sin(breath * 2 * PI).toFloat()
     val jump = when (mood) {
@@ -111,12 +173,15 @@ fun DrawScope.drawPebble(
     translate(top = -jump * u) {
         scale(1f - b * 0.008f + squash, 1f + b * 0.015f - squash, pivot = Offset(50f * u, 100f * u)) {
             val raised = mood in setOf(Mood.CELEBRATE, Mood.WAVE, Mood.GUARD, Mood.THINK, Mood.STRICT)
-            if (!raised) drawArms(mood, u, wave)
-            drawFeet(u)
-            drawBody(u)
-            if (raised) drawArms(mood, u, wave)
+            if (!raised) drawArms(mood, u, wave, palette)
+            drawFeet(u, palette)
+            drawBody(u, palette)
+            drawOutfit(u, style)
+            if (raised) drawArms(mood, u, wave, palette)
             drawSprout(mood, u, b, wave)
+            drawHat(u, style)
             drawFace(mood, u, blink, look)
+            drawAccessory(u, style)
         }
     }
     drawExtras(mood, u, drift, hop)
@@ -131,35 +196,35 @@ private fun bodyPath(u: Float) = Path().apply {
     close()
 }
 
-private fun DrawScope.drawBody(u: Float) {
+private fun DrawScope.drawBody(u: Float, palette: PebblePalette) {
     val path = bodyPath(u)
-    drawPath(path, Brush.verticalGradient(listOf(BodyTop, BodyBottom), startY = 14f * u, endY = 100f * u))
+    drawPath(path, Brush.verticalGradient(listOf(palette.top, palette.bottom), startY = 14f * u, endY = 100f * u))
     clipPath(path) {
         // Shade on the lower right gives the stone some volume.
-        drawOval(BodyShade.copy(alpha = 0.55f), topLeft = Offset(48f * u, 70f * u), size = Size(70f * u, 50f * u))
-        drawOval(Belly, topLeft = Offset(29f * u, 66f * u), size = Size(42f * u, 30f * u))
+        drawOval(palette.shade.copy(alpha = 0.55f), topLeft = Offset(48f * u, 70f * u), size = Size(70f * u, 50f * u))
+        drawOval(palette.belly, topLeft = Offset(29f * u, 66f * u), size = Size(42f * u, 30f * u))
         // Shine on the upper left.
         drawOval(Color.White.copy(alpha = 0.35f), topLeft = Offset(20f * u, 24f * u), size = Size(16f * u, 9f * u))
     }
 }
 
-private fun DrawScope.drawFeet(u: Float) {
-    drawOval(BodyShade, topLeft = Offset(28f * u, 95f * u), size = Size(18f * u, 9f * u))
-    drawOval(BodyShade, topLeft = Offset(54f * u, 95f * u), size = Size(18f * u, 9f * u))
+private fun DrawScope.drawFeet(u: Float, palette: PebblePalette) {
+    drawOval(palette.shade, topLeft = Offset(28f * u, 95f * u), size = Size(18f * u, 9f * u))
+    drawOval(palette.shade, topLeft = Offset(54f * u, 95f * u), size = Size(18f * u, 9f * u))
 }
 
-private fun DrawScope.drawArm(u: Float, pivot: Offset, angle: Float, left: Boolean) {
+private fun DrawScope.drawArm(u: Float, pivot: Offset, angle: Float, left: Boolean, palette: PebblePalette) {
     rotate(angle, pivot) {
         val w = 12f * u
         val h = 22f * u
-        drawOval(BodyBottom, topLeft = Offset(pivot.x - w / 2, pivot.y), size = Size(w, h))
-        drawOval(BodyTop.copy(alpha = 0.6f), topLeft = Offset(pivot.x - w / 2 + (if (left) 2f else 4f) * u, pivot.y + 3f * u), size = Size(5f * u, 8f * u))
+        drawOval(palette.bottom, topLeft = Offset(pivot.x - w / 2, pivot.y), size = Size(w, h))
+        drawOval(palette.top.copy(alpha = 0.6f), topLeft = Offset(pivot.x - w / 2 + (if (left) 2f else 4f) * u, pivot.y + 3f * u), size = Size(5f * u, 8f * u))
     }
 }
 
-private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float) {
+private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float, palette: PebblePalette) {
     if (mood == Mood.STRICT) {
-        drawCrossedArms(u)
+        drawCrossedArms(u, palette)
         return
     }
     val leftPivot = Offset(12f * u, 62f * u)
@@ -174,18 +239,18 @@ private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float) {
         Mood.SAD -> 8f to -8f
         else -> 25f to -25f
     }
-    drawArm(u, leftPivot, left, left = true)
-    drawArm(u, rightPivot, right, left = false)
+    drawArm(u, leftPivot, left, left = true, palette = palette)
+    drawArm(u, rightPivot, right, left = false, palette = palette)
     if (mood == Mood.GUARD) {
         // An open palm that says "stop".
         val hand = Offset(rightPivot.x + 8f * u, rightPivot.y - 22f * u)
-        drawCircle(BodyBottom, 7.5f * u, hand)
-        drawCircle(BodyTop.copy(alpha = 0.6f), 3f * u, hand)
+        drawCircle(palette.bottom, 7.5f * u, hand)
+        drawCircle(palette.top.copy(alpha = 0.6f), 3f * u, hand)
     }
 }
 
 /** Arms folded over the belly: strict and not moving. */
-private fun DrawScope.drawCrossedArms(u: Float) {
+private fun DrawScope.drawCrossedArms(u: Float, palette: PebblePalette) {
     val back = Path().apply {
         moveTo(15f * u, 63f * u)
         cubicTo(5f * u, 65f * u, 8f * u, 84f * u, 22f * u, 88f * u)
@@ -196,7 +261,7 @@ private fun DrawScope.drawCrossedArms(u: Float) {
         quadraticTo(22f * u, 63f * u, 15f * u, 63f * u)
         close()
     }
-    drawPath(back, BodyBottom)
+    drawPath(back, palette.bottom)
     val front = Path().apply {
         moveTo(85f * u, 63f * u)
         cubicTo(96f * u, 67f * u, 91f * u, 88f * u, 77f * u, 90f * u)
@@ -207,13 +272,13 @@ private fun DrawScope.drawCrossedArms(u: Float) {
         quadraticTo(78f * u, 63f * u, 85f * u, 63f * u)
         close()
     }
-    drawPath(front, Brush.verticalGradient(listOf(BodyTop, BodyBottom), 63f * u, 91f * u))
+    drawPath(front, Brush.verticalGradient(listOf(palette.top, palette.bottom), 63f * u, 91f * u))
     // A single lower seam separates the folded arms without outlining the shoulders.
     val fold = Path().apply {
         moveTo(35f * u, 81f * u)
         cubicTo(48f * u, 86f * u, 65f * u, 91f * u, 77f * u, 89f * u)
     }
-    drawPath(fold, BodyShade.copy(alpha = 0.6f), style = Stroke(1.8f * u, cap = StrokeCap.Round))
+    drawPath(fold, palette.shade.copy(alpha = 0.6f), style = Stroke(1.8f * u, cap = StrokeCap.Round))
 }
 
 private fun DrawScope.drawSprout(mood: Mood, u: Float, b: Float, wave: Float) {
@@ -385,4 +450,229 @@ fun DrawScope.sparkle(center: Offset, radius: Float, color: Color) {
         close()
     }
     drawPath(path, color)
+}
+
+private data class PebblePalette(val top: Color, val bottom: Color, val shade: Color, val belly: Color)
+
+private fun paletteFor(style: Set<String>): PebblePalette = when {
+    "color_mint" in style -> PebblePalette(Color(0xFFA3E8CB), Color(0xFF58BC9E), Color(0xFF3C987D), Color(0xFFD9F5E8))
+    "color_peach" in style -> PebblePalette(Color(0xFFFFC5A2), Color(0xFFE99680), Color(0xFFC77E71), Color(0xFFFFE6CE))
+    "color_sky" in style -> PebblePalette(Color(0xFFAFE3FA), Color(0xFF69B5DE), Color(0xFF4B92BB), Color(0xFFDDF3FF))
+    "color_rose" in style -> PebblePalette(Color(0xFFF5BFD5), Color(0xFFD982AD), Color(0xFFB46695), Color(0xFFFFDEEC))
+    "color_sand" in style -> PebblePalette(Color(0xFFE8D4A9), Color(0xFFC3A878), Color(0xFFA68B60), Color(0xFFF5EACF))
+    "color_slate" in style -> PebblePalette(Color(0xFFA6BDCD), Color(0xFF6E899F), Color(0xFF536C85), Color(0xFFD8E5EC))
+    "color_lilac" in style -> PebblePalette(Color(0xFFD9BBF5), Color(0xFFAA83D5), Color(0xFF8863B4), Color(0xFFEEDFFF))
+    "color_moon" in style -> PebblePalette(Color(0xFFF1EBFF), Color(0xFFB9B4DA), Color(0xFF928CB9), Color(0xFFFFF8E8))
+    else -> PebblePalette(BodyTop, BodyBottom, BodyShade, Belly)
+}
+
+private fun DrawScope.drawOutfit(u: Float, style: Set<String>) {
+    val id = style.firstOrNull { it.startsWith("outfit_") } ?: return
+    val fabric = when (id) {
+        "outfit_tee" -> Color(0xFFF8C779)
+        "outfit_stripes" -> Color(0xFFF8F3DF)
+        "outfit_overalls" -> Color(0xFF568AA5)
+        "outfit_sweater" -> Color(0xFFCA8078)
+        "outfit_raincoat" -> Color(0xFFFFD35E)
+        "outfit_vest" -> Color(0xFF849E79)
+        "outfit_apron" -> Color(0xFFFFE5BC)
+        "outfit_stars" -> Color(0xFF56618E)
+        "outfit_suit" -> Color(0xFF415269)
+        "outfit_cape" -> Color(0xFF9F6CB5)
+        else -> return
+    }
+    clipPath(bodyPath(u)) {
+        val garment = Path().apply {
+            moveTo(7f * u, 73f * u)
+            lineTo(30f * u, 71f * u)
+            quadraticTo(50f * u, 83f * u, 70f * u, 71f * u)
+            lineTo(93f * u, 73f * u)
+            lineTo(93f * u, 102f * u); lineTo(7f * u, 102f * u); close()
+        }
+        drawPath(garment, fabric)
+        when (id) {
+            "outfit_stripes" -> repeat(3) { i ->
+                drawRect(Color(0xFF688BAA), Offset(7f * u, (80f + i * 7f) * u), Size(86f * u, 3f * u))
+            }
+            "outfit_overalls", "outfit_apron" -> {
+                drawLine(fabric, Offset(30f * u, 71f * u), Offset(34f * u, 87f * u), 7f * u)
+                drawLine(fabric, Offset(70f * u, 71f * u), Offset(66f * u, 87f * u), 7f * u)
+                drawRoundRect(fabric.copy(red = fabric.red * 0.83f, green = fabric.green * 0.83f, blue = fabric.blue * 0.83f),
+                    Offset(38f * u, 84f * u), Size(24f * u, 12f * u), CornerRadius(3f * u))
+                drawCircle(Spark, 1.8f * u, Offset(34f * u, 79f * u))
+                drawCircle(Spark, 1.8f * u, Offset(66f * u, 79f * u))
+                if (id == "outfit_apron") {
+                    drawCircle(Color(0xFF84BBA5), 2.5f * u, Offset(59f * u, 91f * u))
+                    drawCircle(Color(0xFFD686A7), 2f * u, Offset(44f * u, 88f * u))
+                }
+            }
+            "outfit_sweater" -> {
+                repeat(7) { i -> drawLine(Color(0xFFE8AEA0), Offset((21f + i * 10f) * u, 94f * u), Offset((21f + i * 10f) * u, 99f * u), 1.3f * u) }
+                val knit = Path().apply {
+                    moveTo(20f * u, 83f * u)
+                    for (i in 1..6) lineTo((20f + i * 10f) * u, (if (i % 2 == 0) 83f else 88f) * u)
+                }
+                drawPath(knit, Color(0xFFF0CFB1), style = Stroke(2f * u))
+            }
+            "outfit_raincoat", "outfit_vest", "outfit_suit" -> {
+                drawLine(fabric.copy(red = fabric.red * 0.7f, green = fabric.green * 0.7f, blue = fabric.blue * 0.7f),
+                    Offset(50f * u, 79f * u), Offset(50f * u, 100f * u), 1.5f * u)
+                repeat(3) { i -> drawCircle(if (id == "outfit_suit") Spark else Color(0xFF59676D), 1.4f * u, Offset(54f * u, (83f + i * 6f) * u)) }
+                drawRoundRect(Color.White.copy(alpha = 0.24f), Offset(24f * u, 86f * u), Size(14f * u, 8f * u), CornerRadius(2f * u))
+                drawRoundRect(Color.White.copy(alpha = 0.24f), Offset(65f * u, 86f * u), Size(14f * u, 8f * u), CornerRadius(2f * u))
+                if (id == "outfit_suit") {
+                    val collar = Path().apply { moveTo(33f * u, 73f * u); lineTo(50f * u, 83f * u); lineTo(67f * u, 73f * u); lineTo(50f * u, 91f * u); close() }
+                    drawPath(collar, Color(0xFFF7ECD5))
+                }
+            }
+            "outfit_stars" -> listOf(Offset(30f, 84f), Offset(65f, 90f), Offset(45f, 96f), Offset(78f, 80f)).forEach {
+                sparkle(it * u, 3.2f * u, Color(0xFFFFE6A2))
+            }
+            "outfit_cape" -> {
+                val opening = Path().apply { moveTo(50f * u, 79f * u); lineTo(33f * u, 102f * u); lineTo(67f * u, 102f * u); close() }
+                drawPath(opening, Color(0xFFD8B8E5))
+                drawCircle(Spark, 3f * u, Offset(50f * u, 80f * u))
+            }
+            else -> Unit
+        }
+    }
+}
+
+private fun DrawScope.drawHat(u: Float, style: Set<String>) {
+    val id = style.firstOrNull { it.startsWith("hat_") } ?: return
+    fun brim(color: Color, x: Float = 19f, y: Float = 27f, width: Float = 62f) {
+        drawRoundRect(color, Offset(x * u, y * u), Size(width * u, 7f * u), CornerRadius(3.5f * u))
+    }
+    when (id) {
+        "hat_beanie" -> {
+            drawOval(Color(0xFFE7A57F), Offset(27f * u, 8f * u), Size(46f * u, 30f * u))
+            brim(Color(0xFFBD7C68), 26f, 26f, 48f)
+            repeat(7) { i -> drawLine(Color(0xFFDEA087), Offset((30f + i * 6f) * u, 27f * u), Offset((30f + i * 6f) * u, 32f * u), 1.4f * u) }
+            drawCircle(Color(0xFFF3C2A0), 6f * u, Offset(50f * u, 8f * u))
+        }
+        "hat_bucket", "hat_sun", "hat_captain" -> {
+            val color = when (id) { "hat_sun" -> Color(0xFFEAC887); "hat_captain" -> Color(0xFFF1EBD5); else -> Color(0xFF90C5B0) }
+            val crown = Path().apply { moveTo(30f * u, 28f * u); lineTo(35f * u, 11f * u); quadraticTo(50f * u, 6f * u, 65f * u, 11f * u); lineTo(70f * u, 28f * u); close() }
+            drawPath(crown, color)
+            brim(if (id == "hat_captain") Ink else color, if (id == "hat_sun") 10f else 20f, 27f, if (id == "hat_sun") 80f else 60f)
+            drawLine(if (id == "hat_captain") Color(0xFFCDA758) else color.copy(red = color.red * 0.8f, green = color.green * 0.8f, blue = color.blue * 0.8f),
+                Offset(31f * u, 24f * u), Offset(69f * u, 24f * u), 3f * u)
+            if (id == "hat_captain") sparkle(Offset(50f * u, 18f * u), 4f * u, Spark)
+        }
+        "hat_flower" -> {
+            repeat(6) { i -> rotate(i * 60f, Offset(69f * u, 22f * u)) {
+                drawOval(Color(0xFFFFF6D8), Offset(66f * u, 11f * u), Size(6f * u, 12f * u))
+            } }
+            drawCircle(Spark, 4.4f * u, Offset(69f * u, 22f * u))
+        }
+        "hat_beret" -> {
+            drawOval(Color(0xFFD78380), Offset(20f * u, 9f * u), Size(57f * u, 23f * u))
+            brim(Color(0xFFA96471), 28f, 26f, 44f)
+            drawLine(Color(0xFFA96471), Offset(48f * u, 11f * u), Offset(51f * u, 6f * u), 3f * u, StrokeCap.Round)
+        }
+        "hat_sleep", "hat_wizard" -> {
+            val night = id == "hat_sleep"
+            val cap = Path().apply {
+                moveTo(26f * u, 29f * u)
+                if (night) { quadraticTo(55f * u, -1f * u, 77f * u, 18f * u); quadraticTo(61f * u, 15f * u, 73f * u, 29f * u) }
+                else { lineTo(49f * u, 0f); lineTo(74f * u, 29f * u) }
+                close()
+            }
+            drawPath(cap, if (night) Color(0xFF86A9BD) else Color(0xFF7764AC))
+            brim(if (night) Color(0xFFD9EBEC) else Color(0xFF5E508E), 24f, 27f, 52f)
+            if (night) drawCircle(Color(0xFFD9EBEC), 5f * u, Offset(77f * u, 18f * u))
+            else sparkle(Offset(49f * u, 19f * u), 5f * u, Spark)
+        }
+        "hat_bow" -> drawBow(Offset(68f * u, 20f * u), 11f * u, Color(0xFFD987AC))
+        "hat_crown" -> {
+            val crown = Path().apply {
+                moveTo(29f * u, 29f * u); lineTo(24f * u, 10f * u); lineTo(39f * u, 18f * u)
+                lineTo(50f * u, 5f * u); lineTo(61f * u, 18f * u); lineTo(76f * u, 10f * u)
+                lineTo(71f * u, 29f * u); close()
+            }
+            drawPath(crown, Spark)
+            brim(Color(0xFFE3A633), 29f, 26f, 42f)
+            drawCircle(Color(0xFFD582A6), 3f * u, Offset(50f * u, 22f * u))
+            listOf(24f to 10f, 50f to 5f, 76f to 10f).forEach { (x, y) -> drawCircle(Color(0xFFFFE4A4), 2.5f * u, Offset(x * u, y * u)) }
+        }
+    }
+}
+
+private fun DrawScope.drawAccessory(u: Float, style: Set<String>) {
+    when (style.firstOrNull { it.startsWith("accessory_") }) {
+        "accessory_scarf" -> {
+            drawRoundRect(Color(0xFFD88D73), Offset(25f * u, 73f * u), Size(50f * u, 8f * u), CornerRadius(4f * u))
+            drawRoundRect(Color(0xFFB96E64), Offset(64f * u, 77f * u), Size(9f * u, 19f * u), CornerRadius(3f * u))
+            drawLine(Color(0xFFF1C09D), Offset(65f * u, 90f * u), Offset(72f * u, 90f * u), 2f * u)
+        }
+        "accessory_glasses" -> {
+            listOf(36f, 64f).forEach { drawCircle(Color(0xFF7D564C), 12f * u, Offset(it * u, 50f * u), style = Stroke(2f * u)) }
+            drawArc(Color(0xFF7D564C), 180f, 180f, false, Offset(48f * u, 47f * u), Size(4f * u, 4f * u), style = Stroke(2f * u))
+            drawLine(Color(0xFF7D564C), Offset(19f * u, 47f * u), Offset(24f * u, 49f * u), 2f * u)
+            drawLine(Color(0xFF7D564C), Offset(76f * u, 49f * u), Offset(81f * u, 47f * u), 2f * u)
+        }
+        "accessory_bowtie" -> drawBow(Offset(50f * u, 79f * u), 8f * u, Color(0xFF729E98))
+        "accessory_satchel" -> {
+            drawLine(Color(0xFFAB805C), Offset(28f * u, 71f * u), Offset(72f * u, 92f * u), 4f * u, StrokeCap.Round)
+            drawRoundRect(Color(0xFFB98C66), Offset(62f * u, 82f * u), Size(22f * u, 17f * u), CornerRadius(4f * u))
+            drawRoundRect(Color(0xFF93684E), Offset(62f * u, 82f * u), Size(22f * u, 6f * u), CornerRadius(3f * u))
+            drawCircle(Spark, 1.6f * u, Offset(73f * u, 89f * u))
+        }
+        "accessory_headphones" -> {
+            drawArc(Color(0xFF46566D), 180f, 180f, false, Offset(14f * u, 15f * u), Size(72f * u, 66f * u), style = Stroke(4f * u))
+            listOf(11f, 80f).forEach { x ->
+                drawRoundRect(Color(0xFF46566D), Offset(x * u, 42f * u), Size(10f * u, 21f * u), CornerRadius(5f * u))
+                drawRoundRect(Color(0xFFEDC486), Offset((x + 2f) * u, 46f * u), Size(6f * u, 13f * u), CornerRadius(3f * u))
+            }
+        }
+        "accessory_neckerchief" -> {
+            val cloth = Path().apply { moveTo(27f * u, 73f * u); lineTo(50f * u, 94f * u); lineTo(73f * u, 73f * u); quadraticTo(50f * u, 84f * u, 27f * u, 73f * u); close() }
+            drawPath(cloth, Color(0xFF739F86))
+            drawCircle(Color(0xFFECCF85), 3f * u, Offset(50f * u, 82f * u))
+        }
+        "accessory_medal" -> {
+            drawLine(Color(0xFFD9838B), Offset(35f * u, 74f * u), Offset(50f * u, 88f * u), 4f * u)
+            drawLine(Color(0xFFD9838B), Offset(65f * u, 74f * u), Offset(50f * u, 88f * u), 4f * u)
+            drawCircle(Spark, 6f * u, Offset(50f * u, 91f * u))
+            sparkle(Offset(50f * u, 91f * u), 3.8f * u, Color(0xFFFFEDB4))
+        }
+        "accessory_star" -> {
+            drawRoundRect(Color(0xFF96A5C6), Offset(62f * u, 82f * u), Size(17f * u, 13f * u), CornerRadius(3f * u))
+            sparkle(Offset(70f * u, 82f * u), 8f * u, Spark)
+            drawCircle(Ink, 0.8f * u, Offset(68f * u, 82f * u))
+            drawCircle(Ink, 0.8f * u, Offset(72f * u, 82f * u))
+        }
+        else -> Unit
+    }
+}
+
+private fun DrawScope.drawBow(center: Offset, radius: Float, color: Color) {
+    val bow = Path().apply {
+        moveTo(center.x, center.y)
+        quadraticTo(center.x - radius * 1.6f, center.y - radius * 1.5f, center.x - radius, center.y)
+        quadraticTo(center.x - radius * 1.6f, center.y + radius * 1.5f, center.x, center.y)
+        quadraticTo(center.x + radius * 1.6f, center.y - radius * 1.5f, center.x + radius, center.y)
+        quadraticTo(center.x + radius * 1.6f, center.y + radius * 1.5f, center.x, center.y)
+        close()
+    }
+    drawPath(bow, color)
+    drawCircle(color.copy(red = color.red * 0.8f, green = color.green * 0.8f, blue = color.blue * 0.8f), radius * 0.3f, center)
+}
+
+/** The response fades over the existing pose. Petting never changes focus or navigation. */
+private fun DrawScope.drawPetHearts(response: Float) {
+    val u = size.width / 100f
+    val alpha = response.coerceIn(0f, 1f)
+    listOf(Offset(13f, 30f), Offset(88f, 21f)).forEachIndexed { index, position ->
+        val x = position.x * u
+        val y = (position.y - (1f - alpha) * 10f) * u
+        val r = (3.5f + index) * u
+        val heart = Path().apply {
+            moveTo(x, y + r)
+            cubicTo(x - r * 2f, y, x - r, y - r * 1.4f, x, y - r * 0.4f)
+            cubicTo(x + r, y - r * 1.4f, x + r * 2f, y, x, y + r)
+            close()
+        }
+        drawPath(heart, Cheek.copy(alpha = alpha))
+    }
 }

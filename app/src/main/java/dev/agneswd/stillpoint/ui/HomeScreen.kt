@@ -1,8 +1,10 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -56,6 +59,7 @@ import dev.agneswd.stillpoint.ui.design.ChunkyCard
 import dev.agneswd.stillpoint.ui.design.ChunkyProgress
 import dev.agneswd.stillpoint.ui.design.DayPart
 import dev.agneswd.stillpoint.ui.design.DayPartIcon
+import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Sp
 import dev.agneswd.stillpoint.ui.design.Tag
@@ -92,6 +96,12 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
             }
             val (mood, line) = greeting(game)
             PebbleSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60), pebbleSize = 96.dp)
+            Text(
+                "Pebble wardrobe",
+                Modifier.align(Alignment.End).clickable { navigator.push(Route.Wardrobe) }
+                    .padding(horizontal = ScreenPadding, vertical = 12.dp),
+                style = MaterialTheme.typography.labelLarge, color = Sp.colors.brand,
+            )
             GoalCard(game, Modifier.padding(horizontal = ScreenPadding).appear(120))
             SectionTitle("Daily quests", action = { Tag("Resets at midnight", Sp.colors.textDim) })
             QuestCard(game?.quests.orEmpty(), Modifier.padding(horizontal = ScreenPadding).appear(180))
@@ -190,12 +200,12 @@ private fun GoalCard(game: GameState?, modifier: Modifier) {
                                     .background(if (met) Sp.colors.flame else if (some) Sp.colors.flame.copy(alpha = 0.3f) else Sp.colors.surfaceHigh),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                if (met) Icon(painterResource(R.drawable.ic_check), null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                if (met) Icon(painterResource(R.drawable.ic_check), null, tint = LightPalette.text, modifier = Modifier.size(14.dp))
                             }
                             Text(
                                 date.dayOfWeek.name.take(1),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (date == LocalDate.now()) Sp.colors.flame else Sp.colors.textDim,
+                                color = if (date == LocalDate.now()) Sp.colors.text else Sp.colors.textDim,
                             )
                         }
                     }
@@ -225,30 +235,53 @@ fun GoalRing(fraction: Float, modifier: Modifier, color: Color = Sp.colors.flame
 
 @Composable
 fun QuestCard(quests: List<Quest>, modifier: Modifier) {
+    var expanded by remember { mutableStateOf<String?>(null) }
     ChunkyCard(modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             quests.forEach { quest ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (quest.done) Sp.colors.gold else Sp.colors.gold.copy(alpha = 0.18f)),
-                        contentAlignment = Alignment.Center,
+                Column {
+                    Row(
+                        Modifier.fillMaxWidth().clickable(onClickLabel = "Show quest details") {
+                            expanded = if (expanded == quest.id) null else quest.id
+                        },
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (quest.done) Icon(painterResource(R.drawable.ic_check), null, tint = Color.White, modifier = Modifier.size(22.dp)) else XpBolt(size = 22.dp)
+                        Box(
+                            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (quest.done) Sp.colors.gold else Sp.colors.gold.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (quest.done) Icon(painterResource(R.drawable.ic_check), null, tint = LightPalette.text, modifier = Modifier.size(22.dp)) else XpBolt(size = 22.dp)
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(quest.title, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+                            Spacer(Modifier.height(6.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ChunkyProgress(quest.fraction, Modifier.weight(1f), color = Sp.colors.gold, height = 12.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text("${quest.progress} / ${quest.target}", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+                            }
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Text("+${quest.xp} XP", style = MaterialTheme.typography.labelMedium, color = Sp.colors.text)
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(quest.title, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
-                        Spacer(Modifier.height(6.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            ChunkyProgress(quest.fraction, Modifier.weight(1f), color = Sp.colors.gold, height = 12.dp)
-                            Spacer(Modifier.width(8.dp))
-                            Text("${quest.progress} / ${quest.target}", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+                    AnimatedVisibility(expanded == quest.id) {
+                        Column(Modifier.padding(start = 52.dp, top = 10.dp)) {
+                            Text(quest.category, style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
+                            Text(
+                                quest.detail.ifBlank { "Complete this task before midnight. Saved focus sessions count toward your progress." },
+                                style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                            )
+                            Text(
+                                if (quest.done) "${quest.xp} XP earned. This reward is already in your total."
+                                else "${quest.xp} XP is added automatically when you finish this quest.",
+                                Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                            )
                         }
                     }
-                    Spacer(Modifier.width(10.dp))
-                    Tag("+${quest.xp} XP", Sp.colors.goldLip)
                 }
             }
+            Text("Tap a quest for its rules.", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
         }
     }
 }
