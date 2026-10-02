@@ -8,7 +8,7 @@ Source archive SHA-256: `f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b
 
 | App sound | Original file | Peak target |
 | --- | --- | --- |
-| Tap | back_002.ogg | -23 dBFS |
+| Tap | click_001.ogg | -23 dBFS |
 | Toggle on | drop_002.ogg | -20 dBFS |
 | Toggle off | drop_003.ogg | -21 dBFS |
 | Select | bong_001.ogg | -22 dBFS |
@@ -33,4 +33,5 @@ Onboarding cues play once per slide. Plan sounds follow the check marks. Notific
 Leaving a slide cancels its remaining cues. Looping artwork does not produce an endless sound loop.
 All cues follow the Sound effects setting and media volume.
 
-Focus ambience remains procedural. White, pink, brown, rain, and waves need no downloaded audio.
+Focus ambience uses bundled CC0 recordings. See [focus audio sources](focus-audio-sources.md).
+Routine navigation, badge taps, and ordinary controls are silent.

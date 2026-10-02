@@ -13,7 +13,7 @@ URL = "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-16775894
 SHA256 = "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232"
 # Output name: original filename, peak level in dBFS.
 SOUNDS = {
-    "tap": ("back_002", -23),
+    "tap": ("click_001", -23),
     "toggle_on": ("drop_002", -20),
     "toggle_off": ("drop_003", -21),
     "select": ("bong_001", -22),
