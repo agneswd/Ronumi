@@ -130,7 +130,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
                 ListRow("Version", version)
             }
-            Hint("Nunito uses the SIL Open Font License. UI sounds by Kenney and focus recordings from Freesound use CC0. License texts are included in this app.")
+            Hint("Nunito uses the SIL Open Font License. UI sounds from the Versilian Community Sample Library and focus recordings from Freesound use CC0. License texts are included in this app.")
             Spacer(Modifier.height(32.dp))
         }
     }

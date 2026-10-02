@@ -111,5 +111,5 @@ The [feature map](docs/regain-parity.md) lists completed work and known gaps.
 
 Stillpoint code and original artwork use [GPL-3.0-only](LICENSE).
 Nunito uses the [SIL Open Font License](licenses/Nunito-OFL.txt).
-[Kenney UI sounds](licenses/Kenney-Interface-Sounds-CC0.txt) and [Freesound focus recordings](docs/focus-audio-sources.md) use CC0.
+[VCSL instrument recordings](licenses/VCSL-CC0.txt) and [Freesound focus recordings](docs/focus-audio-sources.md) use CC0.
 See [NOTICE](NOTICE) for credits. License texts are also included in the app.

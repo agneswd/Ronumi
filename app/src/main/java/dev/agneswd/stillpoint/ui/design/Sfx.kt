@@ -5,7 +5,7 @@ import android.media.AudioAttributes
 import android.media.SoundPool
 import dev.agneswd.stillpoint.R
 
-/** Quiet library sounds. See docs/audio-sources.md for origins and processing. */
+/** Short phrases on recorded instruments. See docs/audio-sources.md for origins and processing. */
 enum class Sound(val res: Int, val volume: Float = 1f) {
     TAP(R.raw.sfx_tap),
     TOGGLE_ON(R.raw.sfx_toggle_on),

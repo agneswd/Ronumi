@@ -1,33 +1,31 @@
 # UI audio sources
 
-UI and onboarding sounds come from [Interface Sounds 1.0 by Kenney](https://kenney.nl/assets/interface-sounds).
+UI and onboarding sounds are short phrases played on recorded instruments from the
+[Versilian Community Sample Library](https://github.com/sgossner/VCSL) (VCSL).
 The library uses [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/).
-It permits commercial use, modification, and redistribution. The original notice is in `licenses/Kenney-Interface-Sounds-CC0.txt`.
+It permits commercial use, modification, and redistribution. The license text is in `licenses/VCSL-CC0.txt`.
 
-Source archive SHA-256: `f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232`.
+`python3 tools/import_sounds.py` builds every cue. It downloads the recordings from a fixed VCSL commit,
+pitches notes from the nearest recording, places them in time, and writes Ogg files with ffmpeg.
+All cues are in C major. Processing keeps the full frequency range, removes rumble below 60 Hz, and lowers each peak.
 
-| App sound | Original file | Peak target |
+| App sound | Instruments and notes | Peak target |
 | --- | --- | --- |
-| Tap | click_001.ogg | -23 dBFS |
-| Toggle on | drop_002.ogg | -20 dBFS |
-| Toggle off | drop_003.ogg | -21 dBFS |
-| Select | bong_001.ogg | -22 dBFS |
-| Start focus | maximize_006.ogg | -17 dBFS |
-| Complete focus | confirmation_001.ogg | -16 dBFS |
-| Level up | confirmation_004.ogg | -17 dBFS |
-| Streak | select_005.ogg | -18 dBFS |
-| Quest | maximize_008.ogg | -18 dBFS |
-| Give up | minimize_006.ogg | -20 dBFS |
-| Block | back_004.ogg | -19 dBFS |
-| Welcome | drop_004.ogg | -19 dBFS |
-| Question | question_004.ogg | -22 dBFS |
-| Slide | switch_003.ogg | -25 dBFS |
-| Notification box | switch_007.ogg | -24 dBFS |
-
-`python3 tools/import_sounds.py` downloads the checked archive and prepares the selected files with ffmpeg.
-Processing preserves the original timing and pitch. It converts to mono, removes frequencies below 35 Hz,
-softens frequencies above 2.4 kHz, and lowers each peak. Short fades remove abrupt starts and ends.
-The Ogg encoder can change peak levels slightly. These targets leave ample headroom.
+| Tap | Marimba G5 | -24 dBFS |
+| Toggle on | Marimba C5, G5 | -21 dBFS |
+| Toggle off | Marimba G5, C5 | -22 dBFS |
+| Select | Vibraphone E5 | -22 dBFS |
+| Slide | Vibraphone C5 | -26 dBFS |
+| Question | Vibraphone C5, D5 | -23 dBFS |
+| Notification box | Glockenspiel C7, G6 | -25 dBFS |
+| Welcome | Vibraphone G4, C5, E5, glockenspiel C6 | -19 dBFS |
+| Start focus | Marimba C4, E4, G4, C5, glockenspiel C6 | -17 dBFS |
+| Quest | Glockenspiel G5, C6 | -19 dBFS |
+| Complete focus | Marimba C5, E5, G5, vibraphone C major chord, glockenspiel C7 | -16 dBFS |
+| Level up | Marimba run from C4 to G5, glockenspiel C6 and G6, bell tree | -16 dBFS |
+| Streak | Bell tree, vibraphone F major chord | -18 dBFS |
+| Give up | Vibraphone E4, C4 | -21 dBFS |
+| Block | Marimba G4, D4 | -20 dBFS |
 
 Onboarding cues play once per slide. Plan sounds follow the check marks. Notification sounds follow the falling messages.
 Leaving a slide cancels its remaining cues. Looping artwork does not produce an endless sound loop.
