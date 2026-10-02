@@ -2,6 +2,7 @@ package dev.agneswd.stillpoint.guard
 
 import android.accessibilityservice.AccessibilityService
 import android.content.BroadcastReceiver
+import androidx.core.content.ContextCompat
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -144,11 +145,7 @@ class GuardService : AccessibilityService() {
             addAction(ACTION_COVER_READY)
             addAction(ACTION_BLOCK_CLOSED)
         }
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(returnReceiver, actions, RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(returnReceiver, actions)
-        }
+        ContextCompat.registerReceiver(this, returnReceiver, actions, ContextCompat.RECEIVER_NOT_EXPORTED)
     }
 
     override fun onDestroy() {
