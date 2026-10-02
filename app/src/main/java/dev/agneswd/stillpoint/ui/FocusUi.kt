@@ -199,9 +199,15 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             SwitchRow("Lock the home screen", "Home brings you back to the timer.", s.focusLockHome, leading = { IconTile(R.drawable.ic_tab_home, Sp.colors.flame) }) { on -> update { it.copy(focusLockHome = on) } }
 
             SectionTitle("Sound")
-            Row(Modifier.padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FocusSound.entries.forEach { sound ->
-                    ChoiceButton(sound.name.lowercase().replaceFirstChar(Char::uppercase), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
+            // Three choices a row, so new sounds wrap instead of squeezing the labels.
+            Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FocusSound.entries.chunked(3).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { sound ->
+                            ChoiceButton(sound.name.lowercase().replaceFirstChar(Char::uppercase), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
+                        }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
                 }
             }
             Spacer(Modifier.height(24.dp))

@@ -61,6 +61,7 @@ import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Pebble
 import dev.agneswd.stillpoint.ui.design.ScreenTitle
 import dev.agneswd.stillpoint.ui.design.Sp
+import dev.agneswd.stillpoint.ui.design.XpBolt
 import dev.agneswd.stillpoint.ui.design.appear
 import dev.agneswd.stillpoint.ui.design.popIn
 import dev.agneswd.stillpoint.usage.DayUsage
@@ -146,9 +147,9 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
 
         // Numbers.
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp).appear(140), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatTile("⏱️", formatMinutes(g.totalMinutes), "Total focus", Modifier.weight(1f))
-            StatTile("✅", "${g.sessions}", "Sessions", Modifier.weight(1f))
-            StatTile("⚡", "${g.xp}", "Total XP", Modifier.weight(1f))
+            StatTile({ Icon(painterResource(R.drawable.ic_timer), null, tint = Sp.colors.brand, modifier = Modifier.size(24.dp)) }, formatMinutes(g.totalMinutes), "Total focus", Modifier.weight(1f))
+            StatTile({ Icon(painterResource(R.drawable.ic_check), null, tint = Sp.colors.mint, modifier = Modifier.size(24.dp)) }, "${g.sessions}", "Sessions", Modifier.weight(1f))
+            StatTile({ XpBolt(size = 24.dp) }, "${g.xp}", "Total XP", Modifier.weight(1f))
         }
 
         SectionTitle("Focus this week")
@@ -248,10 +249,11 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
 }
 
 @Composable
-private fun StatTile(emoji: String, value: String, label: String, modifier: Modifier) {
+private fun StatTile(icon: @Composable () -> Unit, value: String, label: String, modifier: Modifier) {
     ChunkyCard(modifier, contentPadding = 12.dp) {
         Column {
-            Text(emoji, style = MaterialTheme.typography.titleLarge)
+            icon()
+            Spacer(Modifier.height(4.dp))
             Text(value, style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, maxLines = 1)
             Text(label, style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
         }
