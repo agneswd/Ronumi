@@ -218,7 +218,6 @@ def onboarding():
     tap("Social media")
     tap("Continue")
     tap("I'll set it later")
-    tap("Continue")
     tap("Sounds great")
     for _ in range(4):
         tap("Continue")
