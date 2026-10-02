@@ -76,7 +76,7 @@ data class Rules(
         }
 
         val limit = limits[pkg]?.takeIf { it.enabled } ?: return Verdict.Allow
-        if (System.currentTimeMillis() < allowedUntil) return Verdict.Allow
+        if (limit.mode == LimitMode.GENTLE && System.currentTimeMillis() < allowedUntil) return Verdict.Allow
         val usedMinutes = usedToday() / 60_000
         if (usedMinutes < limit.minutesPerDay) return Verdict.Allow
         return Verdict.Block(
