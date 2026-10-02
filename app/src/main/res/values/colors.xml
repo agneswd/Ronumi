@@ -1,0 +1,9 @@
+<resources>
+    <color name="ink">#FF0E1018</color>
+    <color name="ink_raised">#FF161925</color>
+    <color name="paper">#FFF7F6FB</color>
+    <color name="periwinkle">#FFA3B0FF</color>
+    <color name="periwinkle_deep">#FF3F4FC4</color>
+    <color name="mist">#FFE6E8F2</color>
+    <color name="mist_dim">#FF9EA3B8</color>
+</resources>
