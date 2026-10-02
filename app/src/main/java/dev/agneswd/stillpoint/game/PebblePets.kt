@@ -2,19 +2,20 @@ package dev.agneswd.stillpoint.game
 
 import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.room.withTransaction
 import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.currentSettings
 import java.util.concurrent.atomic.AtomicLong
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /** Persists taps outside the screen lifecycle. Room serializes increments from every Pebble instance. */
 object PebblePets {
     private val restoreGeneration = AtomicLong()
+
+    /** True after the tap that unlocks the secret outfit, until the reveal closes. */
+    val reveal = MutableStateFlow(false)
 
     fun pet(context: Context): Job {
         val app = context.app
@@ -27,11 +28,7 @@ object PebblePets {
                     app.dao.recordPetTap()
                     before == PebbleStyles.SECRET_PET_TAPS - 1
                 }
-                if (unlocked) withContext(Dispatchers.Main) {
-                    if (restoreGeneration.get() == generation) {
-                        Toast.makeText(app, "Star guardian unlocked! Find it in Pebble's wardrobe.", Toast.LENGTH_SHORT).show()
-                    }
-                }
+                if (unlocked && restoreGeneration.get() == generation) reveal.value = true
             } catch (error: Exception) {
                 if (error is kotlinx.coroutines.CancellationException) throw error
                 Log.w("PebblePets", "Could not save Pebble tap", error)

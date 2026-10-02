@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sfx
@@ -206,10 +208,18 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(260)) {
             Column {
                 val today = days.lastOrNull()
+                // The day whose apps show below. Today until the user taps another bar.
+                var picked by remember { mutableStateOf<java.time.LocalDate?>(null) }
+                val shown = days.firstOrNull { it.date == picked } ?: today
+                val locale = androidx.compose.ui.platform.LocalLocale.current.platformLocale
                 val past = days.dropLast(1).filter { it.totalMillis > 0 }
                 val average = if (past.isEmpty()) 0L else past.sumOf { it.totalMillis } / past.size
-                Text(formatDuration(today?.totalMillis ?: 0) + " today", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
-                if (average > 0 && today != null) {
+                Text(
+                    formatDuration(shown?.totalMillis ?: 0) + if (shown == null || shown == today) " today" else " on " + shown.date.dayOfWeek.getDisplayName(TextStyle.FULL, locale),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Sp.colors.text,
+                )
+                if (average > 0 && today != null && shown == today) {
                     val less = today.totalMillis <= average
                     Text(
                         "${formatDuration(kotlin.math.abs(today.totalMillis - average))} ${if (less) "less" else "more"} than your daily average",
@@ -218,12 +228,22 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                Text("Total screen time - all app categories", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+                Text("Total screen time. Tap a day to see its apps.", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
                 Spacer(Modifier.height(6.dp))
-                Bars(days.map { it.date.dayOfWeek.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale) to it.totalMillis / 60_000f }, goal = null, color = Sp.colors.textDim) {
+                Bars(
+                    days.map { it.date.dayOfWeek.getDisplayName(TextStyle.NARROW, locale) to it.totalMillis / 60_000f },
+                    goal = null,
+                    color = Sp.colors.textDim,
+                    selected = days.indexOf(shown),
+                    names = days.map { it.date.dayOfWeek.getDisplayName(TextStyle.FULL, locale) },
+                    onSelect = { picked = days[it].date },
+                ) {
                     formatMinutes(it.toInt())
                 }
-                today?.perApp?.take(5)?.let { top ->
+                if (shown != null && shown.perApp.isEmpty()) {
+                    Text("No screen time recorded on this day.", Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                }
+                shown?.perApp?.take(5)?.let { top ->
                     if (top.isNotEmpty()) Spacer(Modifier.height(10.dp))
                     val most = top.firstOrNull()?.second ?: 1L
                     top.forEach { (pkg, ms) ->
@@ -411,7 +431,19 @@ private fun StatTile(icon: @Composable () -> Unit, value: String, label: String,
 
 /** A small bar chart. Bars grow in when the chart first shows. [goal] draws a dashed line. */
 @Composable
-fun Bars(values: List<Pair<String, Float>>, goal: Float?, color: Color, label: (Float) -> String) {
+/**
+ * A week of bars. The [selected] bar gets the full color. With [onSelect], each bar is a button,
+ * and [names] describe the bars to screen readers.
+ */
+fun Bars(
+    values: List<Pair<String, Float>>,
+    goal: Float?,
+    color: Color,
+    selected: Int = values.lastIndex,
+    names: List<String> = values.map { it.first },
+    onSelect: ((Int) -> Unit)? = null,
+    label: (Float) -> String,
+) {
     if (values.isEmpty()) return
     val grow = remember { Animatable(0f) }
     LaunchedEffect(Unit) { grow.animateTo(1f, tween(700)) }
@@ -425,16 +457,17 @@ fun Bars(values: List<Pair<String, Float>>, goal: Float?, color: Color, label: (
             if (goal != null && goal > 0f) Text("Goal: ${label(goal)}", style = MaterialTheme.typography.labelMedium, color = goalColor)
         }
         Spacer(Modifier.height(8.dp))
+        Box {
         Canvas(Modifier.fillMaxWidth().height(110.dp)) {
             val gap = 10.dp.toPx()
             val w = (size.width - gap * (values.size - 1)) / values.size
             values.forEachIndexed { i, (_, v) ->
                 val x = i * (w + gap)
-                drawRoundRect(track.copy(alpha = 0.5f), Offset(x, 0f), Size(w, size.height), CornerRadius(8.dp.toPx()))
+                drawRoundRect(track.copy(alpha = if (onSelect != null && i == selected) 1f else 0.5f), Offset(x, 0f), Size(w, size.height), CornerRadius(8.dp.toPx()))
                 // A short day still shows a small bar, so it does not look like an empty day.
                 val h = (if (v > 0f) maxOf(size.height * v / max, 10.dp.toPx()) else 0f) * grow.value
                 if (h > 0f) {
-                    val c = if (i == values.lastIndex) color else color.copy(alpha = 0.55f)
+                    val c = if (i == selected) color else color.copy(alpha = 0.55f)
                     drawRoundRect(c, Offset(x, size.height - h), Size(w, h), CornerRadius(8.dp.toPx()))
                 }
             }
@@ -443,9 +476,22 @@ fun Bars(values: List<Pair<String, Float>>, goal: Float?, color: Color, label: (
                 drawLine(goalColor, Offset(0f, y), Offset(size.width, y), 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f)))
             }
         }
+        if (onSelect != null) {
+            // One button over each bar, so taps and screen readers both reach a day.
+            Row(Modifier.matchParentSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                values.indices.forEach { i ->
+                    Box(
+                        Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(8.dp))
+                            .selectable(i == selected, role = Role.Tab) { onSelect(i) }
+                            .semantics { contentDescription = "${names[i]}, ${label(values[i].second)}" },
+                    )
+                }
+            }
+        }
+        }
         Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            values.forEach { (day, _) ->
-                Text(day, style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+            values.forEachIndexed { i, (day, _) ->
+                Text(day, style = MaterialTheme.typography.labelMedium, color = if (onSelect != null && i == selected) Sp.colors.text else Sp.colors.textDim, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
             }
         }
     }

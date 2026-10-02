@@ -1,5 +1,8 @@
 package dev.agneswd.stillpoint.ui
 
+import android.provider.Settings
+import android.app.NotificationManager
+import android.os.Build
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -100,6 +103,23 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 SwitchRow("Focus updates", "Messages when focus rounds and sessions end.", s.notifyFocusEvents) { on ->
                     app.scope.launch { app.dao.updateSettings { it.copy(notifyFocusEvents = on) } }
                 }
+                if (Build.VERSION.SDK_INT >= 36) {
+                    SwitchRow("Live focus timer", "Shows the time left in the status bar while you focus.", s.liveFocusTimer) { on ->
+                        app.scope.launch { app.dao.updateSettings { it.copy(liveFocusTimer = on) } }
+                    }
+                    if (s.liveFocusTimer && !context.getSystemService(NotificationManager::class.java).canPostPromotedNotifications()) {
+                        ListRow(
+                            "Allow live updates",
+                            "Android turned off live updates for Stillpoint. Tap to allow them.",
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                                )
+                            },
+                            trailing = { Chevron() },
+                        )
+                    }
+                }
                 SwitchRow("Planned focus reminders", "Reminders for scheduled focus. Automatic starts stay enabled.", s.notifyPlanReminders) { on ->
                     app.scope.launch { app.dao.updateSettings { it.copy(notifyPlanReminders = on) } }
                 }
@@ -130,7 +150,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
                 ListRow("Version", version)
             }
-            Hint("Nunito uses the SIL Open Font License. UI sounds by Kenney and focus recordings from Freesound use CC0. License texts are included in this app.")
+            Hint("Nunito uses the SIL Open Font License. UI sounds from the Versilian Community Sample Library and focus recordings from Freesound use CC0. License texts are included in this app.")
             Spacer(Modifier.height(32.dp))
         }
     }

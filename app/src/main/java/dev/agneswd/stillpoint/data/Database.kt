@@ -248,7 +248,7 @@ class Converters {
         LimitPass::class,
         UsageDay::class,
     ],
-    version = 6,
+    version = 7,
 )
 @TypeConverters(Converters::class)
 abstract class StillpointDatabase : RoomDatabase() {
@@ -257,7 +257,7 @@ abstract class StillpointDatabase : RoomDatabase() {
     companion object {
         fun open(context: Context): StillpointDatabase =
             Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
     }
 }
@@ -358,5 +358,12 @@ private val MIGRATION_5_6 = object : Migration(5, 6) {
         db.execSQL("ALTER TABLE ActiveFocus ADD COLUMN bootCount INTEGER NOT NULL DEFAULT -1")
         // The old schema has only wall timestamps. Preserve its progress once during this upgrade.
         db.execSQL("UPDATE ActiveFocus SET phaseElapsedMillis = MAX(0, MIN(phaseEndsAt - phaseStartedAt, (CASE WHEN pausedAt > 0 THEN pausedAt ELSE ? END) - phaseStartedAt))", arrayOf(System.currentTimeMillis()))
+    }
+}
+
+/** Adds the Live Update switch for the focus timer. It starts on, like the other focus notifications. */
+private val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Settings ADD COLUMN liveFocusTimer INTEGER NOT NULL DEFAULT 1")
     }
 }
