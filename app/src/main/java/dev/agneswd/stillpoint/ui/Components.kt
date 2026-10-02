@@ -236,8 +236,8 @@ fun GameBar(game: GameState?, modifier: Modifier = Modifier, onOpen: () -> Unit 
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Stat(onOpen) {
-            Flame(size = 26.dp, lit = game?.streakSafeToday == true)
-            Counter(game?.streak ?: 0, if (game?.streakSafeToday == true) c.text else c.textDim)
+            Flame(size = 26.dp, lit = (game?.streak ?: 0) > 0 || game?.streakSafeToday == true)
+            Counter(game?.streak ?: 0, if ((game?.streak ?: 0) > 0 || game?.streakSafeToday == true) c.text else c.textDim)
         }
         Stat(onOpen) {
             XpBolt(size = 24.dp)

@@ -136,16 +136,29 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         ListRow("Pebble wardrobe", "Clothes, colors, hats, and accessories. Unlock more as you level up.",
             onClick = { navigator.push(Route.Wardrobe) })
 
-        // Streak.
-        ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(80), fill = Sp.colors.flame.copy(alpha = 0.08f)) {
+        // An active streak stays lit while today's next step is still pending.
+        val activeStreak = g.streak > 0 || g.streakSafeToday
+        val remainingStreakMinutes = (dev.agneswd.stillpoint.game.STREAK_MINUTES - g.todayMinutes).coerceAtLeast(0)
+        val streakToday = java.time.LocalDate.now()
+        val streakMessage = when {
+            g.streakSafeToday -> "Today's streak step is complete."
+            !dev.agneswd.stillpoint.game.studyDay(s, streakToday) -> if (activeStreak) "Rest day. Your streak stays active." else "Rest day. Start a streak on your next focus day."
+            streakToday.toString() in s.frozenDays -> "A freeze protects today's streak."
+            activeStreak -> "Focus $remainingStreakMinutes more ${if (remainingStreakMinutes == 1) "minute" else "minutes"} today to extend it."
+            else -> "Focus ${dev.agneswd.stillpoint.game.STREAK_MINUTES} minutes today to start a streak."
+        }
+        ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(80)) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Flame(size = 56.dp, lit = g.streakSafeToday)
+                    Flame(size = 56.dp, lit = activeStreak)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("${g.streak} day streak", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.flame)
                         Text(
-                            if (g.streakSafeToday) "Today is done. See you tomorrow!" else "Focus 10 minutes today to keep it.",
+                            "${g.streak} day streak", style = MaterialTheme.typography.headlineSmall,
+                            color = if (!activeStreak) Sp.colors.textDim else if (Sp.colors.dark) Sp.colors.flame else Color(0xFFA64D00),
+                        )
+                        Text(
+                            streakMessage,
                             style = MaterialTheme.typography.bodyMedium,
                             color = Sp.colors.text,
                         )
