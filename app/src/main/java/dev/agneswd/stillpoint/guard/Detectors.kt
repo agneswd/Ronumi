@@ -19,7 +19,15 @@ val shortsFeeds = listOf(
     ShortsFeed(
         "com.google.android.youtube",
         "YouTube Shorts",
-        viewIds = listOf("reel_recycler", "reel_player_page_container", "reel_watch_player", "shorts_container"),
+        viewIds = listOf(
+            "reel_recycler",
+            "reel_player_page_container",
+            "reel_watch_player",
+            "reel_watch_fragment_root",
+            "reel_player_overlay",
+            "shorts_container",
+        ),
+        selectedTabLabels = listOf("Shorts"),
         enabled = { it.blockYoutubeShorts },
     ),
     ShortsFeed(
@@ -116,8 +124,85 @@ fun AccessibilityNodeInfo.youtubeChannel(): String? = listOf("channel_name", "ow
 fun AccessibilityNodeInfo.youtubePlayer(): Boolean = listOf("player_view", "watch_fragment", "player_overlays", "watch_player")
     .any { findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/$it").isNotEmpty() }
 
-fun AccessibilityNodeInfo.youtubeHome(): Boolean = anyNode {
-    it.isSelected && (it.contentDescription?.toString()?.equals("Home", true) == true || it.text?.toString()?.equals("Home", true) == true)
+private val youtubeSearchIds = listOf(
+    "search_edit_text",
+    "search_query",
+    "search_box",
+    "search_clear",
+    "search_results_list",
+    "search_suggestion_list",
+)
+
+/**
+ * True on the YouTube home feed.
+ * Search, subscriptions, a channel, a normal player, and Shorts are not the home feed.
+ * The Home tab stays selected while search is open, so the tab alone is not enough.
+ */
+fun AccessibilityNodeInfo.youtubeHome(): Boolean {
+    if (youtubeSearchOpen() || youtubePlayer()) return false
+    if (shortsFeeds.first { it.packageName == "com.google.android.youtube" }.isShowing(this)) return false
+    if (selectedLabel("Subscriptions") || selectedLabel("Library") || selectedLabel("You")) return false
+    if (visibleExact("Subscribe") || visibleExact("Subscribed")) return false
+    return selectedLabel("Home")
+}
+
+enum class YoutubePlace { SEARCH, HOME, SUBSCRIPTIONS, OTHER }
+
+/** Search wins over the Home tab. YouTube leaves that tab selected while search is open. */
+fun AccessibilityNodeInfo.youtubePlace(): YoutubePlace = when {
+    youtubeSearchOpen() -> YoutubePlace.SEARCH
+    selectedLabel("Subscriptions") || selectedLabel("Library") -> YoutubePlace.SUBSCRIPTIONS
+    youtubeHome() || selectedLabel("Home") -> YoutubePlace.HOME
+    else -> YoutubePlace.OTHER
+}
+
+/** The typed query on the search results page. The hint "Search YouTube" is not a query. */
+fun AccessibilityNodeInfo.youtubeSearchQuery(): String? {
+    val text = findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/search_query")
+        .firstOrNull { it.isVisibleToUser }
+        ?.text?.toString()?.trim().orEmpty()
+    if (text.isEmpty() || text.equals("Search YouTube", true)) return null
+    return text
+}
+
+/** True while the search field or the search results are on screen. */
+fun AccessibilityNodeInfo.youtubeSearchOpen(): Boolean {
+    if (youtubeSearchIds.any { id ->
+            findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/$id").any { it.isVisibleToUser }
+        }
+    ) return true
+    return anyNode { node ->
+        if (!node.isVisibleToUser) return@anyNode false
+        val id = node.viewIdResourceName.orEmpty()
+        if (id.endsWith("/search_edit_text") || id.endsWith("/search_query")) return@anyNode true
+        val cls = node.className?.toString().orEmpty()
+        if (!cls.endsWith("EditText")) return@anyNode false
+        val hint = node.hintText?.toString().orEmpty()
+        val desc = node.contentDescription?.toString().orEmpty()
+        hint.contains("search", true) || desc.contains("search", true)
+    }
+}
+
+/** Clicks a bottom-bar tab or a control whose label is exactly [label]. */
+fun AccessibilityNodeInfo.clickNav(label: String): Boolean = anyNode { node ->
+    if (!node.isVisibleToUser) return@anyNode false
+    val desc = node.contentDescription?.toString().orEmpty()
+    val text = node.text?.toString().orEmpty()
+    if (!labelMatches(desc, label) && !labelMatches(text, label)) return@anyNode false
+    node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
+}
+
+private fun AccessibilityNodeInfo.selectedLabel(label: String): Boolean = anyNode {
+    it.isSelected && (labelMatches(it.contentDescription?.toString(), label) || labelMatches(it.text?.toString(), label))
+}
+
+private fun AccessibilityNodeInfo.visibleExact(label: String): Boolean = anyNode {
+    it.isVisibleToUser && (it.text?.toString()?.equals(label, true) == true || it.contentDescription?.toString()?.equals(label, true) == true)
+}
+
+private fun labelMatches(value: String?, label: String): Boolean {
+    val text = value?.trim().orEmpty()
+    return text.equals(label, true) || text.startsWith("$label,", true) || text.startsWith("$label ", true)
 }
 
 fun channelKey(value: String): String = value.trim().removePrefix("@").lowercase(java.util.Locale.ROOT)
