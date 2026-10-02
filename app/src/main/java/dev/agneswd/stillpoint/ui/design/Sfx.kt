@@ -5,9 +5,9 @@ import android.media.AudioAttributes
 import android.media.SoundPool
 import dev.agneswd.stillpoint.R
 
-/** The app's short sound effects. tools/make_sounds.py generates the files. */
+/** Quiet library sounds. See docs/audio-sources.md for origins and processing. */
 enum class Sound(val res: Int, val volume: Float = 1f) {
-    TAP(R.raw.sfx_tap, 0.6f),
+    TAP(R.raw.sfx_tap),
     TOGGLE_ON(R.raw.sfx_toggle_on),
     TOGGLE_OFF(R.raw.sfx_toggle_off),
     SELECT(R.raw.sfx_select),
@@ -18,6 +18,10 @@ enum class Sound(val res: Int, val volume: Float = 1f) {
     QUEST(R.raw.sfx_quest),
     GIVE_UP(R.raw.sfx_give_up),
     BLOCK(R.raw.sfx_block),
+    WELCOME(R.raw.sfx_welcome),
+    QUESTION(R.raw.sfx_question),
+    SLIDE(R.raw.sfx_slide),
+    NOTIFICATION(R.raw.sfx_notification),
 }
 
 /**

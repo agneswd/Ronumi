@@ -11,3 +11,8 @@ See licenses/Nunito-OFL.txt for the font license and copyright notice.
 
 Android and Kotlin libraries retain their respective licenses.
 Dependency coordinates and versions are listed in gradle/libs.versions.toml.
+
+Interface Sounds (1.0) by Kenney
+UI and onboarding audio is adapted from https://kenney.nl/assets/interface-sounds.
+Licensed under Creative Commons Zero (CC0 1.0 Universal).
+See licenses/Kenney-Interface-Sounds-CC0.txt and docs/audio-sources.md.

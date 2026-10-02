@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sfx
 import dev.agneswd.stillpoint.ui.design.Sound
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -33,6 +34,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -128,6 +130,48 @@ fun Onboarding(onDone: () -> Unit) {
         value = withContext(Dispatchers.IO) { app.catalog.launchableApps() }
     }
     val access = rememberAccess()
+
+    // Play one short sequence per slide. Leaving the slide cancels pending cues.
+    LaunchedEffect(step) {
+        when (step) {
+            Step.PLAN -> {
+                val checks = 2 + listOf("shorts" in picked, "notifications" in picked,
+                    picked.any { it in setOf("youtube", "social", "games") }, dayPart != null).count { it }
+                kotlinx.coroutines.delay(400)
+                repeat(checks) {
+                    Sfx.play(Sound.SELECT)
+                    kotlinx.coroutines.delay(220)
+                }
+            }
+            Step.SHORTS -> {
+                kotlinx.coroutines.delay(320)
+                Sfx.play(Sound.BLOCK)
+                kotlinx.coroutines.delay(400)
+                Sfx.play(Sound.SLIDE)
+            }
+            Step.NOTIFY -> {
+                kotlinx.coroutines.delay(650)
+                repeat(3) {
+                    Sfx.play(Sound.NOTIFICATION)
+                    kotlinx.coroutines.delay(933)
+                }
+            }
+            else -> {
+                kotlinx.coroutines.delay(350)
+                Sfx.play(when (step) {
+                    Step.WELCOME, Step.HELLO -> Sound.WELCOME
+                    Step.ASK, Step.PURPOSE, Step.DISTRACTIONS -> Sound.QUESTION
+                    Step.GOAL, Step.WHEN -> Sound.SELECT
+                    Step.STRICT -> Sound.BLOCK
+                    Step.STREAK -> Sound.STREAK
+                    Step.APPS -> Sound.SLIDE
+                    Step.ACCESS -> Sound.TOGGLE_ON
+                    Step.FIRST -> Sound.START
+                    else -> Sound.TAP
+                })
+            }
+        }
+    }
 
     fun go(next: Step) {
         forward = next.ordinal > step.ordinal
