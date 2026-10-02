@@ -27,7 +27,7 @@ Give the session a name, choose one of five animated scenes, and settle in.
 Rain, waves, and white, pink, or brown noise are bundled with the app, so you can listen without a connection.
 
 Save a note when you finish. Review your focus time by day, week, or month to see what worked.
-Home-screen widgets let you start another session quickly.
+Home-screen widgets let you start another session quickly. On Android 16 and later, the timer also shows in the status bar.
 
 The app follows your phone's light or dark theme. You can also choose either theme in Settings.
 
@@ -45,6 +45,7 @@ Separate settings control focus updates, planned reminders, and inbox summaries.
 </p>
 
 Screen-time reports separate productive apps, distracting apps, and other apps. You choose which apps count as productive.
+Tap a day in the last week to see which apps you used.
 Your focus block list defines distracting apps.
 
 Blocking needs Android permissions to work. Strict mode cannot prevent force-stop, safe mode, or every uninstall method.
