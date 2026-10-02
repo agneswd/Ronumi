@@ -125,11 +125,14 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = ScreenPadding, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(FocusTheme.entries) { theme ->
                     val on = theme.name == s.focusTheme
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // The picture and its label are one tap target.
+                    Column(
+                        Modifier.clip(RoundedCornerShape(16.dp)).clickable { update { it.copy(focusTheme = theme.name) } },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Box(
                             Modifier.size(64.dp, 84.dp).clip(RoundedCornerShape(16.dp))
-                                .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp))
-                                .clickable { update { it.copy(focusTheme = theme.name) } },
+                                .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp)),
                         ) { FocusBackdrop(theme, Modifier.fillMaxSize()) }
                         Text(theme.label, style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
                     }
