@@ -19,14 +19,14 @@ This map compares product behavior. It does not claim complete Regain parity.
 | YouTube study | Chosen channels, home-feed blocking | Unknown channels stay blocked in recognized players. Current YouTube verification remains. |
 | Notifications | App selection, focus-only or all-day holding, scheduled private summaries | Real notification updates, process restart, and duplicate delivery have device checks. JVM checks cover changed inbox content after delivery, repeated summaries, and backward clock changes. Alarm delivery timing remains. |
 | Protection | Blocks-tab lock, supported system-settings checks, schedule-editor checks, multi-window detection | Android permissions and OEM behavior limit enforcement. Multi-window and uninstall routes remain to test. |
-| Reports | Day, week, month, tags, daily average, app categories, unlocks, held counts, baseline time saved | Usage records persist locally. JVM checks prevent midnight screen-off events from counting usage twice. Time saved appears after seven recorded complete days. |
+| Reports | Day, week, month, tags, daily average, productive, distracting, and uncategorized app time, unlocks, held counts, baseline time saved | Usage records persist locally. JVM checks cover midnight usage and category accounting. Time saved appears after seven recorded complete days. The UI must display uncategorized time and pass essential packages to the report. |
 | Setup | Mascot questions, app selection, permissions, optional first focus | Device checks cover first launch and saved setup. |
-| Widgets | Screen-time and focus widgets | Goal, calendar, unlock, and small usage variants remain for the next design pass. Launcher rendering remains to test. |
+| Widgets | Done - screen-time, focus, goal, and calendar widgets | Widgets refresh after database commits. Launcher rendering remains to test. |
 | Backup | Versioned local JSON, validated restore, schema migrations | Device checks cover schema 1 to 3, round trip, invalid files, and protected restore. |
 
 Cloud sync, social focus rooms, leaderboards, friends, subscriptions, ads, and analytics are outside this offline app.
 
-The next design pass can finish the extra widgets and adjust the sound picker for six choices.
+The sound picker now wraps six choices in rows of three. Device listening remains to test.
 Real-app detection and manufacturer-specific permission flows need device coverage before a stable release.
 
 Plans resolve local times before comparing instants. A time in a missing hour shifts forward by the clock-change gap.
@@ -34,6 +34,11 @@ An overlapping local time runs once, at its first occurrence. Notification deliv
 Snooze stores a ten-minute absolute deadline. Reboot and time-change broadcasts rebuild the next alarm.
 Alarm refresh replaces each pending alarm after reading its next deadline. It no longer cancels alarms before database reads.
 Guard throttling uses elapsed time, so a backward clock edit cannot suppress enforcement until the old wall time returns.
+
+Report categories use the current productive choices and focus blocking mode. Productive choices take priority.
+Allow-list mode treats chosen apps as allowed. Other apps count as distracting, except essential apps supplied by the caller.
+Unassigned and essential usage stays uncategorized. Two distracting minutes can be part of 57 total screen minutes.
+The report now exposes uncategorized time and the complete screen-time total. The UI must show that difference.
 
 The backend review found these remaining data and timing limits:
 

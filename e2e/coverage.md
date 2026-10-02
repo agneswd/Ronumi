@@ -43,6 +43,8 @@ They cover these behavior gaps:
 - Notification summaries omit changed text on an existing inbox row, or repeat an unchanged row.
 - Rest days break streaks, frozen days count as focus days, or a missed day removes an earned badge.
 - Daily usage boundaries assume every local day has 24 hours.
+- Allow-list focus mode labels allowed apps as distracting, or category totals omit uncategorized usage.
+- Productive choices and essential exclusions duplicate time or make a category total negative.
 
 Rain and waves use mono 16-bit PCM at 22,050 Hz. The 20-second renders have no clipped samples.
 Rain peak/RMS is 0.587/0.131. Waves peak/RMS is 0.817/0.140. Existing noise RMS is 0.138 to 0.144.
@@ -59,7 +61,8 @@ The throwaway audio harness was removed. No audio files are needed by the app.
 - Deliver during the spring gap and autumn overlap. Confirm one delivery per resolved occurrence.
 - Apply a freeze twice and cross a week reward boundary after rest days and missed days.
 - Complete multiple Pomodoro rounds, including zero short breaks and zero long breaks.
-- Scroll the smaller onboarding viewport to the fifth choice. CI uses the existing 1080x2400 test viewport.
+- Verify onboarding on smaller manufacturer viewports. CI uses Pixel 2 at 1080x1920 and tests the visible skip button.
+- Show productive, distracting, and uncategorized report time. Their sum must equal screen time for the same period.
 
 CI runs on the backend branch and the PR. It uploads APKs and lint reports only.
 It prints crash, alarm, clock, and screen diagnostics from the disposable CI device. It does not upload e2e/artifacts/.
@@ -67,3 +70,6 @@ It prints crash, alarm, clock, and screen diagnostics from the disposable CI dev
 The Android 9 shell has no notification-post command. CI reports that workflow as SKIP when the command is unavailable.
 Android 16 continues to run the real notification workflow. Android 9 notification behavior still needs another posting fixture.
 See the [Android 9 shell implementation](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-9.0.0_r61/services/core/java/com/android/server/notification/NotificationManagerService.java#L7044).
+
+An Android 16 PR run captured the inbox but failed while reading notification 10 immediately after posting it.
+The device fixture must wait for that notification before checking its post time. Backend CI has passed this workflow.
