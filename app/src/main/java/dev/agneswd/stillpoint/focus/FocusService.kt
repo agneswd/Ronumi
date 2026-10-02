@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
  */
 class FocusService : LifecycleService() {
     private var started = false
-    private val noise = NoisePlayer()
+    private val noise by lazy { NoisePlayer(this) }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
