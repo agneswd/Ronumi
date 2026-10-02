@@ -62,3 +62,7 @@ The throwaway audio harness was removed. No audio files are needed by the app.
 
 CI runs on the backend branch and the PR. It uploads APKs and lint reports only.
 It prints failure diagnostics from the disposable CI device. It does not upload e2e/artifacts/.
+
+The Android 9 shell has no notification-post command. CI reports that workflow as SKIP when the command is unavailable.
+Android 16 continues to run the real notification workflow. Android 9 notification behavior still needs another posting fixture.
+See the [Android 9 shell implementation](https://github.com/aosp-mirror/platform_frameworks_base/blob/android-9.0.0_r61/services/core/java/com/android/server/notification/NotificationManagerService.java#L7044).

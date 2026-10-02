@@ -26,7 +26,7 @@ This map compares product behavior. It does not claim complete Regain parity.
 
 Cloud sync, social focus rooms, leaderboards, friends, subscriptions, ads, and analytics are outside this offline app.
 
-The next design pass can finish the extra widgets and expose the new procedural sound choices.
+The next design pass can finish the extra widgets and adjust the sound picker for six choices.
 Real-app detection and manufacturer-specific permission flows need device coverage before a stable release.
 
 Plans resolve local times before comparing instants. A time in a missing hour shifts forward by the clock-change gap.
