@@ -41,6 +41,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
     val access = rememberAccess()
+    var showPermissions by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     val settings by app.dao.settings().collectAsState(null)
     val schedules by app.dao.schedules().collectAsState(emptyList())
     val focus by app.dao.activeFocusFlow().collectAsState(null)
@@ -66,7 +67,14 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
         TopBar("Settings", onClose)
         Column(Modifier.weight(1f).verticalScroll(navigator.settingsScroll)) {
             SectionTitle("Permissions")
-            Column(Modifier.padding(horizontal = ScreenPadding)) { AccessRows(access, includeOptional = true) }
+            if (access.allAllowed) {
+                ListRow("All permissions allowed", if (showPermissions) "Hide details" else "Review permissions", onClick = { showPermissions = !showPermissions })
+            }
+            if (!access.allAllowed || showPermissions) {
+                Column(Modifier.padding(horizontal = ScreenPadding)) {
+                    AccessRows(access, includeOptional = true, onlyMissing = !showPermissions)
+                }
+            }
 
             val s = settings
             if (s != null) {
@@ -123,7 +131,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
                 ListRow("Version", version)
             }
-            Hint("Nunito uses the SIL Open Font License. UI sounds by Kenney use CC0. License texts are included in this app.")
+            Hint("Nunito uses the SIL Open Font License. UI sounds by Kenney and focus recordings from Freesound use CC0. License texts are included in this app.")
             Spacer(Modifier.height(32.dp))
         }
     }
