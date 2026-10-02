@@ -90,17 +90,16 @@ object Focus {
         when (focus.phase) {
             FocusPhase.FOCUS -> {
                 val done = focus.copy(focusedMillisBefore = focus.focusedMillisBefore + (focus.phaseEndsAt - focus.phaseStartedAt))
+                val breakMinutes = focus.breakAfterRoundMinutes()
                 when {
                     focus.round >= focus.rounds -> finish(context, done, completed = true)
-                    focus.breakMinutes == 0 -> {
+                    breakMinutes == 0 -> {
                         dao.saveActiveFocus(done.nextRound(now))
                         announce(context, "Round ${focus.round + 1} of ${focus.rounds}", "Keep going.")
                     }
                     else -> {
-                        // Every fourth break is a long one.
-                        val minutes = if (focus.round % 4 == 0) focus.longBreakMinutes else focus.breakMinutes
-                        dao.saveActiveFocus(done.copy(phase = FocusPhase.BREAK, phaseStartedAt = now, phaseEndsAt = now + minutes * 60_000L))
-                        announce(context, "Break for $minutes minutes", "Stand up and look at something far away.")
+                        dao.saveActiveFocus(done.copy(phase = FocusPhase.BREAK, phaseStartedAt = now, phaseEndsAt = now + breakMinutes * 60_000L))
+                        announce(context, "Break for $breakMinutes minutes", "Stand up and look at something far away.")
                     }
                 }
             }
@@ -194,6 +193,9 @@ object Focus {
 
     private const val EVENT_NOTIFICATION_ID = 2
 }
+
+/** Every fourth Pomodoro break uses the long-break setting, even when short breaks are disabled. */
+internal fun ActiveFocus.breakAfterRoundMinutes(): Int = if (round % 4 == 0) longBreakMinutes else breakMinutes
 
 /**
  * The session that just ended and still waits for its celebration screen.
