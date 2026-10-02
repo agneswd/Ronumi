@@ -258,7 +258,7 @@ fun MintSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
 private fun LockedNotice() {
     Column(Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
-        Pebble(Mood.GUARD, size = 160.dp)
+        Pebble(Mood.STRICT, size = 160.dp)
         Spacer(Modifier.height(16.dp))
         Text("Blocks are locked", style = MaterialTheme.typography.headlineMedium, color = Sp.colors.text)
         Spacer(Modifier.height(8.dp))

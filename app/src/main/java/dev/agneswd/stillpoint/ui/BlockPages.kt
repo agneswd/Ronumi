@@ -235,7 +235,7 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
 
 @Composable
 fun StrictPage(onClose: () -> Unit) {
-    BlockPage("Strict mode", "When strict mode is on, nobody can switch me off in a weak moment. Not even you.", Mood.PROUD, onClose) { s, update ->
+    BlockPage("Strict mode", "When strict mode is on, nobody can switch me off in a weak moment. Not even you.", Mood.STRICT, onClose) { s, update ->
         Group(Modifier.appear(0)) {
             SwitchRow(
                 "Lock Stillpoint while blocks run",

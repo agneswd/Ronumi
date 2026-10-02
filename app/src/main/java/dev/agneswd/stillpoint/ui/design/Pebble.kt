@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
@@ -32,7 +33,7 @@ import kotlin.math.abs
 import kotlin.math.sin
 
 /** What Pebble feels. Each mood changes the face, the arms and the motion. */
-enum class Mood { IDLE, HAPPY, CELEBRATE, CALM, SLEEPY, SAD, GUARD, WAVE, THINK, PROUD }
+enum class Mood { IDLE, HAPPY, CELEBRATE, CALM, SLEEPY, SAD, GUARD, WAVE, THINK, PROUD, STRICT }
 
 private val Ink = Color(0xFF262841)
 private val BodyTop = Color(0xFFA3AEFF)
@@ -109,7 +110,7 @@ fun DrawScope.drawPebble(
 
     translate(top = -jump * u) {
         scale(1f - b * 0.008f + squash, 1f + b * 0.015f - squash, pivot = Offset(50f * u, 100f * u)) {
-            val raised = mood in setOf(Mood.CELEBRATE, Mood.WAVE, Mood.GUARD, Mood.THINK)
+            val raised = mood in setOf(Mood.CELEBRATE, Mood.WAVE, Mood.GUARD, Mood.THINK, Mood.STRICT)
             if (!raised) drawArms(mood, u, wave)
             drawFeet(u)
             drawBody(u)
@@ -157,6 +158,10 @@ private fun DrawScope.drawArm(u: Float, pivot: Offset, angle: Float, left: Boole
 }
 
 private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float) {
+    if (mood == Mood.STRICT) {
+        drawCrossedArms(u)
+        return
+    }
     val leftPivot = Offset(12f * u, 62f * u)
     val rightPivot = Offset(88f * u, 62f * u)
     val (left, right) = when (mood) {
@@ -179,10 +184,22 @@ private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float) {
     }
 }
 
+/** Arms folded over the belly: strict and not moving. */
+private fun DrawScope.drawCrossedArms(u: Float) {
+    val back = listOf(Offset(18f * u, 76f * u), Offset(64f * u, 87f * u))
+    val front = listOf(Offset(82f * u, 76f * u), Offset(36f * u, 87f * u))
+    listOf(back, front).forEach { (from, to) ->
+        drawLine(BodyShade, from, to, 15.5f * u, StrokeCap.Round)
+        drawLine(BodyBottom, from, to, 13f * u, StrokeCap.Round)
+        drawCircle(BodyTop.copy(alpha = 0.55f), 2.6f * u, to + Offset(if (to.x > from.x) -2f * u else 2f * u, -1.5f * u))
+    }
+}
+
 private fun DrawScope.drawSprout(mood: Mood, u: Float, b: Float, wave: Float) {
     val sway = when (mood) {
         Mood.CELEBRATE -> wave * 18f
         Mood.SAD, Mood.SLEEPY -> 35f
+        Mood.STRICT -> 0f
         else -> b * 8f
     }
     val base = Offset(50f * u, 15f * u)
@@ -227,6 +244,18 @@ private fun DrawScope.drawFace(mood: Mood, u: Float, blink: Float, look: Offset)
                 drawArc(Ink, 20f, 140f, false, Offset(e.x - 8f * u, e.y - 8f * u), Size(16f * u, 12f * u), style = stroke)
             }
         }
+        Mood.STRICT -> {
+            // Narrowed eyes under flat lids, looking straight ahead.
+            listOf(left, right).forEach { e ->
+                val lid = e.y - 1.5f * u
+                clipRect(top = lid) {
+                    drawOval(Color.White, Offset(e.x - 10.5f * u, e.y - 8f * u), Size(21f * u, 20f * u))
+                    drawCircle(Ink, 6.4f * u, Offset(e.x, e.y + 3f * u))
+                    drawCircle(Color.White, 2f * u, Offset(e.x - 2.2f * u, e.y + 0.5f * u))
+                }
+                drawLine(Ink, Offset(e.x - 10f * u, lid), Offset(e.x + 10f * u, lid), 2.6f * u, StrokeCap.Round)
+            }
+        }
         Mood.SLEEPY -> {
             listOf(left, right).forEach { e ->
                 drawOval(Color.White, Offset(e.x - 10f * u, e.y - 1f * u), Size(20f * u, 9f * u))
@@ -259,6 +288,10 @@ private fun DrawScope.drawFace(mood: Mood, u: Float, blink: Float, look: Offset)
             drawLine(Ink, Offset(26f * u, 34f * u), Offset(43f * u, 38f * u), 3.2f * u, StrokeCap.Round)
             drawLine(Ink, Offset(74f * u, 34f * u), Offset(57f * u, 38f * u), 3.2f * u, StrokeCap.Round)
         }
+        Mood.STRICT -> {
+            drawLine(Ink, Offset(25f * u, 36f * u), Offset(44f * u, 42.5f * u), 3.6f * u, StrokeCap.Round)
+            drawLine(Ink, Offset(75f * u, 36f * u), Offset(56f * u, 42.5f * u), 3.6f * u, StrokeCap.Round)
+        }
         Mood.SAD -> {
             drawLine(Ink, Offset(27f * u, 37f * u), Offset(42f * u, 33f * u), 3f * u, StrokeCap.Round)
             drawLine(Ink, Offset(73f * u, 37f * u), Offset(58f * u, 33f * u), 3f * u, StrokeCap.Round)
@@ -284,6 +317,7 @@ private fun DrawScope.drawFace(mood: Mood, u: Float, blink: Float, look: Offset)
         }
         Mood.SAD -> drawArc(Ink, 200f, 140f, false, Offset(mouth.x - 6f * u, mouth.y + 1f * u), Size(12f * u, 9f * u), style = stroke)
         Mood.GUARD -> drawLine(Ink, Offset(mouth.x - 6f * u, mouth.y + 2f * u), Offset(mouth.x + 6f * u, mouth.y + 2f * u), 3f * u, StrokeCap.Round)
+        Mood.STRICT -> drawArc(Ink, 210f, 120f, false, Offset(mouth.x - 7f * u, mouth.y + 1f * u), Size(14f * u, 8f * u), style = stroke)
         Mood.THINK -> drawCircle(Ink, 3f * u, Offset(mouth.x + 3f * u, mouth.y + 2f * u))
         Mood.SLEEPY -> drawOval(Ink, Offset(mouth.x - 3f * u, mouth.y), Size(6f * u, 7f * u))
         else -> drawArc(Ink, 20f, 140f, false, Offset(mouth.x - 7f * u, mouth.y - 5f * u), Size(14f * u, 10f * u), style = stroke)

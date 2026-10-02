@@ -226,7 +226,7 @@ private fun pebbleLine(kind: BlockKind): Pair<Mood, String> {
         BlockKind.SHORTS -> Mood.GUARD to listOf("No endless scrolling!", "Shorts are closed. The rest is yours.")
         BlockKind.STUDY -> Mood.THINK to listOf("Study mode is on.", "Let's find something useful.")
         BlockKind.SITE -> Mood.THINK to listOf("Hmm, not this site.", "This site is on your list.")
-        BlockKind.PROTECTION -> Mood.PROUD to listOf("Nice try! Your blocks stay on.", "Future you says thanks.")
+        BlockKind.PROTECTION -> Mood.STRICT to listOf("Nice try. Your blocks stay on.", "Not today. Strict mode is on.")
         BlockKind.MULTI_WINDOW -> Mood.GUARD to listOf("One app at a time.")
     }
     return mood to lines.random()

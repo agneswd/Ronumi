@@ -235,7 +235,7 @@ fun StrictScene(modifier: Modifier = Modifier) {
             drawArc(c.brand, -90f, 360f * left, false, center - Offset(w * 0.19f, w * 0.19f), Size(w * 0.38f, w * 0.38f), style = Stroke(w * 0.05f, cap = StrokeCap.Round))
             drawCircle(c.text, w * 0.03f, center)
         }
-        Pebble(Mood.PROUD, Modifier.offset(x = 95.dp, y = 80.dp), size = 100.dp)
+        Pebble(Mood.STRICT, Modifier.offset(x = 95.dp, y = 80.dp), size = 100.dp)
     }
 }
 
