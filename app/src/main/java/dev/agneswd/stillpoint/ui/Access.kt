@@ -94,6 +94,11 @@ fun AccessRows(access: Access, includeOptional: Boolean) {
         access.guard,
     ) { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
     if (!includeOptional) return
+    if (Build.VERSION.SDK_INT >= 31) AccessRow(
+        "Alarms and reminders",
+        "Starts planned focus and ends timer rounds while the phone sleeps.",
+        dev.agneswd.stillpoint.schedule.Plans.exactAllowed(context),
+    ) { context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))) }
     AccessRow(
         "Notifications",
         "Shows the focus timer and tells you when a round ends.",

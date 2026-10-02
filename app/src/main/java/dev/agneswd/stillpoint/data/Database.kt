@@ -13,10 +13,11 @@ import androidx.room.Transaction
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.Upsert
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 @Dao
 interface StillpointDao {
@@ -28,6 +29,11 @@ interface StillpointDao {
 
     @Upsert
     suspend fun saveSettings(settings: Settings)
+
+    @Transaction
+    suspend fun changeSettings(change: (Settings) -> Settings) {
+        saveSettings(change(settingsOrNull() ?: Settings()))
+    }
 
     @Query("SELECT * FROM AppLimit ORDER BY packageName")
     fun limits(): Flow<List<AppLimit>>
@@ -116,6 +122,67 @@ interface StillpointDao {
     @Query("DELETE FROM FocusSession")
     suspend fun clearSessions()
 
+    @Query("SELECT * FROM LimitPass WHERE day = :day AND packageName = :packageName")
+    suspend fun pass(day: String, packageName: String): LimitPass?
+
+    @Query("SELECT COALESCE(SUM(uses), 0) FROM LimitPass WHERE day = :day")
+    suspend fun passesUsed(day: String): Int
+
+    @Upsert
+    suspend fun savePass(pass: LimitPass)
+
+    @Query("DELETE FROM LimitPass")
+    suspend fun clearPasses()
+
+    @Query("SELECT * FROM UsageDay ORDER BY day")
+    fun usageDays(): Flow<List<UsageDay>>
+
+    @Query("SELECT * FROM UsageDay ORDER BY day")
+    suspend fun allUsageDays(): List<UsageDay>
+
+    @Upsert
+    suspend fun saveUsageDay(day: UsageDay)
+
+    @Query("DELETE FROM UsageDay")
+    suspend fun clearUsageDays()
+
+    @Query("SELECT * FROM HeldNotification WHERE notificationKey = :key LIMIT 1")
+    suspend fun heldByKey(key: String): HeldNotification?
+
+    @Upsert
+    suspend fun saveHeld(notification: HeldNotification)
+
+    @Query("SELECT * FROM HeldNotification ORDER BY postedAt DESC")
+    suspend fun allHeld(): List<HeldNotification>
+
+    @Query("DELETE FROM HeldNotification WHERE id IN (:ids)")
+    suspend fun deleteHeld(ids: List<Long>)
+
+    @Query("SELECT * FROM UsageDay WHERE day = :day")
+    suspend fun usageDay(day: String): UsageDay?
+
+    @Transaction
+    suspend fun recordHeld(notification: HeldNotification, day: String) {
+        val previous = heldByKey(notification.notificationKey)
+        saveHeld(notification.copy(id = previous?.id ?: 0))
+        if (previous == null) {
+            val usage = usageDay(day) ?: UsageDay(day, emptyMap(), 0)
+            saveUsageDay(usage.copy(heldCount = usage.heldCount + 1))
+        }
+    }
+
+    @Transaction
+    suspend fun recordUsage(day: UsageDay) {
+        val previous = usageDay(day.day)
+        val keepPast = day.perApp.isEmpty() && day.day < java.time.LocalDate.now().toString() && previous != null
+        val perApp = if (keepPast) previous!!.perApp else day.perApp
+        val budgets = if (day.day == java.time.LocalDate.now().toString()) {
+            allLimits().filter { it.enabled }.associate { it.packageName to it.minutesPerDay.toLong() }
+        } else emptyMap()
+        saveUsageDay(day.copy(perApp = perApp, unlocks = if (keepPast) previous!!.unlocks else day.unlocks, heldCount = previous?.heldCount ?: 0,
+            limitMinutes = budgets + previous?.limitMinutes.orEmpty()))
+    }
+
     /** Replaces every user-made row with the content of a backup. */
     @Transaction
     suspend fun replaceAll(backup: Backup) {
@@ -123,6 +190,10 @@ interface StillpointDao {
         clearSchedules()
         clearSites()
         clearSessions()
+        clearUsageDays()
+        clearHeld()
+        clearPasses()
+        backup.usageDays.forEach { saveUsageDay(it) }
         backup.limits.forEach { saveLimit(it) }
         backup.schedules.forEach { saveSchedule(it) }
         backup.sites.forEach { addSite(it) }
@@ -136,14 +207,16 @@ fun StillpointDao.settings(): Flow<Settings> = settingsFlow().map { it ?: Settin
 
 suspend fun StillpointDao.currentSettings(): Settings = settingsOrNull() ?: Settings()
 
-private val settingsLock = Mutex()
-
-/** Read, change and save the settings row. The lock keeps quick taps from losing changes. */
-suspend fun StillpointDao.updateSettings(change: (Settings) -> Settings) = settingsLock.withLock {
-    saveSettings(change(currentSettings()))
-}
+/** Room serializes read-modify-write changes with other database transactions. */
+suspend fun StillpointDao.updateSettings(change: (Settings) -> Settings) = changeSettings(change)
 
 class Converters {
+    @TypeConverter
+    fun fromUsage(value: Map<String, Long>): String = Json.encodeToString(value)
+
+    @TypeConverter
+    fun toUsage(value: String): Map<String, Long> = Json.decodeFromString(value)
+
     @TypeConverter
     fun fromSet(value: Set<String>): String = value.joinToString("\n")
 
@@ -160,8 +233,10 @@ class Converters {
         HeldNotification::class,
         Settings::class,
         ActiveFocus::class,
+        LimitPass::class,
+        UsageDay::class,
     ],
-    version = 2,
+    version = 3,
 )
 @TypeConverters(Converters::class)
 abstract class StillpointDatabase : RoomDatabase() {
@@ -170,9 +245,69 @@ abstract class StillpointDatabase : RoomDatabase() {
     companion object {
         fun open(context: Context): StillpointDatabase =
             Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db")
-                // Nothing is released yet, so a schema change may start from an empty database.
-                // Add real migrations before the first public release.
-                .fallbackToDestructiveMigration(dropAllTables = true)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
+    }
+}
+
+/** Preserves the first version's data when the playful interface adds timer and game settings. */
+private val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val settings = mapOf(
+            "timerMode" to "TEXT NOT NULL DEFAULT 'TIMER'",
+            "longBreakMinutes" to "INTEGER NOT NULL DEFAULT 15",
+            "focusTheme" to "TEXT NOT NULL DEFAULT 'LAKE'",
+            "onboarded" to "INTEGER NOT NULL DEFAULT 0",
+            "purpose" to "TEXT NOT NULL DEFAULT ''",
+            "distractions" to "TEXT NOT NULL DEFAULT ''",
+            "streakFreezes" to "INTEGER NOT NULL DEFAULT 1",
+            "frozenDays" to "TEXT NOT NULL DEFAULT ''",
+            "freezeWeeksRewarded" to "INTEGER NOT NULL DEFAULT 0",
+        )
+        settings.forEach { (column, definition) -> db.execSQL("ALTER TABLE Settings ADD COLUMN $column $definition") }
+        val active = mapOf(
+            "timerMode" to "TEXT NOT NULL DEFAULT 'POMODORO'",
+            "pausedAt" to "INTEGER NOT NULL DEFAULT 0",
+            "longBreakMinutes" to "INTEGER NOT NULL DEFAULT 15",
+            "theme" to "TEXT NOT NULL DEFAULT 'LAKE'",
+        )
+        active.forEach { (column, definition) -> db.execSQL("ALTER TABLE ActiveFocus ADD COLUMN $column $definition") }
+        // Existing users keep their plan and do not repeat the first-launch questions.
+        db.execSQL("UPDATE Settings SET onboarded = 1, timerMode = 'POMODORO'")
+    }
+}
+
+/** Adds local policy settings and usage records without replacing existing tables. */
+private val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val columns = mapOf(
+            "AppLimit" to mapOf("reminderMinutes" to "INTEGER NOT NULL DEFAULT 0"),
+            "Schedule" to mapOf("startFocus" to "INTEGER NOT NULL DEFAULT 0", "focusMinutes" to "INTEGER NOT NULL DEFAULT 25"),
+            "FocusSession" to mapOf("goalMinutes" to "INTEGER NOT NULL DEFAULT 120"),
+            "ActiveFocus" to mapOf("goalMinutes" to "INTEGER NOT NULL DEFAULT 120"),
+            "HeldNotification" to mapOf("notificationKey" to "TEXT NOT NULL DEFAULT ''"),
+            "Settings" to mapOf(
+                "goalDays" to "INTEGER NOT NULL DEFAULT 127",
+                "allowFirstShort" to "INTEGER NOT NULL DEFAULT 0",
+                "contentOnlyDuringFocus" to "INTEGER NOT NULL DEFAULT 0",
+                "siteAllowList" to "INTEGER NOT NULL DEFAULT 0",
+                "youtubeStudyMode" to "INTEGER NOT NULL DEFAULT 0",
+                "allowedYoutubeChannels" to "TEXT NOT NULL DEFAULT ''",
+                "blockYoutubeHome" to "INTEGER NOT NULL DEFAULT 0",
+                "blockMultiWindow" to "INTEGER NOT NULL DEFAULT 0",
+                "pauseBlocksUntil" to "INTEGER NOT NULL DEFAULT 0",
+                "emergencyPassesPerDay" to "INTEGER NOT NULL DEFAULT 3",
+                "notificationDeliveryTimes" to "TEXT NOT NULL DEFAULT ''",
+                "productivePackages" to "TEXT NOT NULL DEFAULT ''",
+            ),
+        )
+        columns.forEach { (table, fields) ->
+            fields.forEach { (column, definition) -> db.execSQL("ALTER TABLE $table ADD COLUMN $column $definition") }
+        }
+        db.execSQL("UPDATE FocusSession SET goalMinutes = COALESCE((SELECT focusGoalMinutes FROM Settings WHERE id = 0), 120)")
+        db.execSQL("UPDATE ActiveFocus SET goalMinutes = COALESCE((SELECT focusGoalMinutes FROM Settings WHERE id = 0), 120)")
+        db.execSQL("UPDATE HeldNotification SET notificationKey = 'legacy-' || id")
+        db.execSQL("CREATE TABLE IF NOT EXISTS LimitPass (day TEXT NOT NULL, packageName TEXT NOT NULL, expiresAt INTEGER NOT NULL, uses INTEGER NOT NULL, PRIMARY KEY(day, packageName))")
+        db.execSQL("CREATE TABLE IF NOT EXISTS UsageDay (day TEXT NOT NULL PRIMARY KEY, perApp TEXT NOT NULL, unlocks INTEGER NOT NULL, heldCount INTEGER NOT NULL, limitMinutes TEXT NOT NULL)")
     }
 }

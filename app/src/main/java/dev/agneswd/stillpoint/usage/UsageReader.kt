@@ -26,11 +26,12 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
 
     fun hasAccess(): Boolean {
         val appOps = context.getSystemService(AppOpsManager::class.java)
-        val mode = appOps.unsafeCheckOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            Process.myUid(),
-            context.packageName,
-        )
+        val mode = if (android.os.Build.VERSION.SDK_INT >= 29) {
+            appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName)
+        }
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
@@ -43,6 +44,7 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
     fun day(date: LocalDate): DayUsage {
         val from = startOfDay(date)
         val to = minOf(startOfDay(date.plusDays(1)), System.currentTimeMillis())
+        if (from >= to) return DayUsage(date, emptyList(), 0)
         val hidden = catalog.launchers() + SYSTEM_UI
         val perApp = foregroundTimes(from, to)
             .filterKeys { it !in hidden }
@@ -69,10 +71,19 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
             current = null
         }
 
-        val events = manager.queryEvents(from, to)
+        // Find the app already open at midnight, even before its first event today.
+        val events = manager.queryEvents((from - 86_400_000).coerceAtLeast(0), to)
         val event = UsageEvents.Event()
         while (events.getNextEvent(event)) {
             val pkg = event.packageName
+            if (event.timeStamp < from) {
+                when (event.eventType) {
+                    UsageEvents.Event.ACTIVITY_RESUMED -> current = pkg
+                    UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED -> if (current == pkg) current = null
+                    UsageEvents.Event.SCREEN_NON_INTERACTIVE, UsageEvents.Event.DEVICE_SHUTDOWN -> current = null
+                }
+                continue
+            }
             when (event.eventType) {
                 UsageEvents.Event.ACTIVITY_RESUMED -> {
                     if (current != pkg) {

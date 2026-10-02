@@ -37,7 +37,7 @@ val shortsFeeds = listOf(
     ShortsFeed(
         "com.facebook.katana",
         "Facebook Reels",
-        selectedTabLabels = listOf("Reels", "Video"),
+        selectedTabLabels = listOf("Reels"),
         enabled = { it.blockFacebookReels },
     ),
 )
@@ -79,12 +79,48 @@ fun AccessibilityNodeInfo.browserHost(packageName: String): String? {
     return hostOf(bar.text?.toString().orEmpty())
 }
 
+/** Normalizes a host without accepting spaces, credentials, or unrelated domain suffixes. */
 fun hostOf(text: String): String? {
-    val trimmed = text.trim().lowercase()
-    if (trimmed.isEmpty() || ' ' in trimmed || '.' !in trimmed) return null
-    return trimmed.substringAfter("://").substringBefore('/').substringBefore('?').substringBefore(':')
-        .removePrefix("www.").ifEmpty { null }
+    val trimmed = text.trim()
+    if (trimmed.isEmpty() || trimmed.any(Char::isWhitespace)) return null
+    return runCatching {
+        val uri = java.net.URI(if ("://" in trimmed) trimmed else "https://$trimmed")
+        if (uri.scheme !in setOf("http", "https") || uri.rawUserInfo != null) return null
+        val host = (uri.host ?: uri.rawAuthority?.substringBefore(':')) ?: return null
+        val ascii = java.net.IDN.toASCII(host.lowercase(java.util.Locale.ROOT).trimEnd('.')).removePrefix("www.")
+        ascii.takeIf { it.length <= 253 && '.' in it && it.split('.').all { part ->
+            part.isNotEmpty() && part.length <= 63 && part.first() != '-' && part.last() != '-' && part.all { c -> c.isLetterOrDigit() || c == '-' }
+        } }
+    }.getOrNull()
 }
+
+fun allowedSite(host: String, sites: Set<String>): Boolean = sites.any { host == it || host.endsWith(".$it") }
+
+/** Uses the visible video title rather than a timer to permit exactly the first identified video. */
+fun ShortsFeed.videoIdentity(root: AccessibilityNodeInfo): String? {
+    val ids = when (packageName) {
+        "com.google.android.youtube" -> listOf("reel_video_title", "reel_title")
+        "com.instagram.android" -> listOf("clips_caption_text", "clips_video_title", "caption")
+        else -> emptyList()
+    }
+    return ids.flatMap { root.findAccessibilityNodeInfosByViewId("$packageName:id/$it") }
+        .filter { it.isVisibleToUser }
+        .mapNotNull { it.text?.toString()?.trim()?.takeIf(String::isNotEmpty) }.joinToString("|").ifEmpty { null }
+}
+
+fun AccessibilityNodeInfo.youtubeChannel(): String? = listOf("channel_name", "owner_text", "channel_title", "video_owner")
+    .firstNotNullOfOrNull { id -> findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/$id")
+        .filter { it.isVisibleToUser }
+        .firstNotNullOfOrNull { it.text?.toString()?.trim()?.takeIf(String::isNotEmpty) } }
+
+fun AccessibilityNodeInfo.youtubePlayer(): Boolean = listOf("player_view", "watch_fragment", "player_overlays", "watch_player")
+    .any { findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/$it").isNotEmpty() }
+
+fun AccessibilityNodeInfo.youtubeHome(): Boolean = anyNode {
+    it.isSelected && (it.contentDescription?.toString()?.equals("Home", true) == true || it.text?.toString()?.equals("Home", true) == true)
+}
+
+fun channelKey(value: String): String = value.trim().removePrefix("@").lowercase(java.util.Locale.ROOT)
 
 private val adultDomains = setOf(
     "pornhub.com", "xvideos.com", "xnxx.com", "xhamster.com", "redtube.com", "youporn.com",
@@ -119,4 +155,10 @@ private fun AccessibilityNodeInfo.anyNode(predicate: (AccessibilityNodeInfo) -> 
 fun AccessibilityNodeInfo.containsText(needle: String): Boolean = anyNode { node ->
     node.text?.contains(needle, ignoreCase = true) == true ||
         node.contentDescription?.contains(needle, ignoreCase = true) == true
+}
+
+/** Opens search before covering the home feed, so closing the block leaves a useful route. */
+fun AccessibilityNodeInfo.openYoutubeSearch(): Boolean = anyNode {
+    it.contentDescription?.toString()?.equals("Search", true) == true &&
+        (it.performAction(AccessibilityNodeInfo.ACTION_CLICK) || it.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true)
 }

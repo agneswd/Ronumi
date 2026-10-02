@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.app
+import dev.agneswd.stillpoint.data.Settings
 import dev.agneswd.stillpoint.game.GameState
 import dev.agneswd.stillpoint.ui.design.ButtonKind
 import dev.agneswd.stillpoint.ui.design.ChunkyButton
@@ -57,6 +58,9 @@ import dev.agneswd.stillpoint.ui.design.XpBolt
 import kotlinx.coroutines.delay
 
 val ScreenPadding = 20.dp
+
+/** Saves a change to the settings row. */
+typealias SettingsUpdate = ((Settings) -> Settings) -> Unit
 
 /** A section title with space above it. */
 @Composable
@@ -292,5 +296,24 @@ fun ChoiceButton(text: String, selected: Boolean, modifier: Modifier = Modifier,
     ChunkyButton(text, onClick, modifier, kind = if (selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY, height = 46.dp)
 }
 
-/** Applies a change to the stored settings. */
-typealias SettingsUpdate = ((dev.agneswd.stillpoint.data.Settings) -> dev.agneswd.stillpoint.data.Settings) -> Unit
+/** Saves a newline-separated list of local settings. */
+@Composable
+fun StringListField(label: String, help: String, values: Set<String>, onSave: (Set<String>) -> Unit) {
+    var draft by remember(values) { androidx.compose.runtime.mutableStateOf(values.joinToString("\n")) }
+    Column(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp)) {
+        androidx.compose.material3.OutlinedTextField(draft, { draft = it }, label = { Text(label) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+        Text(help, style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+        ChunkyButton("Save $label", { onSave(draft.lines().map(String::trim).filter(String::isNotEmpty).toSet()) }, kind = ButtonKind.GHOST)
+    }
+}
+
+@Composable
+fun DeliveryTimes(values: Set<String>, onSave: (Set<String>) -> Unit) {
+    val formatted = values.mapNotNull(String::toIntOrNull).map { dev.agneswd.stillpoint.guard.minuteText(it) }.toSet()
+    var error by remember { androidx.compose.runtime.mutableStateOf(false) }
+    StringListField("Delivery times", if (error) "Use 24-hour times, one per line, such as 12:30." else "One 24-hour time per line. An empty list stops automatic delivery.", formatted) { times ->
+        val parsed = times.map { value -> runCatching { java.time.LocalTime.parse(value) }.getOrNull() }
+        error = parsed.any { it == null }
+        if (!error) onSave(parsed.filterNotNull().map { (it.hour * 60 + it.minute).toString() }.toSet())
+    }
+}

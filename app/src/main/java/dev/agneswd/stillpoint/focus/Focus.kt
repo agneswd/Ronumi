@@ -2,6 +2,12 @@ package dev.agneswd.stillpoint.focus
 
 import android.app.NotificationManager
 import android.content.Context
+import androidx.room.withTransaction
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import dev.agneswd.stillpoint.data.Schedule
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import dev.agneswd.stillpoint.R
@@ -21,6 +27,20 @@ import dev.agneswd.stillpoint.widget.Widgets
  * The service, the screens and the guard all read that row.
  */
 object Focus {
+    private val lock = Mutex()
+
+    /** Commits each transition once. Service collection cancellation cannot split the writes. */
+    private suspend fun mutate(context: Context, action: suspend () -> Unit) = withContext(NonCancellable) {
+        lock.withLock { context.app.database.withTransaction { action() } }
+    }
+
+    /** Called from the visible app to reconnect a persisted session to its foreground service. */
+    suspend fun recover(context: Context) {
+        if (context.app.dao.activeFocus() != null) {
+            ContextCompat.startForegroundService(context, FocusService.intent(context))
+        }
+    }
+
     /** A stopwatch runs at most this long, so a forgotten session ends by itself. */
     private const val STOPWATCH_LIMIT_MILLIS = 12 * 60 * 60_000L
 
@@ -28,13 +48,13 @@ object Focus {
      * Starts a session with the saved focus settings. It does nothing if a session runs.
      * [minutes] overrides the focus length, for example for the 2 minute first session.
      */
-    suspend fun start(context: Context, tag: String, minutes: Int? = null) {
+    suspend fun start(context: Context, tag: String, minutes: Int? = null, plan: Schedule? = null) = mutate(context) {
         val dao = context.app.dao
-        if (dao.activeFocus() != null) return
+        if (dao.activeFocus() != null) return@mutate
         val s = dao.currentSettings()
         val now = System.currentTimeMillis()
-        val mode = if (minutes != null) TimerMode.TIMER else s.timerMode
-        val focusMinutes = minutes ?: s.focusMinutes
+        val mode = if (minutes != null || plan != null) TimerMode.TIMER else s.timerMode
+        val focusMinutes = (minutes ?: plan?.focusMinutes ?: s.focusMinutes).coerceIn(1, 240)
         dao.saveActiveFocus(
             ActiveFocus(
                 startedAt = now,
@@ -45,8 +65,8 @@ object Focus {
                 rounds = if (mode == TimerMode.POMODORO) s.focusRounds.coerceAtLeast(1) else 1,
                 focusMinutes = focusMinutes,
                 breakMinutes = s.breakMinutes,
-                packages = s.focusPackages,
-                mode = s.focusMode,
+                packages = plan?.packages ?: s.focusPackages,
+                mode = plan?.mode ?: s.focusMode,
                 strict = s.focusStrict,
                 lockHome = s.focusLockHome,
                 sound = s.focusSound,
@@ -54,6 +74,7 @@ object Focus {
                 timerMode = mode,
                 longBreakMinutes = s.longBreakMinutes,
                 theme = s.focusTheme,
+                goalMinutes = s.focusGoalMinutes,
             ),
         )
         ContextCompat.startForegroundService(context, FocusService.intent(context))
@@ -61,11 +82,11 @@ object Focus {
     }
 
     /** Moves to the next phase. The last focus round ends the session. */
-    suspend fun advance(context: Context) {
+    suspend fun advance(context: Context) = mutate(context) {
         val dao = context.app.dao
-        val focus = dao.activeFocus() ?: return
-        if (!focus.running) return
-        val now = System.currentTimeMillis()
+        val focus = dao.activeFocus() ?: return@mutate
+        if (!focus.running || System.currentTimeMillis() < focus.phaseEndsAt) return@mutate
+        val now = focus.phaseEndsAt
         when (focus.phase) {
             FocusPhase.FOCUS -> {
                 val done = focus.copy(focusedMillisBefore = focus.focusedMillisBefore + (focus.phaseEndsAt - focus.phaseStartedAt))
@@ -93,18 +114,18 @@ object Focus {
     }
 
     /** Pauses a session that is not strict. Blocks stop until it resumes. */
-    suspend fun pause(context: Context) {
+    suspend fun pause(context: Context) = mutate(context) {
         val dao = context.app.dao
-        val focus = dao.activeFocus() ?: return
-        if (focus.strict || !focus.running) return
+        val focus = dao.activeFocus() ?: return@mutate
+        if (focus.strict || !focus.running) return@mutate
         dao.saveActiveFocus(focus.copy(pausedAt = System.currentTimeMillis()))
         Widgets.refresh(context)
     }
 
-    suspend fun resume(context: Context) {
+    suspend fun resume(context: Context) = mutate(context) {
         val dao = context.app.dao
-        val focus = dao.activeFocus() ?: return
-        if (focus.running) return
+        val focus = dao.activeFocus() ?: return@mutate
+        if (focus.running) return@mutate
         val gap = System.currentTimeMillis() - focus.pausedAt
         dao.saveActiveFocus(
             focus.copy(pausedAt = 0, phaseStartedAt = focus.phaseStartedAt + gap, phaseEndsAt = focus.phaseEndsAt + gap),
@@ -113,19 +134,19 @@ object Focus {
     }
 
     /** Ends a stopwatch session as a finished session. */
-    suspend fun stopStopwatch(context: Context) {
-        val focus = context.app.dao.activeFocus() ?: return
-        if (focus.timerMode != TimerMode.STOPWATCH) return
-        val end = if (focus.running) System.currentTimeMillis() else focus.pausedAt
-        finish(context, focus.copy(focusedMillisBefore = focus.focusedMillisBefore + (end - focus.phaseStartedAt)), completed = true)
+    suspend fun stopStopwatch(context: Context) = mutate(context) {
+        val focus = context.app.dao.activeFocus() ?: return@mutate
+        if (focus.timerMode != TimerMode.STOPWATCH) return@mutate
+        val end = minOf(if (focus.running) System.currentTimeMillis() else focus.pausedAt, focus.phaseEndsAt)
+        finish(context, focus.copy(focusedMillisBefore = focus.focusedMillisBefore + (end - focus.phaseStartedAt).coerceAtLeast(0)), completed = true)
     }
 
     /** Ends the session before the last round. Strict sessions cannot end this way. */
-    suspend fun giveUp(context: Context) {
-        val focus = context.app.dao.activeFocus() ?: return
-        if (focus.strict) return
-        val end = if (focus.running) System.currentTimeMillis() else focus.pausedAt
-        val partial = if (focus.phase == FocusPhase.FOCUS) minOf(end, focus.phaseEndsAt) - focus.phaseStartedAt else 0L
+    suspend fun giveUp(context: Context) = mutate(context) {
+        val focus = context.app.dao.activeFocus() ?: return@mutate
+        if (focus.strict) return@mutate
+        val end = minOf(if (focus.running) System.currentTimeMillis() else focus.pausedAt, focus.phaseEndsAt)
+        val partial = if (focus.phase == FocusPhase.FOCUS) (minOf(end, focus.phaseEndsAt) - focus.phaseStartedAt).coerceAtLeast(0) else 0L
         finish(context, focus.copy(focusedMillisBefore = focus.focusedMillisBefore + partial), completed = false)
     }
 
@@ -134,7 +155,7 @@ object Focus {
 
     private suspend fun finish(context: Context, focus: ActiveFocus, completed: Boolean) {
         val dao = context.app.dao
-        val now = System.currentTimeMillis()
+        val now = if (completed) minOf(System.currentTimeMillis(), focus.phaseEndsAt) else System.currentTimeMillis()
         if (focus.focusedMillisBefore >= 60_000) {
             val id = dao.addSession(
                 FocusSession(
@@ -143,11 +164,13 @@ object Focus {
                     focusedMillis = focus.focusedMillisBefore,
                     completed = completed,
                     tag = focus.tag,
+                    goalMinutes = focus.goalMinutes,
                 ),
             )
             Celebrations.offer(id)
         }
         dao.clearActiveFocus()
+        dev.agneswd.stillpoint.game.applyStreakFreezes(dao)
         val held = dao.heldCount()
         val heldText = if (held > 0) " $held notifications are waiting." else ""
         announce(

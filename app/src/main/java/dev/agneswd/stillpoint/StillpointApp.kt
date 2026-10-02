@@ -10,6 +10,10 @@ import dev.agneswd.stillpoint.usage.UsageReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
+import dev.agneswd.stillpoint.data.settings
+import dev.agneswd.stillpoint.schedule.Plans
 
 /** Holds the process-wide objects. Get it with [Context.app]. */
 class StillpointApp : Application() {
@@ -30,6 +34,11 @@ class StillpointApp : Application() {
                 NotificationChannel(CHANNEL_EVENTS, "Focus events", NotificationManager.IMPORTANCE_DEFAULT),
             ),
         )
+        scope.launch {
+            combine(dao.settings(), dao.schedules(), dao.activeFocusFlow()) { _, _, _ -> Unit }.collect {
+                Plans.refresh(this@StillpointApp)
+            }
+        }
     }
 
     companion object {

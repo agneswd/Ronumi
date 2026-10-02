@@ -120,7 +120,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        lifecycleScope.launch { applyStreakFreezes(app.dao) }
+        lifecycleScope.launch {
+            applyStreakFreezes(app.dao)
+            dev.agneswd.stillpoint.focus.Focus.recover(this@MainActivity)
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                if (app.usage.hasAccess()) app.usage.recentDays(7) else emptyList()
+            }.forEach { usage ->
+                app.dao.recordUsage(dev.agneswd.stillpoint.data.UsageDay(usage.date.toString(), usage.perApp.toMap(), usage.unlocks))
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -134,6 +142,18 @@ class MainActivity : ComponentActivity() {
             FOCUS -> {
                 navigator.focusMinimized = false
                 navigator.stack.clear()
+                // Without a running session, this opens the setup controls.
+                lifecycleScope.launch {
+                    val planId = intent.getLongExtra("planId", 0)
+                    val plan = app.dao.allSchedules().firstOrNull { it.id == planId && it.enabled && it.startFocus }
+                    if (plan != null) dev.agneswd.stillpoint.focus.Focus.start(this@MainActivity, plan.name, plan = plan)
+                    else if (app.dao.activeFocus() == null) navigator.push(Route.FocusSetup)
+                }
+            }
+            "INBOX" -> {
+                navigator.focusMinimized = true
+                navigator.stack.clear()
+                navigator.push(Route.Held)
             }
             else -> Tab.entries.firstOrNull { it.name == target }?.let {
                 navigator.tab = it
@@ -158,6 +178,12 @@ class MainActivity : ComponentActivity() {
         fun pendingFocus(context: Context): PendingIntent =
             PendingIntent.getActivity(context, 10, focusIntent(context), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
+        fun pendingInbox(context: Context): PendingIntent =
+            PendingIntent.getActivity(context, 12, intent(context, "INBOX"), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+        fun pendingPlan(context: Context, id: Long): PendingIntent =
+            PendingIntent.getActivity(context, 100 + id.toInt(), focusIntent(context).putExtra("planId", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
         fun pendingHome(context: Context): PendingIntent =
             PendingIntent.getActivity(context, 11, intent(context, Tab.HOME.name), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
@@ -171,7 +197,18 @@ private fun App(navigator: Navigator) {
     val focus by dao.activeFocusFlow().collectAsState(null)
     val sessions by dao.sessions().collectAsState(emptyList())
     val celebrate by Celebrations.pending.collectAsState()
-    val game = remember(sessions, settings) { settings?.let { gameState(sessions, it) } }
+    var today by remember { mutableStateOf(java.time.LocalDate.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val date = java.time.LocalDate.now()
+            if (date != today) {
+                applyStreakFreezes(dao, date)
+                today = date
+            }
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
+    val game = remember(sessions, settings, today) { settings?.let { gameState(sessions, it, today) } }
 
     LaunchedEffect(focus == null) {
         if (focus == null) navigator.focusMinimized = false
@@ -198,7 +235,7 @@ private fun App(navigator: Navigator) {
                         is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
                         is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
                         Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
-                        Route.Settings -> Page { SettingsScreen(onClose = navigator::pop) }
+                        Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
                         Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
                         null -> Tabs(navigator, game)
                     }

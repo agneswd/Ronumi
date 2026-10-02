@@ -125,9 +125,12 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
     val original = route.original
     var draft by route::draft
     var picking by remember { mutableStateOf<Boolean?>(null) } // true = start, false = end
-    val save = {
-        context.app.scope.launch { context.app.dao.saveSchedule(draft.copy(name = draft.name.trim())) }
-        onClose()
+    val save: () -> Unit = {
+        context.app.scope.launch {
+            if (dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, draft.copy(name = draft.name.trim()))) {
+                kotlinx.coroutines.withContext(Dispatchers.Main) { onClose() }
+            }
+        }
     }
     EditorFrame(
         if (original == null) "New schedule" else "Edit schedule",
@@ -167,13 +170,17 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            day.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                            day.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale),
                             style = MaterialTheme.typography.titleMedium,
                             color = if (on) Sp.colors.onFill else Sp.colors.textDim,
                         )
                     }
                 }
             }
+
+            SectionTitle("Planned focus")
+            SwitchRow("Start focus at this time", "Allow alarms in Settings for automatic start. Otherwise you receive a reminder.", draft.startFocus) { on -> draft = draft.copy(startFocus = on) }
+            if (draft.startFocus) Stepper("Focus length", draft.focusMinutes, 5..240, 5, { dev.agneswd.stillpoint.guard.formatMinutes(it) }) { value -> draft = draft.copy(focusMinutes = value) }
 
             SectionTitle("Apps")
             ListRow(
@@ -196,8 +203,11 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 ChunkyButton(
                     "Delete schedule",
                     {
-                        context.app.scope.launch { context.app.dao.deleteSchedule(original) }
-                        onClose()
+                        context.app.scope.launch {
+                            if (dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, original, delete = true)) {
+                                kotlinx.coroutines.withContext(Dispatchers.Main) { onClose() }
+                            }
+                        }
                     },
                     Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
                     kind = ButtonKind.DANGER,
@@ -233,7 +243,10 @@ fun HeldScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val dao = context.app.dao
     val held by dao.held().collectAsState(emptyList())
-    EditorFrame("Held notifications", onClose, action = "Clear all", onAction = { context.app.scope.launch { dao.clearHeld() } }, actionEnabled = held.isNotEmpty()) {
+    EditorFrame("Held notifications", onClose, action = "Clear all", onAction = { context.app.scope.launch {
+        dao.clearHeld()
+        context.getSharedPreferences("delivery", android.content.Context.MODE_PRIVATE).edit().remove("lastDelivered").apply()
+    } }, actionEnabled = held.isNotEmpty()) {
         LazyColumn {
             if (held.isEmpty()) item { ListRow("Nothing held", "Notifications from your chosen apps show here.") }
             items(held, key = { it.id }) { item ->
@@ -248,6 +261,24 @@ fun HeldScreen(onClose: () -> Unit) {
                             ?.let(context::startActivity)
                     },
                 )
+            }
+        }
+    }
+}
+
+/** At least one active day is required. */
+@Composable
+fun DayChoices(mask: Int, onChange: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.SpaceBetween) {
+        DayOfWeek.entries.forEach { day ->
+            val bit = 1 shl (day.value - 1)
+            val on = mask and bit != 0
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(20.dp))
+                .background(if (on) Sp.colors.brand else Sp.colors.surfaceHigh).clickable {
+                    val next = mask xor bit
+                    if (next != 0) onChange(next)
+                }, contentAlignment = Alignment.Center) {
+                Text(day.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale), color = if (on) Sp.colors.onFill else Sp.colors.textDim)
             }
         }
     }

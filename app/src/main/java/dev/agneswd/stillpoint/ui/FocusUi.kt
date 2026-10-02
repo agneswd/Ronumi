@@ -209,8 +209,13 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
         ChunkyButton(
             "Start",
             {
-                app.scope.launch { Focus.start(context, tag) }
-                onClose()
+                app.scope.launch {
+                    Focus.start(context, tag)
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        navigator.focusMinimized = false
+                        onClose()
+                    }
+                }
             },
             Modifier.fillMaxWidth().padding(ScreenPadding),
             kind = ButtonKind.MINT,

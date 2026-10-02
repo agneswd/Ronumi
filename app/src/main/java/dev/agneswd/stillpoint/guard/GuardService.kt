@@ -22,7 +22,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
-import java.util.concurrent.ConcurrentHashMap
+import android.os.SystemClock
+import android.os.PowerManager
+import android.app.NotificationManager
+import androidx.core.app.NotificationCompat
+import dev.agneswd.stillpoint.R
+import dev.agneswd.stillpoint.StillpointApp
+import java.time.LocalDate
 
 /**
  * Enforces every block. Window changes tell it which app is in front.
@@ -41,17 +47,26 @@ class GuardService : AccessibilityService() {
     private val activityCache = HashMap<ComponentName, Boolean>()
     private var lastContentCheck = 0L
     private var lastBlockAt = 0L
+    private var visitStarted = SystemClock.elapsedRealtime()
+    private var lastReminder = 0L
+    private val firstVideos = HashMap<String, String>()
 
     private val tick = object : Runnable {
         override fun run() {
-            appInFront()?.let { foreground = it }
-            evaluate()
+            if (getSystemService(PowerManager::class.java).isInteractive) {
+                appInFront()?.let(::setForeground)
+                evaluate()
+                foreground?.let { checkContent(it, force = true) }
+            }
             handler.postDelayed(this, TICK_MILLIS)
         }
     }
 
     private val screenReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) = Widgets.refresh(context)
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_SCREEN_OFF) { foreground = null; firstVideos.clear() }
+            Widgets.refresh(context)
+        }
     }
 
     override fun onServiceConnected() {
@@ -91,7 +106,7 @@ class GuardService : AccessibilityService() {
                 val front = appInFront() ?: pkg.takeIf { isActivity(it, event.className?.toString()) }
                 if (front != null) {
                     if (front != foreground) refreshSystemApps()
-                    foreground = front
+                    setForeground(front)
                     evaluate()
                 }
                 checkContent(pkg, force = true)
@@ -121,6 +136,16 @@ class GuardService : AccessibilityService() {
         }
     }
 
+    private fun setForeground(pkg: String) {
+        if (pkg == packageName) { foreground = pkg; return }
+        if (foreground != pkg) {
+            if (foreground != packageName) firstVideos.clear()
+            visitStarted = SystemClock.elapsedRealtime()
+            lastReminder = 0
+        }
+        foreground = pkg
+    }
+
     private fun refreshSystemApps() {
         val catalog = app.catalog
         essentials = catalog.essentials()
@@ -139,21 +164,36 @@ class GuardService : AccessibilityService() {
                     now = LocalDateTime.now(),
                     essentials = essentials,
                     launchers = launchers,
-                    allowedUntil = Allowances.until(pkg),
+                    allowedUntil = app.dao.pass(LocalDate.now().toString(), pkg)?.expiresAt ?: 0,
                     usedToday = { app.usage.todayMillis(pkg) },
                 )
             }
-            if (foreground != pkg) return@launch
+            if (foreground != pkg || rules !== current) return@launch
             when (verdict) {
-                Verdict.Allow -> Unit
+                Verdict.Allow -> remind(pkg, current)
                 Verdict.ReturnToFocus -> startActivity(MainActivity.focusIntent(this@GuardService))
                 is Verdict.Block -> block(pkg, verdict.reason)
             }
         }
     }
 
+    /** Reminders count one continuous visit and stop when the app leaves the foreground. */
+    private fun remind(pkg: String, current: Rules) {
+        val minutes = current.limits[pkg]?.takeIf { it.enabled }?.reminderMinutes ?: 0
+        if (minutes <= 0) return
+        val now = SystemClock.elapsedRealtime()
+        val interval = minutes * 60_000L
+        if (now - visitStarted < interval || lastReminder > 0 && now - lastReminder < interval) return
+        lastReminder = now
+        val notification = NotificationCompat.Builder(this, StillpointApp.CHANNEL_EVENTS)
+            .setSmallIcon(R.drawable.ic_stat).setContentTitle("Time to take a break?")
+            .setContentText("You have used ${app.catalog.label(pkg)} for ${(now - visitStarted) / 60_000} minutes.")
+            .setContentIntent(MainActivity.pendingHome(this)).setAutoCancel(true).build()
+        runCatching { getSystemService(NotificationManager::class.java).notify(30, notification) }
+    }
+
     private fun checkContent(pkg: String, force: Boolean) {
-        if (pkg !in watchedPackages) return
+        if (pkg !in watchedPackages && !rules.settings.blockMultiWindow) return
         val now = System.currentTimeMillis()
         if (!force && now - lastContentCheck < CONTENT_THROTTLE_MILLIS) return
         lastContentCheck = now
@@ -161,16 +201,50 @@ class GuardService : AccessibilityService() {
         val roots = windowRoots(pkg)
         if (roots.isEmpty()) return
 
-        shortsFeeds.firstOrNull { it.packageName == pkg && it.enabled(current.settings) }?.let { feed ->
-            if (roots.any(feed::isShowing)) {
+        val protected = current.settings.protection && current.locked(LocalDateTime.now())
+        if (!protected && current.settings.pauseBlocksUntil > now) return
+        if (current.settings.blockMultiWindow && current.locked(LocalDateTime.now()) && pkg !in essentials &&
+            (windows.any { it.isInPictureInPictureMode } || windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+                .mapNotNull { it.root?.packageName?.toString() }.filter { it !in essentials }.distinct().size > 1)) {
+            block(pkg, BlockReason(BlockKind.MULTI_WINDOW, "Multiple app windows are blocked", "Use one app during this block."))
+            return
+        }
+        val contentEnabled = !current.settings.contentOnlyDuringFocus || current.focusing
+        if (contentEnabled) shortsFeeds.firstOrNull { it.packageName == pkg && it.enabled(current.settings) }?.let { feed ->
+            val root = roots.firstOrNull(feed::isShowing)
+            if (root != null) {
+                val identity = feed.videoIdentity(root)
+                val first = firstVideos[pkg]
+                if (current.settings.allowFirstShort && identity != null && (first == null || first == identity)) {
+                    firstVideos[pkg] = identity
+                    return
+                }
                 performGlobalAction(GLOBAL_ACTION_BACK)
                 block(pkg, BlockReason(BlockKind.SHORTS, "${feed.name} is blocked", "The rest of the app still works."))
+                return
             }
-            return
+        }
+        if (contentEnabled && pkg == "com.google.android.youtube") {
+            if (current.settings.blockYoutubeHome && roots.any { it.youtubeHome() }) {
+                roots.any { it.openYoutubeSearch() }
+                block(pkg, BlockReason(BlockKind.STUDY, "YouTube home is blocked", "Search for a video or use your subscriptions."))
+                return
+            }
+            if (current.settings.youtubeStudyMode && roots.any { it.youtubePlayer() }) {
+                val channel = roots.firstNotNullOfOrNull { it.youtubeChannel() }
+                if (channel == null || current.settings.allowedYoutubeChannels.none { channelKey(it) == channelKey(channel) }) {
+                    performGlobalAction(GLOBAL_ACTION_BACK)
+                    block(pkg, BlockReason(BlockKind.STUDY, "This YouTube channel is blocked", "Only your chosen channels work in study mode."))
+                    return
+                }
+            }
         }
 
         roots.firstNotNullOfOrNull { it.browserHost(pkg) }?.let { host ->
-            val site = blockedSiteFor(host, current.sites, current.settings.blockAdultSites) ?: return@let
+            if (!contentEnabled) return@let
+            val site = if (current.settings.siteAllowList && !allowedSite(host, current.sites)) host
+                else blockedSiteFor(host, if (current.settings.siteAllowList) emptySet() else current.sites, current.settings.blockAdultSites)
+                    ?: return@let
             performGlobalAction(GLOBAL_ACTION_BACK)
             block(pkg, BlockReason(BlockKind.SITE, "$site is blocked", "You put this site on your block list."))
             return
@@ -227,16 +301,5 @@ class GuardService : AccessibilityService() {
             val name = ComponentName(context, GuardService::class.java)
             return enabled.split(':').any { ComponentName.unflattenFromString(it) == name }
         }
-    }
-}
-
-/** Temporary passes from gentle limits. They live in memory and end when the process dies. */
-object Allowances {
-    private val passes = ConcurrentHashMap<String, Long>()
-
-    fun until(pkg: String): Long = passes[pkg] ?: 0L
-
-    fun grant(pkg: String, millis: Long) {
-        passes[pkg] = System.currentTimeMillis() + millis
     }
 }

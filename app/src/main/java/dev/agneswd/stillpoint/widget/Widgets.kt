@@ -22,10 +22,13 @@ object Widgets {
     fun refresh(context: Context) {
         val app = context.app
         app.scope.launch {
+            val today = app.usage.day(LocalDate.now())
+            if (app.usage.hasAccess()) app.dao.recordUsage(dev.agneswd.stillpoint.data.UsageDay(
+                today.date.toString(), today.perApp.toMap(), today.unlocks,
+            ))
             val manager = AppWidgetManager.getInstance(context)
             val usageIds = manager.getAppWidgetIds(ComponentName(context, UsageWidget::class.java))
             if (usageIds.isNotEmpty()) {
-                val today = app.usage.day(LocalDate.now())
                 val views = RemoteViews(context.packageName, R.layout.widget_usage).apply {
                     setTextViewText(R.id.widget_value, formatDuration(today.totalMillis))
                     setTextViewText(R.id.widget_detail, "${today.unlocks} unlocks today")
@@ -47,8 +50,8 @@ object Widgets {
                         PendingIntent.getBroadcast(context, 0, start, PendingIntent.FLAG_IMMUTABLE),
                     )
                 } else {
-                    views.setTextViewText(R.id.widget_value, if (focus.phase == FocusPhase.FOCUS) "Focusing" else "On a break")
-                    views.setTextViewText(R.id.widget_detail, "Until ${time(focus.phaseEndsAt)}")
+                    views.setTextViewText(R.id.widget_value, if (!focus.running) "Paused" else if (focus.phase == FocusPhase.FOCUS) "Focusing" else "On a break")
+                    views.setTextViewText(R.id.widget_detail, if (!focus.running) "Tap to resume" else "Until ${time(focus.phaseEndsAt)}")
                     views.setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingFocus(context))
                 }
                 manager.updateAppWidget(focusIds, views)

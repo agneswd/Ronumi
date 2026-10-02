@@ -79,7 +79,7 @@ fun PlannerScreen(navigator: Navigator) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 14.dp), verticalAlignment = Alignment.Bottom) {
-            ScreenTitle(selected.month.getDisplayName(TextStyle.FULL, Locale.getDefault()))
+            ScreenTitle(selected.month.getDisplayName(TextStyle.FULL, androidx.compose.ui.platform.LocalLocale.current.platformLocale))
             Spacer(Modifier.width(8.dp))
             Text("${selected.year}", style = MaterialTheme.typography.headlineMedium, color = Sp.colors.textDim)
         }
@@ -89,7 +89,7 @@ fun PlannerScreen(navigator: Navigator) {
             SummaryTile("Screen time", formatDuration(usage), Sp.colors.rose, Modifier.weight(1f))
         }
 
-        SectionTitle(if (selected == LocalDate.now()) "Today" else selected.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()))
+        SectionTitle(if (selected == LocalDate.now()) "Today" else selected.dayOfWeek.getDisplayName(TextStyle.FULL, androidx.compose.ui.platform.LocalLocale.current.platformLocale))
         if (daySchedules.isEmpty() && daySessions.isEmpty()) {
             Text(
                 "Nothing planned. Add a schedule to block distractions at the same time each day.",
@@ -101,7 +101,7 @@ fun PlannerScreen(navigator: Navigator) {
         Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             daySchedules.forEachIndexed { i, schedule ->
                 ScheduleCard(schedule, Modifier.appear(i * 50), onClick = { navigator.push(Route.EditSchedule(schedule)) }) { on ->
-                    app.scope.launch { app.dao.saveSchedule(schedule.copy(enabled = on)) }
+                    app.scope.launch { dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, schedule.copy(enabled = on)) }
                 }
             }
             daySessions.forEach { session ->
@@ -137,7 +137,7 @@ fun PlannerScreen(navigator: Navigator) {
                                 "Add",
                                 {
                                     app.scope.launch {
-                                        app.dao.saveSchedule(
+                                        dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context,
                                             Schedule(name = "${part.label} focus", startMinute = part.start, endMinute = part.end, packages = settings?.focusPackages.orEmpty()),
                                         )
                                     }
@@ -179,7 +179,7 @@ private fun WeekStrip(selected: LocalDate, goalMet: Map<LocalDate, Boolean>, onS
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                    date.dayOfWeek.getDisplayName(TextStyle.SHORT, androidx.compose.ui.platform.LocalLocale.current.platformLocale),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (on) Color.White.copy(alpha = 0.85f) else Sp.colors.textDim,
                 )

@@ -67,13 +67,13 @@ fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate
     val safeToday = counts(today)
     var cursor = if (safeToday) today else today.minusDays(1)
     var streak = 0
-    while (counts(cursor) || cursor in frozen) {
+    while (counts(cursor) || cursor in frozen || !studyDay(settings, cursor)) {
         if (counts(cursor)) streak++
         cursor = cursor.minusDays(1)
     }
 
     // Quest XP counts for every past day too, so XP never drops.
-    val questXp = byDay.entries.sumOf { (d, list) -> questsFor(d, list, settings.focusGoalMinutes).filter { it.done }.sumOf { it.xp } }
+    val questXp = byDay.entries.sumOf { (d, list) -> questsFor(d, list, list.minBy { it.startedAt }.goalMinutes).filter { it.done }.sumOf { it.xp } }
     val sessionXp = sessions.sumOf { (it.focusedMillis / 60_000).toInt() * XP_PER_MINUTE + if (it.completed) XP_COMPLETED else 0 }
     val xp = sessionXp + questXp
     val total = (sessions.sumOf { it.focusedMillis } / 60_000).toInt()
@@ -86,8 +86,8 @@ fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate
         freezes = settings.streakFreezes,
         todayMinutes = minutesByDay[today] ?: 0,
         goalMinutes = settings.focusGoalMinutes,
-        quests = questsFor(today, byDay[today].orEmpty(), settings.focusGoalMinutes),
-        badges = badges(sessions, streak, total),
+        quests = questsFor(today, byDay[today].orEmpty(), byDay[today]?.minByOrNull { it.startedAt }?.goalMinutes ?: settings.focusGoalMinutes),
+        badges = badges(sessions, bestStreak(minutesByDay, frozen, settings), total),
         week = (6 downTo 0).map { today.minusDays(it.toLong()) }.map { it to (minutesByDay[it] ?: 0) },
         totalMinutes = total,
         sessions = sessions.size,
@@ -119,13 +119,31 @@ fun questsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): 
     return listOf(pool[0]) + rest
 }
 
+/** Milestone badges use the best recorded streak, so a missed day cannot remove them. */
+private fun bestStreak(minutes: Map<LocalDate, Int>, frozen: Set<LocalDate>, settings: Settings): Int {
+    val days = (minutes.keys + frozen).sorted()
+    var previous: LocalDate? = null
+    var current = 0
+    var best = 0
+    for (d in days) {
+        if ((minutes[d] ?: 0) < STREAK_MINUTES && d !in frozen) continue
+        val prev = previous
+        if (prev == null || generateSequence(prev.plusDays(1)) { it.plusDays(1) }.takeWhile { it < d }
+                .any { studyDay(settings, it) && it !in frozen && (minutes[it] ?: 0) < STREAK_MINUTES }) current = 0
+        if ((minutes[d] ?: 0) >= STREAK_MINUTES) current++
+        best = maxOf(best, current)
+        previous = d
+    }
+    return best
+}
+
 private fun badges(sessions: List<FocusSession>, streak: Int, totalMinutes: Int): List<Badge> {
     val hours = sessions.map { Instant.ofEpochMilli(it.startedAt).atZone(ZoneId.systemDefault()).hour }
     val longest = (sessions.maxOfOrNull { it.focusedMillis } ?: 0L) / 60_000
     fun b(id: String, title: String, detail: String, value: Float, target: Float) =
         Badge(id, title, detail, value >= target, (value / target).coerceIn(0f, 1f))
     return listOf(
-        b("first", "First step", "Finish your first focus session", sessions.size.toFloat(), 1f),
+        b("first", "First step", "Finish your first focus session", sessions.count { it.completed }.toFloat(), 1f),
         b("streak3", "Warming up", "Keep a 3 day streak", streak.toFloat(), 3f),
         b("streak7", "On fire", "Keep a 7 day streak", streak.toFloat(), 7f),
         b("streak30", "Unshakable", "Keep a 30 day streak", streak.toFloat(), 30f),
@@ -137,3 +155,5 @@ private fun badges(sessions: List<FocusSession>, streak: Int, totalMinutes: Int)
         b("sessions50", "Habit builder", "Finish 50 sessions", sessions.count { it.completed }.toFloat(), 50f),
     )
 }
+
+fun studyDay(settings: Settings, date: LocalDate): Boolean = settings.goalDays and (1 shl (date.dayOfWeek.value - 1)) != 0

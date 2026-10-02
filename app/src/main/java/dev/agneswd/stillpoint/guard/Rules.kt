@@ -10,7 +10,7 @@ import dev.agneswd.stillpoint.data.Settings
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-enum class BlockKind { FOCUS, SCHEDULE, LIMIT, SHORTS, SITE, PROTECTION }
+enum class BlockKind { FOCUS, SCHEDULE, LIMIT, SHORTS, SITE, PROTECTION, STUDY, MULTI_WINDOW }
 
 /** Why the block screen shows. [gentle] blocks let the user take 5 more minutes. */
 data class BlockReason(
@@ -64,6 +64,8 @@ data class Rules(
                 return Verdict.Block(BlockReason(BlockKind.FOCUS, "$label is blocked during focus", "Your focus round ends at ${time(focus.phaseEndsAt)}."))
             }
         }
+
+        if (settings.pauseBlocksUntil > System.currentTimeMillis()) return Verdict.Allow
 
         if (pkg !in essentials) {
             activeSchedules(now).firstOrNull { it.mode.blocks(pkg, it.packages) }?.let { schedule ->

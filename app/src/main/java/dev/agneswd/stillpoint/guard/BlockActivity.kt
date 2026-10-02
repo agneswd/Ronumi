@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import dev.agneswd.stillpoint.app
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import android.widget.Toast
 
 /** The full-screen block. The guard opens it over a blocked app, feed or site. */
 class BlockActivity : ComponentActivity() {
@@ -72,9 +74,15 @@ class BlockActivity : ComponentActivity() {
                     gentle = gentle,
                     onClose = leave,
                     onMore = {
-                        Allowances.grant(pkg, EXTRA_TIME_MILLIS)
-                        packageManager.getLaunchIntentForPackage(pkg)?.let(::startActivity)
-                        finish()
+                        app.scope.launch {
+                            val granted = PolicyActions.grantExtra(this@BlockActivity, pkg)
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                if (granted) {
+                                    packageManager.getLaunchIntentForPackage(pkg)?.let(::startActivity)
+                                    finish()
+                                } else Toast.makeText(this@BlockActivity, "No extra passes are available", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     },
                 )
             }
@@ -92,9 +100,8 @@ class BlockActivity : ComponentActivity() {
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_DETAIL = "detail"
         private const val EXTRA_GENTLE = "gentle"
-        private const val EXTRA_TIME_MILLIS = 5 * 60_000L
         private const val WAIT_SECONDS = 10
-        private val homeKinds = setOf(BlockKind.FOCUS, BlockKind.SCHEDULE, BlockKind.LIMIT, BlockKind.SITE, BlockKind.PROTECTION)
+        private val homeKinds = setOf(BlockKind.FOCUS, BlockKind.SCHEDULE, BlockKind.LIMIT, BlockKind.SITE, BlockKind.PROTECTION, BlockKind.MULTI_WINDOW)
 
         fun intent(context: Context, pkg: String, reason: BlockReason): Intent =
             Intent(context, BlockActivity::class.java)

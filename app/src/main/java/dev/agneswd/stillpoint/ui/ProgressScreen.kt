@@ -22,6 +22,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import dev.agneswd.stillpoint.data.settings
+import dev.agneswd.stillpoint.insights.report
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -79,6 +82,12 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         value = withContext(Dispatchers.IO) { app.usage.recentDays(7) }
     }
     var openBadge by remember { mutableStateOf<Badge?>(null) }
+    val sessions by app.dao.sessions().collectAsState(emptyList())
+    val settings by app.dao.settings().collectAsState(null)
+    val records by app.dao.usageDays().collectAsState(emptyList())
+    var period by remember { mutableIntStateOf(7) }
+    val s = settings ?: return
+    val totals = remember(sessions, records, s, period) { report(sessions, records, s, period) }
     val g = game ?: return
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -144,10 +153,23 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
 
         SectionTitle("Focus this week")
         ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(200)) {
-            Bars(g.week.map { it.first.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()) to it.second.toFloat() }, goal = g.goalMinutes.toFloat(), color = Sp.colors.brand) {
+            Bars(g.week.map { it.first.dayOfWeek.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale) to it.second.toFloat() }, goal = g.goalMinutes.toFloat(), color = Sp.colors.brand) {
                 formatMinutes(it.toInt())
             }
         }
+
+        SectionTitle("Focus reports")
+        Row(Modifier.padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(1 to "Today", 7 to "Week", 30 to "Month").forEach { (days, label) ->
+                ChoiceButton(label, period == days, Modifier.weight(1f)) { period = days }
+            }
+        }
+        ListRow("${totals.focusMinutes} focus minutes", "${totals.averageMinutes} minutes a day across this period")
+        totals.tags.forEach { (tag, minutes) -> ListRow(tag, "$minutes focus minutes") }
+        ListRow("Productive screen time", formatDuration(totals.productiveMillis))
+        ListRow("Distracting screen time", formatDuration(totals.distractingMillis))
+        ListRow("Notifications held", "${totals.notificationsHeld} in this period")
+        ListRow("Time saved", totals.timeSavedMillis?.let(::formatDuration) ?: "Available after seven complete usage days")
 
         SectionTitle("Screen time")
         ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(260)) {
@@ -165,7 +187,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                Bars(days.map { it.date.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()) to it.totalMillis / 60_000f }, goal = null, color = Sp.colors.rose) {
+                Bars(days.map { it.date.dayOfWeek.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale) to it.totalMillis / 60_000f }, goal = null, color = Sp.colors.rose) {
                     formatMinutes(it.toInt())
                 }
                 today?.perApp?.take(5)?.let { top ->

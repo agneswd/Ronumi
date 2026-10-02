@@ -21,9 +21,10 @@ suspend fun applyStreakFreezes(dao: StillpointDao, today: LocalDate = LocalDate.
         fun active(d: LocalDate) = (minutes[d] ?: 0) >= STREAK_MINUTES || d.toString() in frozen
         // Walk back over missed days until the last active day, at most a week.
         val missed = mutableListOf<LocalDate>()
+        val oldest = minutes.keys.minOrNull() ?: today
         var d = today.minusDays(1)
-        while (!active(d) && missed.size < 7) {
-            missed += d
+        while (!active(d) && missed.size < 7 && d >= oldest) {
+            if (studyDay(s, d)) missed += d
             d = d.minusDays(1)
         }
         val hadStreak = active(d)

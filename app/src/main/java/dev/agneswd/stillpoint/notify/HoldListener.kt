@@ -33,15 +33,17 @@ class HoldListener : NotificationListenerService() {
                 val rules = Rules(schedules = dao.schedules().first(), focus = dao.activeFocus())
                 if (!rules.locked(LocalDateTime.now())) return@launch
             }
-            cancelNotification(key)
-            dao.hold(
+            dao.recordHeld(
                 HeldNotification(
                     packageName = sbn.packageName,
+                    notificationKey = key,
                     title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty(),
                     text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty(),
                     postedAt = sbn.postTime,
                 ),
+                java.time.LocalDate.now().toString(),
             )
+            cancelNotification(key)
         }
     }
 

@@ -46,6 +46,7 @@ data class AppLimit(
     val minutesPerDay: Int,
     val mode: LimitMode = LimitMode.GENTLE,
     val enabled: Boolean = true,
+    val reminderMinutes: Int = 0,
 )
 
 /**
@@ -64,6 +65,8 @@ data class Schedule(
     val packages: Set<String> = emptySet(),
     val mode: BlockMode = BlockMode.LISTED,
     val enabled: Boolean = true,
+    val startFocus: Boolean = false,
+    val focusMinutes: Int = 25,
 )
 
 /** A blocked domain. It also blocks every subdomain. */
@@ -82,6 +85,7 @@ data class FocusSession(
     val completed: Boolean,
     val tag: String = "",
     val notes: String = "",
+    val goalMinutes: Int = 120,
 )
 
 /** A notification that the listener removed and kept for later. */
@@ -89,6 +93,7 @@ data class FocusSession(
 data class HeldNotification(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val packageName: String,
+    val notificationKey: String = "",
     val title: String,
     val text: String,
     val postedAt: Long,
@@ -130,6 +135,19 @@ data class Settings(
     val frozenDays: Set<String> = emptySet(),
     /** The streak week count that last earned a freeze, so each week pays once. */
     val freezeWeeksRewarded: Int = 0,
+    val goalDays: Int = 0b1111111,
+    val allowFirstShort: Boolean = false,
+    val contentOnlyDuringFocus: Boolean = false,
+    val siteAllowList: Boolean = false,
+    val youtubeStudyMode: Boolean = false,
+    val allowedYoutubeChannels: Set<String> = emptySet(),
+    val blockYoutubeHome: Boolean = false,
+    val blockMultiWindow: Boolean = false,
+    val pauseBlocksUntil: Long = 0,
+    val emergencyPassesPerDay: Int = 3,
+    /** Local minutes after midnight, written as decimal strings. */
+    val notificationDeliveryTimes: Set<String> = emptySet(),
+    val productivePackages: Set<String> = emptySet(),
 )
 
 /**
@@ -159,6 +177,23 @@ data class ActiveFocus(
     val pausedAt: Long = 0,
     val longBreakMinutes: Int = 15,
     val theme: String = "LAKE",
+    val goalMinutes: Int = 120,
 ) {
     val running: Boolean get() = pausedAt == 0L
 }
+
+/** A temporary daily-limit pass. Database storage keeps its count across process restarts. */
+@Entity(primaryKeys = ["day", "packageName"])
+data class LimitPass(val day: String, val packageName: String, val expiresAt: Long, val uses: Int)
+
+/** Stored daily usage remains available after Android removes old usage events. */
+@Serializable
+@Entity
+data class UsageDay(
+    @PrimaryKey val day: String,
+    val perApp: Map<String, Long>,
+    val unlocks: Int,
+    val heldCount: Int = 0,
+    /** The first saved enabled budget for each app that day, in minutes. */
+    val limitMinutes: Map<String, Long> = emptyMap(),
+)

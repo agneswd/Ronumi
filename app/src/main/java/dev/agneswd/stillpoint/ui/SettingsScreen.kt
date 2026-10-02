@@ -22,6 +22,7 @@ import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.exportBackup
 import dev.agneswd.stillpoint.data.importBackup
 import dev.agneswd.stillpoint.data.settings
+import dev.agneswd.stillpoint.data.updateSettings
 import dev.agneswd.stillpoint.guard.Rules
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,7 +31,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Composable
-fun SettingsScreen(onClose: () -> Unit) {
+fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
     val access = rememberAccess()
@@ -59,14 +60,27 @@ fun SettingsScreen(onClose: () -> Unit) {
         SectionTitle("Permissions")
         Column(Modifier.padding(horizontal = ScreenPadding)) { AccessRows(access, includeOptional = true) }
 
+        val s = settings
+        if (s != null) {
+            SectionTitle("Daily goal")
+            Stepper("Focus goal", s.focusGoalMinutes, 5..600, 5, { dev.agneswd.stillpoint.guard.formatMinutes(it) }) { value ->
+                app.scope.launch { app.dao.updateSettings { it.copy(focusGoalMinutes = value) } }
+            }
+            DayChoices(s.goalDays) { value -> app.scope.launch { app.dao.updateSettings { it.copy(goalDays = value) } } }
+            ListRow("Productive apps", appCount(s.productivePackages.size), onClick = {
+                navigator.push(Route.PickApps("Productive apps", s.productivePackages, single = false) { picked ->
+                    app.scope.launch { app.dao.updateSettings { it.copy(productivePackages = picked) } }
+                })
+            })
+        }
         SectionTitle("Backup")
         ListRow("Save a backup", "Limits, schedules, sites, settings and focus history in one file.", onClick = {
             export.launch("stillpoint-${LocalDate.now()}.json")
         })
         ListRow(
             "Restore a backup",
-            if (locked) "Locked while strict mode blocks run." else "Replaces everything with the content of the file.",
-            onClick = if (locked) null else ({ import.launch(arrayOf("application/json", "*/*")) }),
+            if (locked || focus != null) "Locked while a focus session or protected schedule runs." else "Replaces everything with the content of the file.",
+            onClick = if (locked || focus != null) null else ({ import.launch(arrayOf("application/json", "*/*")) }),
         )
 
         SectionTitle("About")
@@ -79,6 +93,11 @@ fun SettingsScreen(onClose: () -> Unit) {
         Spacer(Modifier.height(8.dp))
         val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
         Text("Version $version", color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(horizontal = ScreenPadding))
+        ListRow("GPLv3 source code", "github.com/agneswd/Stillpoint", onClick = {
+            context.openFirst(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/agneswd/Stillpoint")))
+        })
+        Text("Nunito uses the SIL Open Font License. License texts are included in this app.",
+            color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(horizontal = ScreenPadding))
         Spacer(Modifier.height(32.dp))
       }
     }

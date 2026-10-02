@@ -40,6 +40,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.AppLimit
@@ -88,6 +90,7 @@ fun BlocksScreen(navigator: Navigator) {
     val sites by dao.sites().collectAsState(emptyList())
     val held by dao.held().collectAsState(emptyList())
     val focus by dao.activeFocusFlow().collectAsState(null)
+    val usage by dao.usageDays().collectAsState(emptyList())
     val access = rememberAccess()
     var editingLimit by navigator::editingLimit
     val s = settings ?: return
@@ -107,7 +110,7 @@ fun BlocksScreen(navigator: Navigator) {
         }
 
         SectionTitle("App limits", action = {
-            AddButton {
+            AddButton("Add app limit") {
                 navigator.push(Route.PickApps("Choose an app to limit", emptySet(), single = true) { picked -> picked.firstOrNull()?.let { editingLimit = AppLimit(it, 30) } })
             }
         })
@@ -116,24 +119,31 @@ fun BlocksScreen(navigator: Navigator) {
             limits.forEach { limit ->
                 ListRow(
                     app.catalog.label(limit.packageName),
-                    "${formatMinutes(limit.minutesPerDay)} a day, ${if (limit.mode == LimitMode.STRICT) "strict" else "gentle"}",
+                    "${formatMinutes(limit.minutesPerDay)} a day, ${if (limit.mode == LimitMode.STRICT) "strict" else "gentle"}" +
+                        dev.agneswd.stillpoint.insights.limitStreak(usage, limit.packageName).let { if (it > 0) ", $it day streak" else "" },
                     onClick = { editingLimit = limit },
                     leading = { AppIcon(limit.packageName) },
                 ) { MintSwitch(limit.enabled) { on -> app.scope.launch { dao.saveLimit(limit.copy(enabled = on)) } } }
             }
         }
 
-        SectionTitle("Schedules", action = { AddButton { navigator.push(Route.EditSchedule(null)) } })
+        SectionTitle("Schedules", action = { AddButton("Add schedule") { navigator.push(Route.EditSchedule(null)) } })
         Column(Modifier.padding(horizontal = ScreenPadding).appear(60), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (schedules.isEmpty()) {
                 ChunkyCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) { Empty("Block apps at set times, like study hours or bedtime.") }
             }
             schedules.forEach { schedule ->
                 ScheduleCard(schedule, onClick = { navigator.push(Route.EditSchedule(schedule)) }) { on ->
-                    app.scope.launch { dao.saveSchedule(schedule.copy(enabled = on)) }
+                    app.scope.launch { dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, schedule.copy(enabled = on)) }
                 }
             }
         }
+
+        SectionTitle("Temporary pause")
+        ListRow(if (s.pauseBlocksUntil > System.currentTimeMillis()) "Resume blocks now" else "Pause blocks for 10 minutes", "Focus app blocks stay active.", onClick = {
+            app.scope.launch { dev.agneswd.stillpoint.guard.PolicyActions.pauseBlocks(context, if (s.pauseBlocksUntil > System.currentTimeMillis()) 0 else 10) }
+        })
+        Stepper("Extra-time passes each day", s.emergencyPassesPerDay, 0..10, 1, Int::toString) { value -> update { it.copy(emergencyPassesPerDay = value) } }
 
         SectionTitle("Short videos")
         Group(Modifier.appear(120)) {
@@ -142,12 +152,20 @@ fun BlocksScreen(navigator: Navigator) {
             }
         }
 
+        SwitchRow("Allow the first video", "One identified Short or Reel per visit. Unknown videos stay blocked.", s.allowFirstShort) { on -> update { it.copy(allowFirstShort = on) } }
+        SwitchRow("Content blocks only during focus", "Applies to videos, study channels and websites.", s.contentOnlyDuringFocus) { on -> update { it.copy(contentOnlyDuringFocus = on) } }
+        SectionTitle("YouTube study mode")
+        SwitchRow("Only allow chosen channels", "Unknown channels stay blocked while a video plays.", s.youtubeStudyMode) { on -> update { it.copy(youtubeStudyMode = on) } }
+        StringListField("Allowed YouTube channels", "Enter the exact visible channel name or handle.", s.allowedYoutubeChannels) { values -> update { it.copy(allowedYoutubeChannels = values) } }
+        SwitchRow("Block YouTube home", "Search and subscriptions remain available.", s.blockYoutubeHome) { on -> update { it.copy(blockYoutubeHome = on) } }
+
         SectionTitle("Websites")
         Group(Modifier.appear(180)) {
             SwitchRow("Block adult sites", "A built-in list of adult domains and words.", s.blockAdultSites, leading = { IconTile(R.drawable.ic_lock, Sp.colors.danger) }) { on ->
                 update { it.copy(blockAdultSites = on) }
             }
-            AddSiteField { domain -> app.scope.launch { dao.addSite(BlockedSite(domain)) } }
+            SwitchRow("Only allow listed sites", "Every other website is blocked. Subdomains of listed sites are allowed.", s.siteAllowList) { on -> update { it.copy(siteAllowList = on) } }
+            AddSiteField(s.siteAllowList) { domain -> app.scope.launch { dao.addSite(BlockedSite(domain)) } }
             sites.forEach { site ->
                 ListRow(site.domain, leading = { IconTile(R.drawable.ic_globe, Sp.colors.brand) }) {
                     Text(
@@ -191,15 +209,18 @@ fun BlocksScreen(navigator: Navigator) {
             ) { Chevron() }
         }
 
+        DeliveryTimes(s.notificationDeliveryTimes) { values -> update { it.copy(notificationDeliveryTimes = values) } }
+
         SectionTitle("Strict mode")
         Group(Modifier.appear(300)) {
             SwitchRow(
                 "Lock Stillpoint while blocks run",
-                "During focus and schedules, nobody can turn off or remove Stillpoint, and this tab locks.",
+                "Locks this tab and supported settings pages during focus and schedules.",
                 s.protection,
                 leading = { IconTile(R.drawable.ic_lock, Sp.colors.brand) },
             ) { on -> update { it.copy(protection = on) } }
         }
+        SwitchRow("Block split screen and floating apps", "Closes multiple app windows while a focus round or schedule runs.", s.blockMultiWindow) { on -> update { it.copy(blockMultiWindow = on) } }
         Spacer(Modifier.height(32.dp))
     }
 
@@ -227,8 +248,8 @@ fun Chevron() {
 }
 
 @Composable
-private fun AddButton(onClick: () -> Unit) {
-    ChunkyButton("Add", onClick, Modifier.width(96.dp), kind = ButtonKind.SECONDARY, height = 38.dp, icon = painterResource(R.drawable.ic_plus))
+private fun AddButton(label: String = "Add", onClick: () -> Unit) {
+    ChunkyButton("Add", onClick, Modifier.width(120.dp).semantics { contentDescription = label }, kind = ButtonKind.SECONDARY, height = 38.dp, icon = painterResource(R.drawable.ic_plus))
 }
 
 @Composable
@@ -259,7 +280,7 @@ private fun LockedNotice() {
 }
 
 @Composable
-private fun AddSiteField(onAdd: (String) -> Unit) {
+private fun AddSiteField(allowList: Boolean, onAdd: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     val host = hostOf(text)
     val submit = {
@@ -272,7 +293,7 @@ private fun AddSiteField(onAdd: (String) -> Unit) {
         OutlinedTextField(
             text,
             { text = it },
-            placeholder = { Text("Block a site, like example.com") },
+            placeholder = { Text(if (allowList) "Allow a site, like example.com" else "Block a site, like example.com") },
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
@@ -292,6 +313,9 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
     val app = context.app
     var minutes by remember { mutableIntStateOf(limit.minutesPerDay) }
     var strict by remember { mutableStateOf(limit.mode == LimitMode.STRICT) }
+    var reminder by remember { mutableIntStateOf(limit.reminderMinutes) }
+    var warning by remember { mutableStateOf(false) }
+    var deleteWarning by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss) {
         ChunkyCard(Modifier.fillMaxWidth()) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -300,9 +324,9 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                 Text("Daily limit for ${app.catalog.label(limit.packageName)}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    ChunkyButton("-", { minutes = (minutes - if (minutes > 60) 15 else 5).coerceAtLeast(1) }, Modifier.width(56.dp), kind = ButtonKind.SECONDARY)
+                    ChunkyButton("-", { minutes = (minutes - if (minutes > 60) 15 else 5).coerceAtLeast(1) }, Modifier.width(56.dp).semantics { contentDescription = "Decrease daily limit" }, kind = ButtonKind.SECONDARY)
                     Text(formatMinutes(minutes), style = MaterialTheme.typography.displaySmall, color = Sp.colors.brand, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    ChunkyButton("+", { minutes = (minutes + if (minutes >= 60) 15 else 5).coerceAtMost(12 * 60) }, Modifier.width(56.dp), kind = ButtonKind.SECONDARY)
+                    ChunkyButton("+", { minutes = (minutes + if (minutes >= 60) 15 else 5).coerceAtMost(12 * 60) }, Modifier.width(56.dp).semantics { contentDescription = "Increase daily limit" }, kind = ButtonKind.SECONDARY)
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -316,14 +340,21 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                     }
                     MintSwitch(strict) { strict = it }
                 }
+                Stepper("Reminder interval", reminder, 0..30, 1, { if (it == 0) "Off" else "${it}m" }) { reminder = it }
+                if (warning || deleteWarning) Text("This removes part of your daily protection. Tap again to confirm.", color = Sp.colors.danger, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(16.dp))
                 ChunkyButton("Save", {
-                    app.scope.launch { app.dao.saveLimit(limit.copy(minutesPerDay = minutes, mode = if (strict) LimitMode.STRICT else LimitMode.GENTLE)) }
+                    if (!isNew && !warning && (minutes > limit.minutesPerDay || !strict && limit.mode == LimitMode.STRICT)) {
+                        warning = true
+                        return@ChunkyButton
+                    }
+                    app.scope.launch { app.dao.saveLimit(limit.copy(minutesPerDay = minutes, reminderMinutes = reminder, mode = if (strict) LimitMode.STRICT else LimitMode.GENTLE)) }
                     onDismiss()
                 }, Modifier.fillMaxWidth())
                 ChunkyButton(
                     if (isNew) "Cancel" else "Delete limit",
                     {
+                        if (!isNew && !deleteWarning) { deleteWarning = true; return@ChunkyButton }
                         if (!isNew) app.scope.launch { app.dao.deleteLimit(limit) }
                         onDismiss()
                     },
