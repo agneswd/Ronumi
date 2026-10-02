@@ -199,7 +199,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                         },
                     )
                 },
-            ) { Icon(painterResource(R.drawable.ic_chevron), null, tint = Sp.colors.textDim, modifier = Modifier.size(18.dp)) }
+            ) { AppSelectionPreview(s.focusPackages) }
             SwitchRow("Block every other app", "Only the chosen apps work.", s.focusMode == BlockMode.ALL_EXCEPT, leading = { IconTile(R.drawable.ic_lock, Sp.colors.brand) }) { on ->
                 update { it.copy(focusMode = if (on) BlockMode.ALL_EXCEPT else BlockMode.LISTED) }
             }

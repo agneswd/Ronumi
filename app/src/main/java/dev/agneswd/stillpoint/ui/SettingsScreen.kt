@@ -84,7 +84,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                         navigator.push(Route.PickApps("Productive apps", s.productivePackages, single = false) { picked ->
                             app.scope.launch { app.dao.updateSettings { it.copy(productivePackages = picked) } }
                         })
-                    }) { Chevron() }
+                    }) { AppSelectionPreview(s.productivePackages) }
                 }
             }
 

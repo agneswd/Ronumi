@@ -172,7 +172,7 @@ fun BlocksScreen(navigator: Navigator) {
                 },
                 onClick = { navigator.push(Route.Notifications) },
                 leading = { IconTile(R.drawable.ic_bell, Sp.colors.flame) },
-            ) { Chevron() }
+            ) { AppSelectionPreview(s.heldPackages, maxVisible = 2) }
             ListRow(
                 "Strict mode",
                 if (s.protection) "On" else "Off",

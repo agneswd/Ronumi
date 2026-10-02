@@ -197,7 +197,7 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
                 onClick = {
                     navigator.push(Route.PickApps("Hold notifications from", s.heldPackages, single = false) { picked -> update { it.copy(heldPackages = picked) } })
                 },
-            ) { Chevron() }
+            ) { AppSelectionPreview(s.heldPackages) }
             SwitchRow("Hold all day", if (s.holdAlways) "Held at all times." else "Held only during focus and schedules.", s.holdAlways) { on ->
                 update { it.copy(holdAlways = on) }
             }
@@ -334,7 +334,7 @@ private fun AddField(placeholder: String, keyboard: KeyboardType, clean: (String
             colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
             keyboardOptions = KeyboardOptions(keyboardType = keyboard, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),
-            modifier = Modifier.trackTextFieldFocus().weight(1f),
+            modifier = Modifier.weight(1f).trackTextFieldFocus(),
         )
         Spacer(Modifier.width(8.dp))
         ChunkyButton("Add", submit, enabled = value != null, height = 52.dp)

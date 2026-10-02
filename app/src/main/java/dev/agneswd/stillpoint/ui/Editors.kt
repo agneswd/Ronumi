@@ -93,7 +93,7 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
                 { query = it },
                 label = { Text("Search") },
                 singleLine = true,
-                modifier = Modifier.trackTextFieldFocus().fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).trackTextFieldFocus(),
             )
             val shown = apps.orEmpty().filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
                 // Chosen apps first, so the user sees the current choice at the top.
@@ -145,7 +145,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 { draft = draft.copy(name = it) },
                 label = { Text("Name") },
                 singleLine = true,
-                modifier = Modifier.trackTextFieldFocus().fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).trackTextFieldFocus(),
             )
             ListRow("Starts", minuteText(draft.startMinute), onClick = { picking = true })
             ListRow(
@@ -193,7 +193,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                         },
                     )
                 },
-            )
+            ) { AppSelectionPreview(draft.packages) }
             SwitchRow("Block every other app", "Only the chosen apps work during this schedule.", draft.mode == BlockMode.ALL_EXCEPT) { on ->
                 draft = draft.copy(mode = if (on) BlockMode.ALL_EXCEPT else BlockMode.LISTED)
             }
