@@ -93,7 +93,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
     val days by produceState(emptyList<DayUsage>(), refresh) {
         value = withContext(Dispatchers.IO) { app.usage.recentDays(7) }
     }
-    var badgeFilter by remember { mutableStateOf("Next") }
+    var badgeFilter by remember { mutableStateOf("All") }
     var openBadge by remember { mutableStateOf<Badge?>(null) }
     val sessions by app.dao.sessions().collectAsState(emptyList())
     val settings by app.dao.settings().collectAsState(null)
@@ -260,7 +260,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            listOf("Next", "Earned", "Sessions", "Time", "Rhythm", "Purpose", "Quests").forEach { filter ->
+            listOf("All", "Next", "Earned", "Sessions", "Time", "Rhythm", "Purpose", "Quests").forEach { filter ->
                 Text(
                     filter,
                     Modifier.clip(RoundedCornerShape(12.dp))
@@ -273,6 +273,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
             }
         }
         val visibleBadges = when (badgeFilter) {
+            "All" -> g.badges
             "Next" -> g.badges.filterNot { it.unlocked }.sortedByDescending { it.progress }.take(6)
             "Earned" -> g.badges.filter { it.unlocked }
             else -> g.badges.filter { badgeGroup(it.id) == badgeFilter }
@@ -488,6 +489,12 @@ private fun BadgeView(badge: Badge, modifier: Modifier, onClick: () -> Unit) {
     Column(modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         BadgeMedal(badge, 70.dp)
         Spacer(Modifier.height(6.dp))
+        if (!badge.unlocked) {
+            ChunkyProgress(badge.progress, Modifier.padding(horizontal = 8.dp), color = Sp.colors.gold, height = 6.dp)
+        } else {
+            Spacer(Modifier.height(6.dp))
+        }
+        Spacer(Modifier.height(6.dp))
         Text(
             badge.title,
             style = MaterialTheme.typography.labelMedium,
@@ -495,9 +502,5 @@ private fun BadgeView(badge: Badge, modifier: Modifier, onClick: () -> Unit) {
             textAlign = TextAlign.Center,
             maxLines = 3,
         )
-        if (!badge.unlocked) {
-            Spacer(Modifier.height(4.dp))
-            ChunkyProgress(badge.progress, Modifier.padding(horizontal = 8.dp), color = Sp.colors.gold, height = 6.dp)
-        }
     }
 }
