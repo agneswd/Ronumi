@@ -61,7 +61,7 @@ Wearing an unlocked item costs no XP, and you can change your outfit whenever yo
 
 Four daily quests rotate through 24 task templates. Some ask for focus minutes; others ask you to finish a named task
 or reflect on a session. Tap a quest for its exact rules. Completed quests add their XP automatically.
-There are also 30 badges for milestones in your focus time, sessions, and habits.
+There are also 33 badges for milestones in your focus time, sessions, and habits.
 
 ## Your data stays on your phone
 
