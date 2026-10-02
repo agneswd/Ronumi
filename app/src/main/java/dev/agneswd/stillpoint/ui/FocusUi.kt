@@ -4,11 +4,7 @@ import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sfx
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -24,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -291,92 +287,93 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
 
     Box(Modifier.fillMaxSize()) {
         FocusBackdrop(themeOf(focus.theme), Modifier.fillMaxSize())
-        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(20.dp)) {
-            val dialSize = (maxHeight * 0.34f).coerceIn(160.dp, 270.dp)
-            val pebbleSize = (maxHeight * 0.15f).coerceIn(70.dp, 110.dp)
-            val needsScroll = maxHeight < 520.dp || LocalDensity.current.fontScale > 1.2f
-            Column(Modifier.fillMaxSize().then(if (needsScroll) Modifier.verticalScroll(rememberScrollState()) else Modifier), horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    GlassButton(R.drawable.ic_chevron, "Minimize", rotate = 90f, onClick = onMinimize)
-                    Spacer(Modifier.weight(1f))
-                    if (focus.tag.isNotBlank()) {
-                        Box(Modifier.weight(6f), contentAlignment = Alignment.Center) { GlassLabel(focus.tag) }
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                val dialSize = (maxHeight * 0.40f).coerceIn(160.dp, 270.dp)
+                val pebbleSize = (maxHeight * 0.16f).coerceIn(70.dp, 110.dp)
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        GlassButton(R.drawable.ic_chevron, "Minimize", rotate = 90f, onClick = onMinimize)
+                        Spacer(Modifier.weight(1f))
+                        if (focus.tag.isNotBlank()) {
+                            Box(Modifier.weight(6f), contentAlignment = Alignment.Center) { GlassLabel(focus.tag) }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        if (focus.strict) GlassButton(R.drawable.ic_lock, "Strict mode is on") {} else Spacer(Modifier.size(44.dp))
                     }
-                    Spacer(Modifier.weight(1f))
-                    if (focus.strict) GlassButton(R.drawable.ic_lock, "Strict mode is on") {} else Spacer(Modifier.size(44.dp))
-                }
-                Spacer(Modifier.weight(0.6f))
-                Text(
-                    when {
-                        !focus.running -> "PAUSED"
-                        focus.phase == FocusPhase.BREAK -> "BREAK TIME"
-                        focus.rounds > 1 -> "ROUND ${focus.round} OF ${focus.rounds}"
-                        stopwatch -> "STOPWATCH"
-                        else -> "FOCUS"
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.85f),
-                )
-                Spacer(Modifier.height(16.dp))
-                Box(Modifier.size(dialSize), contentAlignment = Alignment.Center) {
-                    Canvas(Modifier.fillMaxSize()) {
-                        val stroke = 12.dp.toPx()
-                        val inset = stroke / 2
-                        val arcSize = Size(size.width - stroke, size.height - stroke)
-                        drawCircle(Color.Black.copy(alpha = 0.18f), size.width / 2 - stroke)
-                        drawArc(Color.White.copy(alpha = 0.18f), 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
-                        drawArc(Color.White, -90f, 360f * fraction, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-                    }
-                    Text(clockText(shown), style = NumberStyle.copy(fontSize = NumberStyle.fontSize * (dialSize / 270.dp)), color = Color.White)
-                }
-                Spacer(Modifier.weight(0.5f))
-                Crossfade(tip, modifier = Modifier.fillMaxWidth(), label = "tip") { i ->
-                    GlassLabel(
-                        if (firstFocus && firstBlocked != null) "Try opening one of your blocked apps. I'll stop it!" else tips[i],
-                        big = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                Pebble(
-                    when {
-                        !focus.running -> Mood.SLEEPY
-                        focus.phase == FocusPhase.BREAK -> Mood.HAPPY
-                        else -> Mood.CALM
-                    },
-                    size = pebbleSize,
-                )
-                Spacer(Modifier.height(12.dp))
-                if (firstFocus && firstBlocked != null) {
-                    ChunkyButton(
-                        "Try opening ${app.catalog.label(firstBlocked)}",
-                        { context.packageManager.getLaunchIntentForPackage(firstBlocked)?.let(context::startActivity) },
-                        Modifier.fillMaxWidth(),
-                        kind = ButtonKind.SECONDARY,
-                    )
-                } else if (stopwatch) {
-                    ChunkyButton("I'm done", { app.scope.launch { Focus.stopStopwatch(context) } }, Modifier.fillMaxWidth(), kind = ButtonKind.MINT)
-                } else if (!focus.strict) {
-                    ChunkyButton(
-                        if (focus.running) "Pause" else "Resume",
-                        { app.scope.launch { if (focus.running) Focus.pause(context) else Focus.resume(context) } },
-                        Modifier.fillMaxWidth(),
-                        kind = if (focus.running) ButtonKind.SECONDARY else ButtonKind.MINT,
-                        icon = painterResource(if (focus.running) R.drawable.ic_pause else R.drawable.ic_play),
-                        sound = if (focus.running) Sound.TOGGLE_OFF else Sound.TOGGLE_ON,
-                    )
-                }
-                if (!focus.strict) {
+                    Spacer(Modifier.weight(0.6f))
                     Text(
-                        "GIVE UP",
+                        when {
+                            !focus.running -> "PAUSED"
+                            focus.phase == FocusPhase.BREAK -> "BREAK TIME"
+                            focus.rounds > 1 -> "ROUND ${focus.round} OF ${focus.rounds}"
+                            stopwatch -> "STOPWATCH"
+                            else -> "FOCUS"
+                        },
                         style = MaterialTheme.typography.labelLarge,
-                        color = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
-                                askGiveUp = true
-                        }.padding(14.dp),
+                        color = Color.White.copy(alpha = 0.85f),
                     )
-                } else {
-                    Text("Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Box(Modifier.size(dialSize), contentAlignment = Alignment.Center) {
+                        Canvas(Modifier.fillMaxSize()) {
+                            val stroke = 12.dp.toPx()
+                            val inset = stroke / 2
+                            val arcSize = Size(size.width - stroke, size.height - stroke)
+                            drawCircle(Color.Black.copy(alpha = 0.18f), size.width / 2 - stroke)
+                            drawArc(Color.White.copy(alpha = 0.18f), 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                            drawArc(Color.White, -90f, 360f * fraction, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                        }
+                        Text(clockText(shown), style = NumberStyle.copy(fontSize = NumberStyle.fontSize * (dialSize / 270.dp)), color = Color.White)
+                    }
+                    Spacer(Modifier.weight(0.5f))
+                    Crossfade(tip, modifier = Modifier.fillMaxWidth(), label = "tip") { i ->
+                        GlassLabel(
+                            if (firstFocus && firstBlocked != null) "Try opening one of your blocked apps. I'll stop it!" else tips[i],
+                            big = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    Pebble(
+                        when {
+                            !focus.running -> Mood.SLEEPY
+                            focus.phase == FocusPhase.BREAK -> Mood.HAPPY
+                            else -> Mood.CALM
+                        },
+                        size = pebbleSize,
+                    )
+                    Spacer(Modifier.height(12.dp))
                 }
+            }
+            if (firstFocus && firstBlocked != null) {
+                ChunkyButton(
+                    "Try opening ${app.catalog.label(firstBlocked)}",
+                    { context.packageManager.getLaunchIntentForPackage(firstBlocked)?.let(context::startActivity) },
+                    Modifier.fillMaxWidth(),
+                    kind = ButtonKind.SECONDARY,
+                )
+            } else if (stopwatch) {
+                ChunkyButton("I'm done", { app.scope.launch { Focus.stopStopwatch(context) } }, Modifier.fillMaxWidth(), kind = ButtonKind.MINT)
+            } else if (!focus.strict) {
+                ChunkyButton(
+                    if (focus.running) "Pause" else "Resume",
+                    { app.scope.launch { if (focus.running) Focus.pause(context) else Focus.resume(context) } },
+                    Modifier.fillMaxWidth(),
+                    kind = if (focus.running) ButtonKind.SECONDARY else ButtonKind.MINT,
+                    icon = painterResource(if (focus.running) R.drawable.ic_pause else R.drawable.ic_play),
+                    sound = if (focus.running) Sound.TOGGLE_OFF else Sound.TOGGLE_ON,
+                )
+            }
+            if (!focus.strict) {
+                Text(
+                    "GIVE UP",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
+                        askGiveUp = true
+                    }.padding(14.dp),
+                )
+            } else {
+                Text("Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
             }
         }
     }
