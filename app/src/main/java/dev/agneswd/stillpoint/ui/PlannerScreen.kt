@@ -142,7 +142,6 @@ fun PlannerScreen(navigator: Navigator) {
                                         )
                                     }
                                 },
-                                Modifier.width(84.dp),
                                 kind = ButtonKind.SECONDARY,
                                 height = 40.dp,
                             )

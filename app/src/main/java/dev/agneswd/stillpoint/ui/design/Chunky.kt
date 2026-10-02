@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,6 +42,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 enum class ButtonKind { PRIMARY, ROSE, MINT, FLAME, DANGER, SECONDARY, GHOST }
 
@@ -85,19 +88,20 @@ fun ChunkyButton(
         modifier
             .height(height + lip)
             .clickable(source, indication = null, enabled = enabled, onClick = onClick),
+        // The caller's width becomes the face's minimum width. Without one, the button fits its label.
+        propagateMinConstraints = true,
     ) {
         if (lip > 0.dp) {
-            Box(Modifier.fillMaxWidth().height(height).offset(y = lip).clip(shape).background(colors.lip))
+            Box(Modifier.matchParentSize().padding(top = lip).clip(shape).background(colors.lip))
         }
         Row(
             Modifier
-                .fillMaxWidth()
                 .height(height)
                 .offset(y = sink)
                 .clip(shape)
                 .background(colors.fill)
                 .then(if (colors.border != null) Modifier.drawBehind { drawRoundRect(colors.border, style = Stroke(2.dp.toPx()), cornerRadius = CornerRadius(16.dp.toPx())) } else Modifier)
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = if (height < 50.dp) 10.dp else 20.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -105,7 +109,14 @@ fun ChunkyButton(
                 Icon(icon, null, tint = colors.content, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(10.dp))
             }
-            Text(text.uppercase(), style = MaterialTheme.typography.labelLarge, color = colors.content, textAlign = TextAlign.Center, maxLines = 1)
+            // Long labels shrink to fit narrow buttons instead of being cut off.
+            val style = MaterialTheme.typography.labelLarge
+            BasicText(
+                text.uppercase(),
+                style = style.copy(color = colors.content, textAlign = TextAlign.Center),
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
+            )
         }
     }
 }
