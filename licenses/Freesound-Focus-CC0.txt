@@ -1,0 +1,20 @@
+Focus recordings bundled with Stillpoint
+
+All five recordings use Creative Commons Zero 1.0 Universal (CC0).
+You may copy, modify, and distribute them, including for commercial use.
+License: https://creativecommons.org/publicdomain/zero/1.0/
+Legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+White noise - theundecided
+https://freesound.org/people/theundecided/sounds/165058/
+TONE pink noise 44.1 16bit.wav - klangfabrik
+https://freesound.org/people/klangfabrik/sounds/28639/
+Brown Noise (Medium) - OldSlowVideogamer
+https://freesound.org/people/OldSlowVideogamer/sounds/365932/
+Gentle Rain.wav - shelbyshark
+https://freesound.org/people/shelbyshark/sounds/501243/
+Slow Waves, Stony Beach - Kinoton
+https://freesound.org/people/Kinoton/sounds/635917/
+
+Stillpoint trims, filters, crossfades, and levels these recordings for offline loops.
+See docs/focus-audio-sources.md in the source repository for download hashes.
