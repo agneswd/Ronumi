@@ -245,10 +245,10 @@ fun GameBar(game: GameState?, modifier: Modifier = Modifier, onOpen: () -> Unit 
         }
         Spacer(Modifier.weight(1f))
         Stat(onOpen) {
+            Text("Level", style = MaterialTheme.typography.titleSmall, color = c.brand)
             Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(c.brand), contentAlignment = Alignment.Center) {
                 Text("${game?.level?.number ?: 1}", style = MaterialTheme.typography.labelMedium, color = c.onFill)
             }
-            Text("LEVEL", style = MaterialTheme.typography.labelLarge, color = c.brand)
         }
     }
 }

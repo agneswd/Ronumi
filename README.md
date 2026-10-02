@@ -15,10 +15,9 @@ Free and open source. No account, ads, or analytics. Focus works offline.
 
 ## Get Stillpoint
 
-Stillpoint supports **Android 9 and later**. The first public release is still in preparation.
-The APK will be available on the [Releases page](https://github.com/agneswd/Stillpoint/releases).
+Stillpoint supports **Android 9 and later**. Download the APK from the [latest release](https://github.com/agneswd/Stillpoint/releases/latest).
 
-Once available, download and open the APK. Android may ask you to allow installation from your browser or file manager.
+Open the APK. Android may ask you to allow installation from your browser or file manager.
 Then follow Pebble's setup guide, choose your distracting apps, and start your first session.
 
 ## Make time for a task
@@ -62,7 +61,7 @@ Wearing an unlocked item costs no XP, and you can change your outfit whenever yo
 
 Four daily quests rotate through 24 task templates. Some ask for focus minutes; others ask you to finish a named task
 or reflect on a session. Tap a quest for its exact rules. Completed quests add their XP automatically.
-There are also 30 badges for milestones in your focus time, sessions, and habits.
+There are also 33 badges for milestones in your focus time, sessions, and habits.
 
 ## Your data stays on your phone
 

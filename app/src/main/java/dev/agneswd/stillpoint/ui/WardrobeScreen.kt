@@ -1,5 +1,10 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.foundation.layout.size
+import dev.agneswd.stillpoint.ui.design.ChunkyProgress
+import dev.agneswd.stillpoint.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.Icon
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,7 +25,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -148,12 +152,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                             style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
                     }
                     if (nextLevel != null) {
-                        LinearProgressIndicator(
-                            progress = { game.level.fraction.coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
-                            color = Sp.colors.brand,
-                            trackColor = Sp.colors.brandSoft,
-                        )
+                        ChunkyProgress(game.level.fraction, Modifier.fillMaxWidth(), height = 12.dp)
                         Text("More items at level $nextLevel",
                             style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
                     }
@@ -192,6 +191,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     },
                     previewId == item.id,
                     (worn - slotIds) + item.id,
+                    locked = !PebbleStyles.isUnlocked(item, game.level.number, saved.petTapCount),
                 ) {
                     previewId = item.id
                     scope.launch { listState.animateScrollToItem(0) }
@@ -204,7 +204,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                 )
                 Text(
                     "Restore original look",
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(enabled = worn.isNotEmpty() && !saving) { wear(reset = true) }.padding(20.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(16.dp)).clickable(enabled = worn.isNotEmpty() && !saving) { wear(reset = true) }.padding(12.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (worn.isNotEmpty()) Sp.colors.brand else Sp.colors.textDim,
                 )
@@ -215,11 +215,11 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
 }
 
 @Composable
-private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, look: Set<String>, onClick: () -> Unit) {
+private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, look: Set<String>, locked: Boolean = false, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).selectable(selected, role = Role.RadioButton, onClick = onClick)
+        Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(16.dp)).selectable(selected, role = Role.RadioButton, onClick = onClick)
             .background(if (selected) Sp.colors.brandSoft else Sp.colors.background)
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Pebble(Mood.IDLE, size = 58.dp, style = look)
@@ -228,7 +228,10 @@ private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, loo
             Text(name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
             Text(detail, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
         }
-        if (selected) Text("Selected", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
+        when {
+            selected -> Text("Selected", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
+            locked -> Icon(painterResource(R.drawable.ic_lock), "Locked", Modifier.size(20.dp), tint = Sp.colors.textDim)
+        }
     }
 }
 

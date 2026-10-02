@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sfx
 import androidx.compose.animation.core.Animatable
@@ -135,7 +136,8 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         }
 
         ListRow("Pebble wardrobe", "Clothes, colors, hats, and accessories. Unlock more as you level up.",
-            onClick = { navigator.push(Route.Wardrobe) })
+            onClick = { navigator.push(Route.Wardrobe) },
+            trailing = { Chevron() })
 
         // An active streak stays lit while today's next step is still pending.
         val activeStreak = g.streak > 0 || g.streakSafeToday
@@ -167,7 +169,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("❄️", style = MaterialTheme.typography.titleLarge)
+                    Icon(painterResource(R.drawable.ic_freeze), null, tint = Color(0xFF7CC8FF), modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(
                         "${g.freezes} streak freeze${if (g.freezes == 1) "" else "s"}. A freeze saves your streak on a missed day. Earn one every 7 days.",
@@ -417,15 +419,20 @@ fun Bars(values: List<Pair<String, Float>>, goal: Float?, color: Color, label: (
     val track = Sp.colors.surfaceHigh
     val goalColor = Sp.colors.flame
     Column {
-        Text("Most: ${label(values.maxOf { it.second })}", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Most: ${label(values.maxOf { it.second })}", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+            // Names the dashed line, so it does not read as the top of the scale.
+            if (goal != null && goal > 0f) Text("Goal: ${label(goal)}", style = MaterialTheme.typography.labelMedium, color = goalColor)
+        }
         Spacer(Modifier.height(8.dp))
         Canvas(Modifier.fillMaxWidth().height(110.dp)) {
             val gap = 10.dp.toPx()
             val w = (size.width - gap * (values.size - 1)) / values.size
             values.forEachIndexed { i, (_, v) ->
                 val x = i * (w + gap)
-                drawRoundRect(track, Offset(x, 0f), Size(w, size.height), CornerRadius(8.dp.toPx()))
-                val h = size.height * (v / max) * grow.value
+                drawRoundRect(track.copy(alpha = 0.5f), Offset(x, 0f), Size(w, size.height), CornerRadius(8.dp.toPx()))
+                // A short day still shows a small bar, so it does not look like an empty day.
+                val h = (if (v > 0f) maxOf(size.height * v / max, 10.dp.toPx()) else 0f) * grow.value
                 if (h > 0f) {
                     val c = if (i == values.lastIndex) color else color.copy(alpha = 0.55f)
                     drawRoundRect(c, Offset(x, size.height - h), Size(w, h), CornerRadius(8.dp.toPx()))
@@ -444,17 +451,25 @@ fun Bars(values: List<Pair<String, Float>>, goal: Float?, color: Color, label: (
     }
 }
 
-private val badgeLooks = mapOf(
-    "first" to "🌱", "sessions5" to "🎵", "sessions10" to "🪴", "sessions25" to "🛠️",
-    "sessions50" to "🧱", "sessions100" to "🏡",
-    "hours1" to "⌛", "hours5" to "🌿", "hours10" to "🌊", "hours25" to "🌳",
-    "hours50" to "⛰️", "hours100" to "🌲",
-    "streak3" to "🔥", "streak7" to "🎯", "streak14" to "🗓️", "streak30" to "🏔️",
-    "days7" to "👣", "days30" to "🔁", "days100" to "🧭",
-    "goals1" to "🏁", "goals7" to "🪺", "goals30" to "✅",
-    "named1" to "🏷️", "named10" to "📝", "notes1" to "✏️", "notes10" to "📖",
-    "quests10" to "🔎", "quests50" to "🎒", "questday1" to "☀️", "questday7" to "🌈",
-    "marathon" to "🏃", "early" to "🌅", "night" to "🦉",
+/** One drawn glyph for each badge. They sit on the medal in ink. */
+private val badgeIcons = mapOf(
+    "first" to R.drawable.ic_badge_first, "sessions5" to R.drawable.ic_badge_sessions5,
+    "sessions10" to R.drawable.ic_badge_sessions10, "sessions25" to R.drawable.ic_badge_sessions25,
+    "sessions50" to R.drawable.ic_badge_sessions50, "sessions100" to R.drawable.ic_badge_sessions100,
+    "hours1" to R.drawable.ic_badge_hours1, "hours5" to R.drawable.ic_badge_hours5,
+    "hours10" to R.drawable.ic_badge_hours10, "hours25" to R.drawable.ic_badge_hours25,
+    "hours50" to R.drawable.ic_badge_hours50, "hours100" to R.drawable.ic_badge_hours100,
+    "streak3" to R.drawable.ic_badge_streak3, "streak7" to R.drawable.ic_badge_streak7,
+    "streak14" to R.drawable.ic_badge_streak14, "streak30" to R.drawable.ic_badge_streak30,
+    "days7" to R.drawable.ic_badge_days7, "days30" to R.drawable.ic_badge_days30,
+    "days100" to R.drawable.ic_badge_days100, "goals1" to R.drawable.ic_badge_goals1,
+    "goals7" to R.drawable.ic_badge_goals7, "goals30" to R.drawable.ic_badge_goals30,
+    "named1" to R.drawable.ic_badge_named1, "named10" to R.drawable.ic_badge_named10,
+    "notes1" to R.drawable.ic_badge_notes1, "notes10" to R.drawable.ic_badge_notes10,
+    "quests10" to R.drawable.ic_badge_quests10, "quests50" to R.drawable.ic_badge_quests50,
+    "questday1" to R.drawable.ic_badge_questday1, "questday7" to R.drawable.ic_badge_questday7,
+    "marathon" to R.drawable.ic_badge_marathon, "early" to R.drawable.ic_badge_early,
+    "night" to R.drawable.ic_badge_night,
 )
 
 private fun badgeGroup(id: String): String = when {
@@ -477,7 +492,7 @@ private fun BadgeMedal(badge: Badge, size: androidx.compose.ui.unit.Dp) {
     Box(contentAlignment = Alignment.Center) {
         Medal(fill, lip, locked = !badge.unlocked, size = size)
         if (badge.unlocked) {
-            Text(badgeLooks[badge.id] ?: "⭐", style = if (size > 80.dp) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineSmall)
+            Icon(painterResource(badgeIcons[badge.id] ?: R.drawable.ic_badge_goals30), null, tint = LightPalette.text, modifier = Modifier.size(size * 0.4f))
         } else {
             Icon(painterResource(R.drawable.ic_lock), "Locked", tint = Sp.colors.textDim, modifier = Modifier.size(size * 0.34f))
         }
