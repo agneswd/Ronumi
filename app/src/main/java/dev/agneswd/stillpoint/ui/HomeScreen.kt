@@ -244,7 +244,7 @@ fun QuestCard(quests: List<Quest>, modifier: Modifier) {
             quests.forEach { quest ->
                 Column {
                     Row(
-                        Modifier.fillMaxWidth().clickable(onClickLabel = "Show quest details") {
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClickLabel = "Show quest details") {
                             expanded = if (expanded == quest.id) null else quest.id
                         },
                         verticalAlignment = Alignment.CenterVertically,
@@ -272,7 +272,7 @@ fun QuestCard(quests: List<Quest>, modifier: Modifier) {
                         Column(Modifier.padding(start = 52.dp, top = 10.dp)) {
                             Text(quest.category, style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
                             Text(
-                                quest.detail.ifBlank { "Complete this task before midnight. Saved focus sessions count toward your progress." },
+                                quest.detail,
                                 style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
                             )
                             Text(

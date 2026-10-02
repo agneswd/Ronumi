@@ -104,13 +104,13 @@ internal fun legacyQuestsFor(date: LocalDate, sessions: List<FocusSession>, goal
     val morning = sessions.filter { Instant.ofEpochMilli(it.startedAt).atZone(ZoneId.systemDefault()).hour < 12 }
         .sumOf { it.focusedMillis } / 60_000
     val pool = listOf(
-        Quest("focus25", "Focus for 25 minutes", minutes.coerceAtMost(25), 25, 20),
-        Quest("complete1", "Finish a session without giving up", completed.coerceAtMost(1), 1, 15),
-        Quest("sessions2", "Do 2 focus sessions", sessions.size.coerceAtMost(2), 2, 20),
-        Quest("goal", "Reach your daily goal", minutes.coerceAtMost(goalMinutes), goalMinutes, 40),
-        Quest("morning", "Focus 20 minutes before noon", morning.toInt().coerceAtMost(20), 20, 25),
-        Quest("long45", "Stay in one session for 45 minutes", longest.toInt().coerceAtMost(45), 45, 30),
-        Quest("focus60", "Focus for 1 hour in total", minutes.coerceAtMost(60), 60, 30),
+        Quest("focus25", "Focus for 25 minutes", minutes.coerceAtMost(25), 25, 20, "Focus", "Collect 25 focus minutes across saved sessions started today. Time from sessions you end early also counts."),
+        Quest("complete1", "Finish a session without giving up", completed.coerceAtMost(1), 1, 15, "Finish", "Complete one saved session started today. Let the timer finish, or select I'm done in stopwatch mode. Giving up does not count."),
+        Quest("sessions2", "Do 2 focus sessions", sessions.size.coerceAtMost(2), 2, 20, "Practice", "Save two sessions started today, each with at least one focus minute. Sessions you end early count for this task."),
+        Quest("goal", "Reach your daily goal", minutes.coerceAtMost(goalMinutes), goalMinutes, 40, "Your pace", "Collect $goalMinutes focus minutes across sessions started today. The first saved session fixes this goal. Later goal changes do not change it."),
+        Quest("morning", "Focus 20 minutes before noon", morning.toInt().coerceAtMost(20), 20, 25, "Morning", "Collect 20 focus minutes in sessions started before noon today. Their full focus time counts, including time after noon and sessions ended early."),
+        Quest("long45", "Stay in one session for 45 minutes", longest.toInt().coerceAtMost(45), 45, 30, "Steady focus", "Save one session started today with at least 45 focus minutes. Breaks do not count. Ending the session early does not remove its progress."),
+        Quest("focus60", "Focus for 1 hour in total", minutes.coerceAtMost(60), 60, 30, "Focus", "Collect 60 focus minutes across saved sessions started today. Split the time into shorter sessions. Time from sessions ended early also counts."),
     )
     val seed = date.toEpochDay()
     // Always one easy quest first, then two more picked by the date.

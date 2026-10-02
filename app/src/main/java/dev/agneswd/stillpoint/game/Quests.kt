@@ -33,17 +33,17 @@ fun questsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): 
     val finishProgress = completed.count { it.focusedMillis >= finishLength * 60_000L }
     val goalTarget = (goal * goalShares[gi] / 100).coerceIn(5, 90)
     val care = when (rotation) {
-        0 -> quest("v1_name1", "Finish a named session", named, 1, 15, "Intention", "Give your session a purpose before you start.")
-        1 -> quest("v1_note1", "Write a session reflection", reflected, 1, 15, "Intention", "Add a note on the completion screen before you select Continue.")
-        2 -> quest("v1_steady10", "Finish 10 minutes in one session", longest.toInt(), 10, 20, "Intention", "A completed session counts. Take a break afterward.")
-        3 -> quest("v1_name2", "Finish two named sessions", named, 2, 25, "Intention", "Name the task you want to work on each time.")
-        4 -> quest("v1_note2", "Reflect on two sessions", reflected, 2, 25, "Intention", "Add a note on the completion screen after each of two sessions.")
-        else -> quest("v1_steady20", "Finish 20 minutes in one session", longest.toInt(), 20, 25, "Intention", "A completed session counts. Take a break afterward.")
+        0 -> quest("v1_name1", "Finish a named session", named, 1, 15, "Intention", "Name a task before you start, then complete that session today. A saved session with any nonempty name counts.")
+        1 -> quest("v1_note1", "Write a session reflection", reflected, 1, 15, "Intention", "Complete a session started today. Add a note on its completion screen, then select Continue to save it. Notes on abandoned sessions do not count.")
+        2 -> quest("v1_steady10", "Finish 10 minutes in one session", longest.toInt(), 10, 20, "Intention", "Complete one session started today with at least 10 focus minutes. Break time does not count. Giving up does not complete this task.")
+        3 -> quest("v1_name2", "Finish two named sessions", named, 2, 25, "Intention", "Complete two sessions started today with a task name. You can use the same name for both. Giving up does not count.")
+        4 -> quest("v1_note2", "Reflect on two sessions", reflected, 2, 25, "Intention", "Complete two sessions started today. Add a note after each session and select Continue to save it. Each saved note counts once.")
+        else -> quest("v1_steady20", "Finish 20 minutes in one session", longest.toInt(), 20, 25, "Intention", "Complete one session started today with at least 20 focus minutes. Break time does not count. Giving up does not complete this task.")
     }
     return listOf(
-        quest("v1_focus$fi", "Focus for $focusTarget minutes", minutes, focusTarget, 10 + focusTarget / 2, "Focus", "All saved focus time counts, across as many sessions as you need."),
-        quest("v1_finish$ci", if (finishLength == 0) "Finish $finishCount ${if (finishCount == 1) "session" else "sessions"}" else "Finish $finishCount ${if (finishCount == 1) "session" else "sessions"} of $finishLength minutes", finishProgress, finishCount, 15 + finishCount * 5, "Finish", "Let the timer finish, or finish an open-ended session. Abandoned sessions do not count."),
-        quest("v1_goal$gi", "Put $goalTarget minutes toward your goal", minutes, goalTarget, 15 + goalTarget / 3, "Your pace", "This target follows your daily goal, up to 90 minutes. Split it into shorter sessions."),
+        quest("v1_focus$fi", "Focus for $focusTarget minutes", minutes, focusTarget, 10 + focusTarget / 2, "Focus", "Collect $focusTarget focus minutes across saved sessions started today. Sessions you end early count too. Break time does not count."),
+        quest("v1_finish$ci", if (finishLength == 0) "Finish $finishCount ${if (finishCount == 1) "session" else "sessions"}" else "Finish $finishCount ${if (finishCount == 1) "session" else "sessions"} of $finishLength minutes", finishProgress, finishCount, 15 + finishCount * 5, "Finish", "Complete $finishCount ${if (finishCount == 1) "session" else "sessions"} started today.${if (finishLength > 0) " Each needs at least $finishLength focus minutes." else " Each needs at least one saved focus minute."} Let the timer finish, or select I'm done in stopwatch mode. Giving up does not count."),
+        quest("v1_goal$gi", "Put $goalTarget minutes toward your goal", minutes, goalTarget, 15 + goalTarget / 3, "Your pace", "Collect $goalTarget focus minutes across sessions started today. This task uses ${goalShares[gi]}% of your $goal-minute goal, limited to 5-90 minutes. The first saved session fixes the target; later goal changes do not change it."),
         care,
     )
 }
