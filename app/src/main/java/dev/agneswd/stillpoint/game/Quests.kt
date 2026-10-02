@@ -11,9 +11,9 @@ fun questsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): 
     val first = sessions.minWithOrNull(compareBy<FocusSession> { it.startedAt }.thenBy { it.questVersion }.thenBy { it.id })
     val goal = first?.goalMinutes ?: goalMinutes
     if (first?.questVersion == 0) return legacyQuestsFor(date, sessions, goal)
-    val minutes = (sessions.sumOf { it.focusedMillis } / 60_000).toInt()
+    val minutes = sessions.focusMinutesTotal()
     val completed = sessions.filter { it.completed }
-    val longest = (completed.maxOfOrNull { it.focusedMillis } ?: 0) / 60_000
+    val longest = (completed.maxOfOrNull { it.safeFocusMillis() } ?: 0) / 60_000
     val named = completed.count { it.tag.isNotBlank() }
     val reflected = completed.count { it.notes.isNotBlank() }
     fun quest(id: String, title: String, value: Int, target: Int, xp: Int, category: String, detail: String) =
@@ -30,7 +30,7 @@ fun questsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): 
     val focusTarget = focusTargets[fi].coerceAtMost(goal.coerceAtLeast(5))
     val finishLength = finishLengths[ci]
     val finishCount = finishTargets[ci]
-    val finishProgress = completed.count { it.focusedMillis >= finishLength * 60_000L }
+    val finishProgress = completed.count { it.safeFocusMillis() >= finishLength * 60_000L }
     val goalTarget = (goal * goalShares[gi] / 100).coerceIn(5, 90)
     val care = when (rotation) {
         0 -> quest("v1_name1", "Finish a named session", named, 1, 15, "Intention", "Name a task before you start, then complete that session today. A saved session with any nonempty name counts.")

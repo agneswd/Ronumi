@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.schedule
 
+import dev.agneswd.stillpoint.focus.remainingMillis
 import android.app.AlarmManager
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -60,7 +61,7 @@ object Plans {
         if (delivery == null) manager.cancel(pending(context, DELIVERY))
         else schedule(context, DELIVERY, delivery)
         if (focus == null) manager.cancel(pending(context, PHASE))
-        else schedule(context, PHASE, maxOf(focus.phaseEndsAt, System.currentTimeMillis() + 100), focus.startedAt)
+        else schedule(context, PHASE, System.currentTimeMillis() + focus.remainingMillis().coerceAtLeast(100), focus.startedAt)
     }
 
     private fun pending(context: Context, kind: String, at: Long = 0, id: Long = 0): PendingIntent {
@@ -125,6 +126,7 @@ class PlanReceiver : BroadcastReceiver() {
             try {
                 if (intent.action in setOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED,
                         Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED, AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)) {
+                    Focus.checkpoint(context)
                     Plans.refresh(context)
                 } else Plans.fire(context, intent)
             } finally { pending.finish() }

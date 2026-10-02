@@ -50,6 +50,7 @@ class FocusService : LifecycleService() {
     }
 
     private suspend fun run() {
+        Focus.checkpoint(this)
         app.dao.activeFocusFlow().collectLatest { focus ->
             if (focus == null) {
                 noise.stop()
@@ -62,8 +63,9 @@ class FocusService : LifecycleService() {
             if (playing) noise.play(focus.sound) else noise.stop()
             // A paused session waits here until the row changes again.
             if (!focus.running) awaitCancellation()
-            delay((focus.phaseEndsAt - System.currentTimeMillis()).coerceAtLeast(0))
-            Focus.advance(this)
+            val left = focus.remainingMillis()
+            delay(minOf(left, 30_000L))
+            if (focus.remainingMillis() == 0L) Focus.advance(this) else Focus.checkpoint(this)
         }
     }
 
@@ -85,7 +87,7 @@ class FocusService : LifecycleService() {
         val builder = builder()
             .setContentTitle(title)
             .setContentText(focus.tag.ifBlank { null })
-            .setWhen(if (stopwatch) focus.phaseStartedAt else focus.phaseEndsAt)
+            .setWhen(System.currentTimeMillis() + if (stopwatch) -focus.elapsedPhaseMillis() else focus.remainingMillis())
             .setShowWhen(focus.running)
             .setUsesChronometer(focus.running)
             .setChronometerCountDown(!stopwatch)

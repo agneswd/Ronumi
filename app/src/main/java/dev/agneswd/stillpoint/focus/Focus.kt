@@ -2,6 +2,10 @@ package dev.agneswd.stillpoint.focus
 
 import android.app.NotificationManager
 import android.content.Context
+import android.os.SystemClock
+import android.provider.Settings.Global
+import java.time.Instant
+import java.time.ZoneId
 import androidx.room.withTransaction
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -38,9 +42,21 @@ object Focus {
 
     /** Called from the visible app to reconnect a persisted session to its foreground service. */
     suspend fun recover(context: Context) {
+        checkpoint(context)
         if (context.app.dao.activeFocus() != null) {
             ContextCompat.startForegroundService(context, FocusService.intent(context))
         }
+    }
+
+    private fun boot(context: Context): Int = Global.getInt(context.contentResolver, Global.BOOT_COUNT, -1)
+
+    private fun ActiveFocus.current(context: Context): ActiveFocus =
+        rebaseClock(System.currentTimeMillis(), SystemClock.elapsedRealtime(), boot(context))
+
+    /** Saves earned phase time at transitions and every 30 seconds while the service runs. */
+    suspend fun checkpoint(context: Context) = mutate(context) {
+        val dao = context.app.dao
+        dao.activeFocus()?.let { focus -> dao.saveActiveFocus(focus.current(context)) }
     }
 
     /** A stopwatch runs at most this long, so a forgotten session ends by itself. */
@@ -60,6 +76,10 @@ object Focus {
         dao.saveActiveFocus(
             ActiveFocus(
                 startedAt = now,
+                phaseAnchorElapsed = SystemClock.elapsedRealtime(),
+                bootCount = boot(context),
+                rewardDay = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate().toString(),
+                rewardStartHour = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).hour,
                 phase = FocusPhase.FOCUS,
                 phaseStartedAt = now,
                 phaseEndsAt = if (mode == TimerMode.STOPWATCH) now + STOPWATCH_LIMIT_MILLIS else now + focusMinutes * 60_000L,
@@ -85,8 +105,11 @@ object Focus {
     /** Moves to the next phase. The last focus round ends the session. */
     suspend fun advance(context: Context) = mutate(context) {
         val dao = context.app.dao
-        val focus = dao.activeFocus() ?: return@mutate
-        if (!focus.running || System.currentTimeMillis() < focus.phaseEndsAt) return@mutate
+        val focus = dao.activeFocus()?.current(context) ?: return@mutate
+        if (!focus.running || focus.remainingMillis() > 0) {
+            dao.saveActiveFocus(focus)
+            return@mutate
+        }
         val now = focus.phaseEndsAt
         when (focus.phase) {
             FocusPhase.FOCUS -> {
@@ -99,7 +122,7 @@ object Focus {
                         announce(context, "Round ${focus.round + 1} of ${focus.rounds}", "Keep going.")
                     }
                     else -> {
-                        dao.saveActiveFocus(done.copy(phase = FocusPhase.BREAK, phaseStartedAt = now, phaseEndsAt = now + breakMinutes * 60_000L))
+                        dao.saveActiveFocus(done.copy(phase = FocusPhase.BREAK, phaseStartedAt = now, phaseEndsAt = now + breakMinutes * 60_000L, phaseElapsedMillis = 0, phaseAnchorElapsed = SystemClock.elapsedRealtime()))
                         announce(context, "Break for $breakMinutes minutes", "Stand up and look at something far away.")
                     }
                 }
@@ -115,44 +138,39 @@ object Focus {
     /** Pauses a session that is not strict. Blocks stop until it resumes. */
     suspend fun pause(context: Context) = mutate(context) {
         val dao = context.app.dao
-        val focus = dao.activeFocus() ?: return@mutate
+        val focus = dao.activeFocus()?.current(context) ?: return@mutate
         if (focus.strict || !focus.running) return@mutate
-        dao.saveActiveFocus(focus.copy(pausedAt = System.currentTimeMillis()))
+        dao.saveActiveFocus(focus.copy(pausedAt = System.currentTimeMillis().coerceAtLeast(1)))
     }
 
     suspend fun resume(context: Context) = mutate(context) {
         val dao = context.app.dao
-        val focus = dao.activeFocus() ?: return@mutate
+        val focus = dao.activeFocus()?.current(context) ?: return@mutate
         if (focus.running) return@mutate
-        val gap = System.currentTimeMillis() - focus.pausedAt
-        dao.saveActiveFocus(
-            focus.copy(pausedAt = 0, phaseStartedAt = focus.phaseStartedAt + gap, phaseEndsAt = focus.phaseEndsAt + gap),
-        )
+        dao.saveActiveFocus(focus.copy(pausedAt = 0))
     }
 
     /** Ends a stopwatch session as a finished session. */
     suspend fun stopStopwatch(context: Context) = mutate(context) {
-        val focus = context.app.dao.activeFocus() ?: return@mutate
+        val focus = context.app.dao.activeFocus()?.current(context) ?: return@mutate
         if (focus.timerMode != TimerMode.STOPWATCH) return@mutate
-        val end = minOf(if (focus.running) System.currentTimeMillis() else focus.pausedAt, focus.phaseEndsAt)
-        finish(context, focus.copy(focusedMillisBefore = focus.focusedMillisBefore + (end - focus.phaseStartedAt).coerceAtLeast(0)), completed = true)
+        finish(context, focus.copy(focusedMillisBefore = focus.focusedMillisBefore + focus.elapsedPhaseMillis()), completed = true)
     }
 
     /** Ends the session before the last round. Strict sessions cannot end this way. */
     suspend fun giveUp(context: Context) = mutate(context) {
-        val focus = context.app.dao.activeFocus() ?: return@mutate
+        val focus = context.app.dao.activeFocus()?.current(context) ?: return@mutate
         if (focus.strict) return@mutate
-        val end = minOf(if (focus.running) System.currentTimeMillis() else focus.pausedAt, focus.phaseEndsAt)
-        val partial = if (focus.phase == FocusPhase.FOCUS) (minOf(end, focus.phaseEndsAt) - focus.phaseStartedAt).coerceAtLeast(0) else 0L
+        val partial = if (focus.phase == FocusPhase.FOCUS) focus.elapsedPhaseMillis() else 0L
         finish(context, focus.copy(focusedMillisBefore = focus.focusedMillisBefore + partial), completed = false)
     }
 
     private fun ActiveFocus.nextRound(now: Long) =
-        copy(phase = FocusPhase.FOCUS, round = round + 1, phaseStartedAt = now, phaseEndsAt = now + focusMinutes * 60_000L)
+        copy(phase = FocusPhase.FOCUS, round = round + 1, phaseStartedAt = now, phaseEndsAt = now + focusMinutes * 60_000L, phaseElapsedMillis = 0, phaseAnchorElapsed = SystemClock.elapsedRealtime())
 
     private suspend fun finish(context: Context, focus: ActiveFocus, completed: Boolean) {
         val dao = context.app.dao
-        val now = if (completed) minOf(System.currentTimeMillis(), focus.phaseEndsAt) else System.currentTimeMillis()
+        val now = maxOf(System.currentTimeMillis(), focus.startedAt + focus.focusedMillisBefore)
         if (focus.focusedMillisBefore >= 60_000) {
             val id = dao.addSession(
                 FocusSession(
@@ -163,6 +181,8 @@ object Focus {
                     tag = focus.tag,
                     goalMinutes = focus.goalMinutes,
                     questVersion = 1,
+                    rewardDay = focus.rewardDay,
+                    rewardStartHour = focus.rewardStartHour,
                 ),
             )
             Celebrations.offer(id)

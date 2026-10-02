@@ -3,7 +3,7 @@ package dev.agneswd.stillpoint.insights
 import dev.agneswd.stillpoint.data.FocusSession
 import dev.agneswd.stillpoint.data.Settings
 import dev.agneswd.stillpoint.data.UsageDay
-import dev.agneswd.stillpoint.game.day
+import dev.agneswd.stillpoint.game.rewardDate
 import dev.agneswd.stillpoint.guard.blocks
 import java.time.LocalDate
 
@@ -55,7 +55,7 @@ fun report(
     essentialPackages: Set<String> = emptySet(),
 ): Report {
     val start = today.minusDays(days.toLong() - 1)
-    val selected = sessions.filter { day(it.startedAt) in start..today }
+    val selected = sessions.filter { it.rewardDate() in start..today }
     val records = usage.filter { LocalDate.parse(it.day) in start..today }
     val total = selected.sumOf { it.focusedMillis } / 60_000
     val tags = selected.groupBy { it.tag.ifBlank { "Untagged" } }.map { (tag, list) -> tag to list.sumOf { it.focusedMillis } / 60_000 }.sortedByDescending { it.second }

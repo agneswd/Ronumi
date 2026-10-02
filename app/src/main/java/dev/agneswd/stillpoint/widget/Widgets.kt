@@ -12,7 +12,8 @@ import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.FocusPhase
 import dev.agneswd.stillpoint.data.UsageDay
 import dev.agneswd.stillpoint.data.currentSettings
-import dev.agneswd.stillpoint.game.day
+import dev.agneswd.stillpoint.game.rewardDate
+import dev.agneswd.stillpoint.focus.remainingMillis
 import dev.agneswd.stillpoint.game.gameState
 import dev.agneswd.stillpoint.guard.formatMinutes
 import dev.agneswd.stillpoint.ui.design.Mood
@@ -72,7 +73,7 @@ object Widgets {
 
             calendarIds.forEach { id ->
                 val g = game
-                val minutes = sessions.groupBy { day(it.startedAt) }.mapValues { (_, l) -> (l.sumOf { it.focusedMillis } / 60_000).toInt() }
+                val minutes = sessions.groupBy { it.rewardDate() }.mapValues { (_, l) -> (l.sumOf { it.focusedMillis } / 60_000).toInt() }
                 val frozen = settings.frozenDays.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }.toSet()
                 val (w, h) = artSize(context, manager, id, widthShare = 1f, heightShare = 0.72f)
                 manager.updateAppWidget(id, RemoteViews(context.packageName, R.layout.widget_calendar).apply {
@@ -97,7 +98,7 @@ object Widgets {
                     val mood = if (!focus.running) Mood.SLEEPY else if (focus.phase == FocusPhase.FOCUS) Mood.CALM else Mood.HAPPY
                     views.setImageViewBitmap(R.id.widget_art, pebbleArt(context, mood, style = style))
                     views.setTextViewText(R.id.widget_value, if (!focus.running) "Paused" else if (focus.phase == FocusPhase.FOCUS) "Focusing" else "On a break")
-                    views.setTextViewText(R.id.widget_detail, if (!focus.running) "Tap to resume" else "Until ${time(focus.phaseEndsAt)}")
+                    views.setTextViewText(R.id.widget_detail, if (!focus.running) "Tap to resume" else "Until ${time(System.currentTimeMillis() + focus.remainingMillis())}")
                     views.setTextViewText(R.id.widget_action, "OPEN")
                     views.setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingFocus(context))
                 }

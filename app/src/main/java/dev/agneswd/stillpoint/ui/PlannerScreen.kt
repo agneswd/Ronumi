@@ -39,7 +39,7 @@ import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.Schedule
 import dev.agneswd.stillpoint.data.settings
-import dev.agneswd.stillpoint.game.day
+import dev.agneswd.stillpoint.game.rewardDate
 import dev.agneswd.stillpoint.guard.dayBit
 import dev.agneswd.stillpoint.guard.formatDuration
 import dev.agneswd.stillpoint.guard.minuteText
@@ -74,7 +74,7 @@ fun PlannerScreen(navigator: Navigator) {
         value = withContext(Dispatchers.IO) { app.usage.day(selected).totalMillis }
     }
     val goal = (settings?.focusGoalMinutes ?: 60) * 60_000L
-    val byDay = remember(sessions) { sessions.groupBy { day(it.startedAt) } }
+    val byDay = remember(sessions) { sessions.groupBy { it.rewardDate() } }
     val daySessions = byDay[selected].orEmpty().sortedBy { it.startedAt }
     val daySchedules = schedules.filter { it.days and dayBit(selected.dayOfWeek) != 0 }.sortedBy { it.startMinute }
     val missing = DayPart.entries.filter { part -> schedules.none { it.startMinute == part.start && it.endMinute == part.end } }

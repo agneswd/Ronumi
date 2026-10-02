@@ -91,6 +91,8 @@ data class FocusSession(
     val goalMinutes: Int = 120,
     /** Keeps the quest rules used when this day began. */
     val questVersion: Int = 0,
+    val rewardDay: String = "",
+    val rewardStartHour: Int = -1,
 )
 
 /** A notification that the listener removed and kept for later. */
@@ -161,6 +163,8 @@ data class Settings(
     val petTapCount: Int = 0,
     val themeMode: String = "SYSTEM",
     val autoUpdateChecks: Boolean = true,
+    /** Last calendar milestone that earned a freeze. Clock changes cannot replay it. */
+    val freezeRewardedThrough: String = "",
 )
 
 /**
@@ -191,6 +195,11 @@ data class ActiveFocus(
     val longBreakMinutes: Int = 15,
     val theme: String = "LAKE",
     val goalMinutes: Int = 120,
+    val phaseElapsedMillis: Long = 0,
+    val phaseAnchorElapsed: Long = -1,
+    val bootCount: Int = -1,
+    val rewardDay: String = "",
+    val rewardStartHour: Int = -1,
 ) {
     val running: Boolean get() = pausedAt == 0L
 }

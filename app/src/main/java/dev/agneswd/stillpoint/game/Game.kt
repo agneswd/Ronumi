@@ -50,18 +50,33 @@ data class GameState(
 
 fun day(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
 
+/** New sessions keep their original reward date through travel and clock corrections. */
+fun FocusSession.rewardDate(): LocalDate =
+    runCatching { LocalDate.parse(rewardDay) }.getOrElse { day(startedAt) }
+
+fun FocusSession.rewardHour(): Int = rewardStartHour.takeIf { it in 0..23 }
+    ?: Instant.ofEpochMilli(startedAt).atZone(ZoneId.systemDefault()).hour
+
+/** Bound each record before summing, including old databases and imported history. */
+internal fun FocusSession.safeFocusMillis(): Long = focusedMillis.coerceIn(0, 48 * 60 * 60_000L)
+internal fun List<FocusSession>.focusMinutesTotal(): Int =
+    (sumOf { it.safeFocusMillis() } / 60_000).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
 /** Total XP needed to reach [level]. Level 1 starts at 0; each level needs 100 more than the last. */
-fun xpToReach(level: Int): Int = 50 * level * (level - 1)
+fun xpToReach(level: Int): Int = threshold(level).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
+private fun threshold(level: Int): Long = 50L * level.coerceIn(1, 10_000) * (level.coerceIn(1, 10_000) - 1)
 
 fun levelFor(xp: Int): Level {
+    val safeXp = xp.coerceAtLeast(0).toLong()
     var n = 1
-    while (xp >= xpToReach(n + 1)) n++
-    return Level(n, xp - xpToReach(n), xpToReach(n + 1) - xpToReach(n))
+    while (n < 10_000 && safeXp >= threshold(n + 1)) n++
+    return Level(n, (safeXp - threshold(n)).toInt(), (threshold(n + 1) - threshold(n)).toInt())
 }
 
 fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate = LocalDate.now()): GameState {
-    val byDay = sessions.groupBy { day(it.startedAt) }
-    val minutesByDay = byDay.mapValues { (_, list) -> (list.sumOf { it.focusedMillis } / 60_000).toInt() }
+    val byDay = sessions.groupBy { it.rewardDate() }
+    val minutesByDay = byDay.mapValues { (_, list) -> list.focusMinutesTotal() }
     val frozen = settings.frozenDays.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }.toSet()
 
     fun counts(d: LocalDate) = (minutesByDay[d] ?: 0) >= STREAK_MINUTES
@@ -74,10 +89,10 @@ fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate
     }
 
     // Quest XP counts for every past day too, so XP never drops.
-    val questXp = byDay.entries.sumOf { (d, list) -> questsFor(d, list, list.minBy { it.startedAt }.goalMinutes).filter { it.done }.sumOf { it.xp } }
-    val sessionXp = sessions.sumOf { (it.focusedMillis / 60_000).toInt() * XP_PER_MINUTE + if (it.completed) XP_COMPLETED else 0 }
-    val xp = sessionXp + questXp
-    val total = (sessions.sumOf { it.focusedMillis } / 60_000).toInt()
+    val questXp = byDay.entries.sumOf { (d, list) -> questsFor(d, list, list.minBy { it.startedAt }.goalMinutes).filter { it.done }.sumOf { it.xp.toLong() } }
+    val sessionXp = sessions.sumOf { it.safeFocusMillis() / 60_000 * XP_PER_MINUTE + if (it.completed) XP_COMPLETED else 0 }
+    val xp = (sessionXp + questXp).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+    val total = sessions.focusMinutesTotal()
 
     return GameState(
         xp = xp,
@@ -98,11 +113,11 @@ fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate
 
 /** Legacy rules stay unchanged so an upgrade cannot remove earned XP. */
 internal fun legacyQuestsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): List<Quest> {
-    val minutes = (sessions.sumOf { it.focusedMillis } / 60_000).toInt()
+    val minutes = sessions.focusMinutesTotal()
     val completed = sessions.count { it.completed }
-    val longest = (sessions.maxOfOrNull { it.focusedMillis } ?: 0L) / 60_000
-    val morning = sessions.filter { Instant.ofEpochMilli(it.startedAt).atZone(ZoneId.systemDefault()).hour < 12 }
-        .sumOf { it.focusedMillis } / 60_000
+    val longest = (sessions.maxOfOrNull { it.safeFocusMillis() } ?: 0L) / 60_000
+    val morning = sessions.filter { it.rewardHour() < 12 }
+        .sumOf { it.safeFocusMillis() } / 60_000
     val pool = listOf(
         Quest("focus25", "Focus for 25 minutes", minutes.coerceAtMost(25), 25, 20, "Focus", "Collect 25 focus minutes across saved sessions started today. Time from sessions you end early also counts."),
         Quest("complete1", "Finish a session without giving up", completed.coerceAtMost(1), 1, 15, "Finish", "Complete one saved session started today. Let the timer finish, or select I'm done in stopwatch mode. Giving up does not count."),
@@ -137,14 +152,14 @@ private fun bestStreak(minutes: Map<LocalDate, Int>, frozen: Set<LocalDate>, set
 }
 
 private fun badges(sessions: List<FocusSession>, streak: Int, totalMinutes: Int): List<Badge> {
-    val hours = sessions.map { Instant.ofEpochMilli(it.startedAt).atZone(ZoneId.systemDefault()).hour }
-    val longest = (sessions.maxOfOrNull { it.focusedMillis } ?: 0L) / 60_000
+    val hours = sessions.map { it.rewardHour() }
+    val longest = (sessions.maxOfOrNull { it.safeFocusMillis() } ?: 0L) / 60_000
     fun b(id: String, title: String, detail: String, value: Float, target: Float) =
         Badge(id, title, detail, value >= target, (value / target).coerceIn(0f, 1f))
     val completed = sessions.filter { it.completed }
-    val days = sessions.groupBy { day(it.startedAt) }
-    val activeDays = days.count { (_, rows) -> rows.sumOf { it.focusedMillis } >= STREAK_MINUTES * 60_000L }
-    val goalDays = days.count { (_, rows) -> rows.sumOf { it.focusedMillis } >= rows.minBy { it.startedAt }.goalMinutes * 60_000L }
+    val days = sessions.groupBy { it.rewardDate() }
+    val activeDays = days.count { (_, rows) -> rows.sumOf { it.safeFocusMillis() } >= STREAK_MINUTES * 60_000L }
+    val goalDays = days.count { (_, rows) -> rows.sumOf { it.safeFocusMillis() } >= rows.minBy { it.startedAt }.goalMinutes * 60_000L }
     val named = completed.count { it.tag.isNotBlank() }
     val reflected = completed.count { it.notes.isNotBlank() }
     val questDays = days.count { (date, rows) -> questsFor(date, rows, rows.minBy { it.startedAt }.goalMinutes).all { it.done } }

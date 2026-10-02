@@ -14,7 +14,7 @@ const val MAX_FREEZES = 2
  */
 suspend fun applyStreakFreezes(dao: StillpointDao, today: LocalDate = LocalDate.now()) {
     val sessions = dao.sessions().first()
-    val minutes = sessions.groupBy { day(it.startedAt) }.mapValues { (_, l) -> l.sumOf { it.focusedMillis } / 60_000 }
+    val minutes = sessions.groupBy { it.rewardDate() }.mapValues { (_, l) -> l.sumOf { it.safeFocusMillis() } / 60_000 }
     dao.updateSettings { s ->
         var settings = s
         val frozen = s.frozenDays.toMutableSet()
@@ -35,14 +35,14 @@ suspend fun applyStreakFreezes(dao: StillpointDao, today: LocalDate = LocalDate.
         // Reward: one freeze for each full week of streak, up to the maximum.
         val streak = gameState(sessions, settings, today).streak
         val weeks = streak / 7
-        if (weeks < settings.freezeWeeksRewarded) {
-            // A broken streak starts counting weeks again.
-            settings = settings.copy(freezeWeeksRewarded = weeks)
-        } else if (weeks > settings.freezeWeeksRewarded) {
-            settings = settings.copy(
-                streakFreezes = (settings.streakFreezes + 1).coerceAtMost(MAX_FREEZES),
-                freezeWeeksRewarded = weeks,
-            )
+        if (weeks > 0) {
+            val qualifying = minutes.filter { (day, value) -> day <= today && value >= STREAK_MINUTES }.keys.sortedDescending()
+            val milestone = qualifying.getOrNull(streak % 7)
+            // Seed old settings from existing history. Rewinding first must not replay an old milestone.
+            if (settings.freezeRewardedThrough.isEmpty() && settings.freezeWeeksRewarded > 0) {
+                settings = settings.copy(freezeRewardedThrough = minutes.filterValues { it >= STREAK_MINUTES }.keys.maxOrNull()?.toString().orEmpty())
+            }
+            if (milestone != null) settings = rewardFreeze(settings, weeks, milestone)
         }
         settings
     }

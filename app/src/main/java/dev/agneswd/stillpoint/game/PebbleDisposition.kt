@@ -24,9 +24,9 @@ fun pebbleDisposition(
 ): PebbleDisposition {
     val minutes = sessions.asSequence()
         .filter { it.focusedMillis > 0 }
-        .groupBy { Instant.ofEpochMilli(it.startedAt).atZone(zone).toLocalDate() }
+        .groupBy { if (it.rewardDay.isNotEmpty()) it.rewardDate() else Instant.ofEpochMilli(it.startedAt).atZone(zone).toLocalDate() }
         .filterKeys { it <= today }
-        .mapValues { (_, rows) -> rows.sumOf { it.focusedMillis } / 60_000 }
+        .mapValues { (_, rows) -> rows.sumOf { it.safeFocusMillis() } / 60_000 }
     val firstDay = minutes.keys.minOrNull() ?: return PebbleDisposition()
     val todayMinutes = minutes[today] ?: 0L
     val frozen = settings.frozenDays.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }.toSet()

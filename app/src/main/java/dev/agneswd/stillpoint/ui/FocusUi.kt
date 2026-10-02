@@ -69,6 +69,8 @@ import dev.agneswd.stillpoint.data.TimerMode
 import dev.agneswd.stillpoint.data.settings
 import dev.agneswd.stillpoint.data.updateSettings
 import dev.agneswd.stillpoint.focus.Focus
+import dev.agneswd.stillpoint.focus.elapsedPhaseMillis
+import dev.agneswd.stillpoint.focus.remainingMillis
 import dev.agneswd.stillpoint.game.gameState
 import dev.agneswd.stillpoint.guard.formatMinutes
 import dev.agneswd.stillpoint.ui.design.ButtonKind
@@ -259,10 +261,10 @@ private val tips = listOf(
 fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
     LaunchedEffect(focus) {
         while (true) {
-            now = System.currentTimeMillis()
+            now = android.os.SystemClock.elapsedRealtime()
             delay(200)
         }
     }
@@ -276,10 +278,9 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
     var askGiveUp by remember { mutableStateOf(false) }
     BackHandler(onBack = onMinimize)
 
-    val clock = if (focus.running) now else focus.pausedAt
     val stopwatch = focus.timerMode == TimerMode.STOPWATCH
-    val elapsed = (clock - focus.phaseStartedAt).coerceAtLeast(0)
-    val left = (focus.phaseEndsAt - clock).coerceAtLeast(0)
+    val elapsed = focus.elapsedPhaseMillis(now)
+    val left = focus.remainingMillis(now)
     val total = (focus.phaseEndsAt - focus.phaseStartedAt).coerceAtLeast(1)
     val shown = if (stopwatch) elapsed else left
     val fraction = if (stopwatch) (elapsed % 3_600_000) / 3_600_000f else left.toFloat() / total
@@ -607,14 +608,14 @@ private fun RewardTile(label: String, color: Color, modifier: Modifier, compact:
 /** A floating chip over the tabs while a minimized session runs. Tap it to go back. */
 @Composable
 fun FocusChip(focus: ActiveFocus, onOpen: () -> Unit, modifier: Modifier = Modifier) {
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
     LaunchedEffect(focus) {
         while (true) {
-            now = System.currentTimeMillis()
+            now = android.os.SystemClock.elapsedRealtime()
             delay(500)
         }
     }
-    val shown = if (focus.timerMode == TimerMode.STOPWATCH) now - focus.phaseStartedAt else (focus.phaseEndsAt - (if (focus.running) now else focus.pausedAt)).coerceAtLeast(0)
+    val shown = if (focus.timerMode == TimerMode.STOPWATCH) focus.elapsedPhaseMillis(now) else focus.remainingMillis(now)
     Row(
         modifier
             .clip(RoundedCornerShape(20.dp))

@@ -245,7 +245,7 @@ class Converters {
         LimitPass::class,
         UsageDay::class,
     ],
-    version = 5,
+    version = 6,
 )
 @TypeConverters(Converters::class)
 abstract class StillpointDatabase : RoomDatabase() {
@@ -254,7 +254,7 @@ abstract class StillpointDatabase : RoomDatabase() {
     companion object {
         fun open(context: Context): StillpointDatabase =
             Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
     }
 }
@@ -339,5 +339,21 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
         db.execSQL("ALTER TABLE Settings ADD COLUMN petTapCount INTEGER NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE Settings ADD COLUMN themeMode TEXT NOT NULL DEFAULT 'SYSTEM'")
         db.execSQL("ALTER TABLE Settings ADD COLUMN autoUpdateChecks INTEGER NOT NULL DEFAULT 1")
+    }
+}
+
+/** Adds monotonic focus checkpoints and stable calendar reward metadata. */
+private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Settings ADD COLUMN freezeRewardedThrough TEXT NOT NULL DEFAULT ''")
+        for (table in listOf("FocusSession", "ActiveFocus")) {
+            db.execSQL("ALTER TABLE $table ADD COLUMN rewardDay TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE $table ADD COLUMN rewardStartHour INTEGER NOT NULL DEFAULT -1")
+        }
+        db.execSQL("ALTER TABLE ActiveFocus ADD COLUMN phaseElapsedMillis INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE ActiveFocus ADD COLUMN phaseAnchorElapsed INTEGER NOT NULL DEFAULT -1")
+        db.execSQL("ALTER TABLE ActiveFocus ADD COLUMN bootCount INTEGER NOT NULL DEFAULT -1")
+        // The old schema has only wall timestamps. Preserve its progress once during this upgrade.
+        db.execSQL("UPDATE ActiveFocus SET phaseElapsedMillis = MAX(0, MIN(phaseEndsAt - phaseStartedAt, (CASE WHEN pausedAt > 0 THEN pausedAt ELSE ? END) - phaseStartedAt))", arrayOf(System.currentTimeMillis()))
     }
 }
