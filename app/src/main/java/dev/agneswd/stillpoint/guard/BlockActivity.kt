@@ -88,11 +88,19 @@ class BlockActivity : ComponentActivity() {
         // Most blocks leave the user on the home screen. A Shorts block returns to the rest of the app.
         val leave = { if (kind in homeKinds) goHome() else finish() }
         setContent {
-            StillpointTheme {
-                val settings by app.dao.settings().collectAsState(null)
+            val settings by app.dao.settings().collectAsState(null)
+            val themeMode = settings?.themeMode ?: return@setContent
+            StillpointTheme(themeMode = themeMode) {
+                val dark = Sp.colors.dark
+                androidx.compose.runtime.SideEffect {
+                    androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = !dark
+                        isAppearanceLightNavigationBars = !dark
+                    }
+                }
                 val sessions by app.dao.sessions().collectAsState(emptyList())
                 val style = settings?.let {
-                    dev.agneswd.stillpoint.game.PebbleStyles.resolve(it.pebbleItems, dev.agneswd.stillpoint.game.gameState(sessions, it).level.number)
+                    dev.agneswd.stillpoint.game.PebbleStyles.resolve(it.pebbleItems, dev.agneswd.stillpoint.game.gameState(sessions, it).level.number, it.petTapCount)
                 }.orEmpty()
                 androidx.compose.runtime.CompositionLocalProvider(dev.agneswd.stillpoint.ui.design.LocalPebbleStyle provides style) {
                 BackHandler(onBack = leave)

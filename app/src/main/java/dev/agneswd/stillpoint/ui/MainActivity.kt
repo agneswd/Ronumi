@@ -19,7 +19,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.SideEffect
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.background
@@ -127,7 +126,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         if (savedInstanceState == null) openFrom(intent)
         setContent {
-            StillpointTheme {
+            val themeSettings by app.dao.settings().collectAsState(null)
+            val themeMode = themeSettings?.themeMode ?: return@setContent
+            StillpointTheme(themeMode = themeMode) {
                 KeyboardDismissHost { App(navigator) }
             }
         }
@@ -230,7 +231,7 @@ private fun App(navigator: Navigator) {
     }
 
     val s = settings
-    val dark = isSystemInDarkTheme()
+    val dark = Sp.colors.dark
     val focusVisible = focus != null && !navigator.focusMinimized && navigator.stack.isEmpty() && celebrate == null
     SideEffect {
         val window = (context as? android.app.Activity)?.window
@@ -243,7 +244,7 @@ private fun App(navigator: Navigator) {
     }
     androidx.compose.runtime.CompositionLocalProvider(
         dev.agneswd.stillpoint.ui.design.LocalPebbleStyle provides
-            dev.agneswd.stillpoint.game.PebbleStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1),
+            dev.agneswd.stillpoint.game.PebbleStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1, s?.petTapCount ?: 0),
     ) {
         Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
             val running = focus

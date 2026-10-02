@@ -7,6 +7,7 @@ import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.StillpointApp
 import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.HeldNotification
+import dev.agneswd.stillpoint.data.currentSettings
 import dev.agneswd.stillpoint.ui.MainActivity
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -16,6 +17,7 @@ import java.security.MessageDigest
 object Delivery {
     private val lock = Mutex()
     suspend fun release(context: Context) = lock.withLock {
+        if (!context.app.dao.currentSettings().notifyInboxSummaries) return@withLock
         val held = context.app.dao.allHeld()
         if (held.isEmpty()) return@withLock
         val preferences = context.getSharedPreferences("delivery", Context.MODE_PRIVATE)

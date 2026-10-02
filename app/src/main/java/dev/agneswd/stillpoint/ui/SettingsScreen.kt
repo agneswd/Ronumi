@@ -62,7 +62,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
     }
 
     // Keep the stored scroll offset until the full settings content is ready.
-    if (settings == null) return
+    val s = settings ?: return
     Column(Modifier.fillMaxSize()) {
         TopBar("Settings", onClose)
         Column(Modifier.weight(1f).verticalScroll(navigator.settingsScroll)) {
@@ -76,33 +76,62 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 }
             }
 
-            val s = settings
-            if (s != null) {
-                SectionTitle("Daily goal")
-                Group {
-                    Stepper("Focus goal", s.focusGoalMinutes, 5..600, 5, { formatMinutes(it) }) { value ->
-                        app.scope.launch { app.dao.updateSettings { it.copy(focusGoalMinutes = value) } }
-                    }
-                    ListRow("Goal days", daysText(s.goalDays).replaceFirstChar(Char::uppercase))
-                    DayChoices(s.goalDays) { value -> app.scope.launch { app.dao.updateSettings { it.copy(goalDays = value) } } }
-                    Spacer(Modifier.height(12.dp))
+            SectionTitle("Daily goal")
+            Group {
+                Stepper("Focus goal", s.focusGoalMinutes, 5..600, 5, { formatMinutes(it) }) { value ->
+                    app.scope.launch { app.dao.updateSettings { it.copy(focusGoalMinutes = value) } }
                 }
-                Group(Modifier.padding(top = 12.dp)) {
-                    ListRow("Productive apps", if (s.productivePackages.isEmpty()) "Reports count no app as productive." else appCount(s.productivePackages.size), onClick = {
-                        navigator.push(Route.PickApps("Productive apps", s.productivePackages, single = false) { picked ->
-                            app.scope.launch { app.dao.updateSettings { it.copy(productivePackages = picked) } }
-                        })
-                    }) { AppSelectionPreview(s.productivePackages) }
+                ListRow("Goal days", daysText(s.goalDays).replaceFirstChar(Char::uppercase))
+                DayChoices(s.goalDays) { value -> app.scope.launch { app.dao.updateSettings { it.copy(goalDays = value) } } }
+                Spacer(Modifier.height(12.dp))
+            }
+            Group(Modifier.padding(top = 12.dp)) {
+                ListRow("Productive apps", if (s.productivePackages.isEmpty()) "Reports count no app as productive." else appCount(s.productivePackages.size), onClick = {
+                    navigator.push(Route.PickApps("Productive apps", s.productivePackages, single = false) { picked ->
+                        app.scope.launch { app.dao.updateSettings { it.copy(productivePackages = picked) } }
+                    })
+                }) { AppSelectionPreview(s.productivePackages) }
+            }
+
+            SectionTitle("Appearance")
+            Group {
+                ListRow("App theme", "System follows your phone's light or dark setting.")
+                androidx.compose.foundation.layout.Row(
+                    Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(bottom = 16.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf("SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark").forEach { (mode, label) ->
+                        ChoiceButton(label, s.themeMode == mode, Modifier.weight(1f)) {
+                            app.scope.launch { app.dao.updateSettings { it.copy(themeMode = mode) } }
+                        }
+                    }
                 }
             }
 
             SectionTitle("Sound")
             Group {
                 var sounds by remember { mutableStateOf(Sfx.enabled) }
-                SwitchRow("Sound effects", "Taps, rewards and Pebble's reactions. They follow the media volume.", sounds) { on ->
+                SwitchRow("Sound effects", "Focus changes, rewards, and setup. Uses the media volume.", sounds) { on ->
                     Sfx.enabled = on
                     sounds = on
                 }
+            }
+
+            SectionTitle("Notifications")
+            Group {
+                SwitchRow("Focus updates", "Messages when focus rounds and sessions end.", s.notifyFocusEvents) { on ->
+                    app.scope.launch { app.dao.updateSettings { it.copy(notifyFocusEvents = on) } }
+                }
+                SwitchRow("Planned focus reminders", "Reminders for scheduled focus. Automatic starts stay enabled.", s.notifyPlanReminders) { on ->
+                    app.scope.launch { app.dao.updateSettings { it.copy(notifyPlanReminders = on) } }
+                }
+                SwitchRow("Inbox summaries", "Alerts at your chosen delivery times. Held messages stay in your inbox.", s.notifyInboxSummaries) { on ->
+                    app.scope.launch { app.dao.updateSettings { it.copy(notifyInboxSummaries = on) } }
+                }
+                ListRow("Android notification settings", "Control notification sound and visibility.", onClick = {
+                    context.openFirst(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
+                }) { Chevron() }
             }
 
             SectionTitle("Backup")

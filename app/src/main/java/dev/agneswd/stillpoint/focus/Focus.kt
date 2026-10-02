@@ -178,7 +178,8 @@ object Focus {
         )
     }
 
-    private fun announce(context: Context, title: String, text: String) {
+    private suspend fun announce(context: Context, title: String, text: String) {
+        if (!context.app.dao.currentSettings().notifyFocusEvents) return
         val notification = NotificationCompat.Builder(context, StillpointApp.CHANNEL_EVENTS)
             .setSmallIcon(R.drawable.ic_stat)
             .setContentTitle(title)

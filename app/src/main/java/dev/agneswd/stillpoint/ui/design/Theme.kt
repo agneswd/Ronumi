@@ -145,8 +145,14 @@ private val Type = Typography().let { base ->
 val NumberStyle = TextStyle(fontFamily = Nunito, fontWeight = FontWeight.Black, fontSize = 64.sp, letterSpacing = (-2).sp)
 
 @Composable
-fun StillpointTheme(content: @Composable () -> Unit) {
-    val palette = if (isSystemInDarkTheme()) DarkPalette else LightPalette
+fun StillpointTheme(themeMode: String = "SYSTEM", content: @Composable () -> Unit) {
+    val systemDark = isSystemInDarkTheme()
+    val dark = when (themeMode) {
+        "LIGHT" -> false
+        "DARK" -> true
+        else -> systemDark
+    }
+    val palette = if (dark) DarkPalette else LightPalette
     val scheme = if (palette.dark) {
         darkColorScheme(
             primary = palette.brand, onPrimary = palette.onFill, secondary = palette.rose, onSecondary = palette.onFill,

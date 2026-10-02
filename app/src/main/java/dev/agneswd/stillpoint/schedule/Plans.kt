@@ -103,7 +103,8 @@ object Plans {
         refresh(context)
     }
 
-    private fun remind(context: Context, title: String, id: Long) {
+    private suspend fun remind(context: Context, title: String, id: Long) {
+        if (!context.app.dao.currentSettings().notifyPlanReminders) return
         val snooze = PendingIntent.getBroadcast(context, id.toInt(), Intent(context, PlanReceiver::class.java)
             .setAction(SNOOZE).setData(Uri.parse("stillpoint://snooze/$id")).putExtra("id", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val notification = NotificationCompat.Builder(context, StillpointApp.CHANNEL_EVENTS)
