@@ -95,11 +95,16 @@ def tap(text: str, timeout: float = 15, exact: bool = False):
     time.sleep(0.8)
 
 
+def scroll_up():
+    width, height = map(int, re.findall(r"(\d+)x(\d+)", sh("wm size"))[-1])
+    sh(f"input swipe {width // 2} {int(height * .72)} {width // 2} {int(height * .34)} 500")
+
+
 def scroll_to(text: str, tries: int = 8):
     for _ in range(tries):
         if find(text):
             return
-        sh("input swipe 540 1700 540 700 300")
+        scroll_up()
         time.sleep(0.6)
     raise AssertionError(f'"{text}" not found after scrolling')
 
@@ -510,6 +515,11 @@ def gentle_limit():
     return name
 
 
+def progression_workflow():
+    device_workflow("progression-workflow")
+    return "progression-workflow-check.txt"
+
+
 CHECKS = [
     schema_upgrade,
     onboarding,
@@ -526,6 +536,7 @@ CHECKS = [
     ending_focus_frees_app,
     gentle_limit,
     storage_workflow,
+    progression_workflow,
     notification_workflow,
     planned_focus_workflow,
 ]

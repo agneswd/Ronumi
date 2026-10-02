@@ -10,6 +10,13 @@ import dev.agneswd.stillpoint.game.applyStreakFreezes
 import dev.agneswd.stillpoint.guard.PolicyActions
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
+import dev.agneswd.stillpoint.game.PebbleStyles
+import dev.agneswd.stillpoint.game.questsFor
+import dev.agneswd.stillpoint.game.CURRENT_QUEST_VERSION
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
@@ -25,6 +32,9 @@ class StorageCheckReceiver : BroadcastReceiver() {
                     "storage" -> checkStorage(context)
                     "notifications-start" -> prepareNotifications(context)
                     "notifications-check" -> checkNotifications(context)
+                    "demo-rewards" -> prepareDemoRewards(context)
+                    "progression-workflow" -> checkProgression(context)
+                    "demo-wardrobe" -> prepareDemoWardrobe(context)
                     "plan-start" -> preparePlan(context)
                     "plan-check" -> checkPlan(context)
                     else -> error("Unknown check")
@@ -34,6 +44,28 @@ class StorageCheckReceiver : BroadcastReceiver() {
             pending.finish()
         }
     }
+}
+
+/** Seeds sample history. The demo then completes a real one-minute timer. */
+private suspend fun prepareDemoRewards(context: Context): String {
+    val dao = context.app.dao
+    check(dao.activeFocus() == null)
+    val now = System.currentTimeMillis()
+    val today = LocalDate.now()
+    val settings = dao.currentSettings().copy(focusMinutes = 1, timerMode = TimerMode.TIMER,
+        focusStrict = false, focusLockHome = false, focusSound = FocusSound.WAVES, protection = false)
+    val recent = FocusSession(1, now - 10 * 60_000, now - 60_000, 9 * 60_000, false, "Reading", goalMinutes = settings.focusGoalMinutes)
+    val finish = FocusSession(3, now, now + 60_000, 60_000, true, "One small step", goalMinutes = settings.focusGoalMinutes)
+    val start = today.minusDays(1).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    val history = (1..99).firstNotNullOfOrNull { minutes ->
+        val past = FocusSession(2, start, start + minutes * 60_000L, minutes * 60_000L, false, "Reading", goalMinutes = settings.focusGoalMinutes)
+        val sample = listOf(past, recent)
+        val before = gameState(sample, settings, today)
+        val after = gameState(sample + finish, settings, today)
+        sample.takeIf { after.level.number > before.level.number && after.streak > before.streak }
+    } ?: error("Cannot prepare demo rewards for this date")
+    dao.replaceAll(Backup(settings = settings, sessions = history, limits = emptyList(), schedules = emptyList(), sites = emptyList()))
+    return "Sample history ready. Complete one real minute to show level and streak rewards."
 }
 
 private suspend fun preparePlan(context: Context): String {
@@ -112,7 +144,9 @@ private suspend fun checkMigration(context: Context): String {
     check(dao.allHeld().single().title == "Preserve this message")
     check(dao.activeFocus()?.tag == "Preserve this timer")
     check(dao.activeFocus()?.goalMinutes == 90)
-    return "Schema 1 upgraded to schema 3. All seven original tables retained their data."
+    check(dao.currentSettings().pebbleItems.isEmpty())
+    check(dao.allSessions().single().questVersion == 0)
+    return "Schema 1 upgraded to schema 4. Original data and legacy quest rules were preserved."
 }
 
 /** Exercises actual file I/O, Room transactions, and policy changes in the installed app. */
@@ -198,4 +232,85 @@ private suspend fun checkStorage(context: Context): String {
         importBackup(context, dao, Uri.fromFile(original))
     }
     return results.joinToString("\n")
+}
+
+/** Checks installed storage without replacing history, policies, or notification rows. */
+private suspend fun checkProgression(context: Context): String {
+    val dao = context.app.dao
+    check(dao.activeFocus() == null) { "End the session before the progression check" }
+    val original = dao.currentSettings()
+    val originalSessions = dao.allSessions().sortedBy { it.id }
+    var insertedId: Long? = null
+    try {
+        val worn = setOf("color_mint", "outfit_tee", "hat_beanie", "accessory_scarf")
+        dao.updateSettings { it.copy(pebbleItems = worn) }
+        check(dao.currentSettings().pebbleItems == worn) { "Room lost equipped items" }
+        val date = LocalDate.of(2026, 10, 2)
+        val start = date.atTime(10, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val row = FocusSession(startedAt = start, endedAt = start + 30 * 60_000,
+            focusedMillis = 30 * 60_000, completed = true, tag = "Progression check", notes = "A short reflection",
+            goalMinutes = 60, questVersion = CURRENT_QUEST_VERSION)
+        val savedId = dao.addSession(row)
+        insertedId = savedId
+        val saved = dao.allSessions().single { it.id == savedId }
+        check(saved == row.copy(id = savedId)) { "Room lost quest fields" }
+        val fixture = Backup(settings = dao.currentSettings(), sessions = listOf(saved),
+            limits = emptyList(), schedules = emptyList(), sites = emptyList())
+        val encoded = Json.encodeToString(fixture)
+        check(Json.decodeFromString<Backup>(encoded).validated() == fixture) { "Backup lost progression fields" }
+        val tree = Json.parseToJsonElement(encoded).jsonObject
+        val legacy = JsonObject(tree.toMutableMap().apply {
+            put("settings", JsonObject(tree.getValue("settings").jsonObject.filterKeys { it != "pebbleItems" }))
+            put("sessions", JsonArray(tree.getValue("sessions").jsonArray.map { element ->
+                JsonObject(element.jsonObject.filterKeys { it != "questVersion" })
+            }))
+        })
+        val restored = Json.decodeFromString<Backup>(legacy.toString()).validated()
+        check(restored.settings.pebbleItems.isEmpty() && restored.sessions.single().questVersion == 0)
+        check(questsFor(date, restored.sessions, 60).size == 3) { "Legacy quest rules changed" }
+        val completed = (0..2).map { saved.copy(id = it.toLong()) }
+        val tasks = questsFor(date, completed, 60)
+        check(tasks.size == 4 && tasks.single { it.category == "Focus" }.done)
+        check(tasks.single { it.category == "Finish" }.done)
+        check(questsFor(date, completed.map { it.copy(completed = false) }, 60).none { it.category == "Finish" && it.done })
+        check(questsFor(date, completed, 600) == tasks) { "Current goal changed saved quests" }
+        val resolved = PebbleStyles.resolve(worn + setOf("hat_crown", "color_peach", "unknown_item"), 2)
+        check(resolved == worn) { "Locked or unknown items were equipped" }
+        check(PebbleStyles.resolve(setOf("color_mint", "color_peach"), 3).size == 1) { "Two items occupied one slot" }
+        return "Room preserved wardrobe and quest fields. Backups retained new fields and accepted old defaults. " +
+            "Completed sessions earned quests; abandoned sessions did not. Saved goals stayed stable. " +
+            "Locked, unknown, and duplicate-slot items were filtered. Original data was restored."
+    } finally {
+        insertedId?.let { id -> dao.allSessions().find { it.id == id }?.let { dao.deleteSession(it) } }
+        dao.saveSettings(original)
+        check(dao.currentSettings() == original && dao.allSessions().sortedBy { it.id } == originalSessions) {
+            "Progression check did not restore the original data"
+        }
+    }
+}
+
+/** Replaces history with sample data for an explicitly requested demo. */
+private suspend fun prepareDemoWardrobe(context: Context): String {
+    val dao = context.app.dao
+    check(dao.activeFocus() == null)
+    val today = LocalDate.now()
+    val settings = dao.currentSettings().copy(onboarded = true, focusGoalMinutes = 60,
+        focusMinutes = 25, focusStrict = false, focusLockHome = false, protection = false,
+        pebbleItems = setOf("color_mint", "outfit_overalls", "hat_bucket", "accessory_glasses"))
+    val sessions = (1..14).flatMap { daysAgo ->
+        (0..1).map { index ->
+            val start = today.minusDays(daysAgo.toLong()).atTime(9 + index * 5, 0)
+                .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            FocusSession(id = (daysAgo * 2 + index).toLong(), startedAt = start,
+                endedAt = start + 30 * 60_000, focusedMillis = 30 * 60_000, completed = true,
+                tag = if (index == 0) "Reading" else "Practice", notes = "One useful step today.",
+                goalMinutes = 60, questVersion = CURRENT_QUEST_VERSION)
+        }
+    }
+    val state = gameState(sessions, settings, today)
+    check(state.level.number in 5..8) { "Demo history has an unexpected level" }
+    check(PebbleStyles.resolve(settings.pebbleItems, state.level.number) == settings.pebbleItems)
+    dao.replaceAll(Backup(settings = settings, sessions = sessions,
+        limits = emptyList(), schedules = emptyList(), sites = emptyList()))
+    return "Sample wardrobe history ready at level ${state.level.number}. This fixture replaced the previous history."
 }
