@@ -80,30 +80,30 @@ import kotlinx.coroutines.withContext
 
 private enum class Step { WELCOME, HELLO, ASK, PURPOSE, GOAL, DISTRACTIONS, WHEN, PLAN, SHORTS, NOTIFY, STRICT, STREAK, APPS, ACCESS, FIRST }
 
-private data class Option(val emoji: String, val label: String, val value: String)
+private data class Option(val icon: Int, val label: String, val value: String)
 
 private val purposes = listOf(
-    Option("📚", "Study", "study"),
-    Option("💼", "Work", "work"),
-    Option("📱", "Scroll less", "scroll"),
-    Option("😴", "Sleep better", "sleep"),
-    Option("🧘", "Feel calmer", "calm"),
+    Option(R.drawable.ic_activity_study, "Study", "study"),
+    Option(R.drawable.ic_activity_work, "Work", "work"),
+    Option(R.drawable.ic_activity_phone, "Scroll less", "scroll"),
+    Option(R.drawable.ic_activity_sleep, "Sleep better", "sleep"),
+    Option(R.drawable.ic_activity_calm, "Feel calmer", "calm"),
 )
 
 private val goals = listOf(
-    Option("☕", "Casual, 30 min a day", "30"),
-    Option("🌱", "Regular, 1 hour a day", "60"),
-    Option("🔥", "Serious, 2 hours a day", "120"),
-    Option("🚀", "Intense, 4 hours a day", "240"),
+    Option(R.drawable.ic_activity_coffee, "Casual, 30 min a day", "30"),
+    Option(R.drawable.ic_activity_sprout, "Regular, 1 hour a day", "60"),
+    Option(R.drawable.ic_activity_flame, "Serious, 2 hours a day", "120"),
+    Option(R.drawable.ic_activity_rocket, "Intense, 4 hours a day", "240"),
 )
 
 private val distractions = listOf(
-    Option("🎬", "Shorts and Reels", "shorts"),
-    Option("📺", "YouTube rabbit holes", "youtube"),
-    Option("💬", "Social media feeds", "social"),
-    Option("🔔", "Notifications", "notifications"),
-    Option("🎮", "Games", "games"),
-    Option("🐢", "I can't get started", "start"),
+    Option(R.drawable.ic_video, "Shorts and Reels", "shorts"),
+    Option(R.drawable.ic_video, "YouTube rabbit holes", "youtube"),
+    Option(R.drawable.ic_activity_social, "Social media feeds", "social"),
+    Option(R.drawable.ic_bell, "Notifications", "notifications"),
+    Option(R.drawable.ic_activity_game, "Games", "games"),
+    Option(R.drawable.ic_activity_steps, "I can't get started", "start"),
 )
 
 /** Apps that most people find distracting. Onboarding picks the installed ones first. */
@@ -301,7 +301,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
             options.forEachIndexed { i, option ->
                 ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(option.value) }, selected = option.value in selected) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(option.emoji, style = MaterialTheme.typography.headlineMedium)
+                        Icon(painterResource(option.icon), null, tint = Sp.colors.brand, modifier = Modifier.size(28.dp))
                         Spacer(Modifier.width(16.dp))
                         Text(option.label, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text, modifier = Modifier.weight(1f))
                     }
@@ -346,20 +346,20 @@ private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () 
 private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: () -> Unit) {
     val minutes = goal.toIntOrNull() ?: 60
     val items = buildList {
-        add("🎯" to "Focus ${if (minutes < 60) "$minutes minutes" else "${minutes / 60} hour${if (minutes >= 120) "s" else ""}"} a day")
-        if ("shorts" in picked) add("🎬" to "Close Shorts and Reels for you")
-        if ("notifications" in picked) add("🔔" to "Hold notifications while you focus")
-        if ("youtube" in picked || "social" in picked || "games" in picked) add("🛡️" to "Block your distracting apps during focus")
-        if (part != null) add("⏰" to "${part.label} focus, ${minuteText(part.start)} to ${minuteText(part.end)}")
-        add("🔥" to "A daily streak to keep you going")
+        add(R.drawable.ic_activity_focus to "Focus ${if (minutes < 60) "$minutes minutes" else "${minutes / 60} hour${if (minutes >= 120) "s" else ""}"} a day")
+        if ("shorts" in picked) add(R.drawable.ic_video to "Close Shorts and Reels for you")
+        if ("notifications" in picked) add(R.drawable.ic_bell to "Hold notifications while you focus")
+        if ("youtube" in picked || "social" in picked || "games" in picked) add(R.drawable.ic_tab_blocks to "Block your distracting apps during focus")
+        if (part != null) add(R.drawable.ic_timer to "${part.label} focus, ${minuteText(part.start)} to ${minuteText(part.end)}")
+        add(R.drawable.ic_activity_flame to "A daily streak to keep you going")
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         PebbleSays("Here's your plan. I think you'll love it!", Mood.PROUD, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items.forEachIndexed { i, (emoji, text) ->
+            items.forEachIndexed { i, (icon, text) ->
                 Row(Modifier.fillMaxWidth().appear(200 + i * 220), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Sp.colors.brandSoft), contentAlignment = Alignment.Center) {
-                        Text(emoji, style = MaterialTheme.typography.titleLarge)
+                        Icon(painterResource(icon), null, tint = Sp.colors.brand, modifier = Modifier.size(26.dp))
                     }
                     Spacer(Modifier.width(14.dp))
                     Text(text, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text, modifier = Modifier.weight(1f))
