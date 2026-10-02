@@ -28,6 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import dev.agneswd.stillpoint.data.settings
+import dev.agneswd.stillpoint.insights.UsageCategory
+import dev.agneswd.stillpoint.insights.usageCategory
 import dev.agneswd.stillpoint.insights.report
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -193,7 +195,9 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                Bars(days.map { it.date.dayOfWeek.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale) to it.totalMillis / 60_000f }, goal = null, color = Sp.colors.rose) {
+                Text("Total screen time - all app categories", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+                Spacer(Modifier.height(6.dp))
+                Bars(days.map { it.date.dayOfWeek.getDisplayName(TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale) to it.totalMillis / 60_000f }, goal = null, color = Sp.colors.textDim) {
                     formatMinutes(it.toInt())
                 }
                 today?.perApp?.take(5)?.let { top ->
@@ -206,7 +210,21 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                             Column(Modifier.weight(1f)) {
                                 Text(app.catalog.label(pkg), style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
                                 Spacer(Modifier.height(4.dp))
-                                ShareBar(ms.toFloat() / most, color = Sp.colors.rose)
+                                val category = usageCategory(pkg, s, essentials)
+                                ShareBar(ms.toFloat() / most, color = when (category) {
+                                    UsageCategory.PRODUCTIVE -> Sp.colors.mint
+                                    UsageCategory.DISTRACTING -> Sp.colors.rose
+                                    UsageCategory.OTHER -> Sp.colors.textDim
+                                })
+                                Text(
+                                    when (category) {
+                                        UsageCategory.PRODUCTIVE -> "Productive"
+                                        UsageCategory.DISTRACTING -> "Distracting"
+                                        UsageCategory.OTHER -> "Other apps"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall, color = Sp.colors.textDim,
+                                    modifier = Modifier.padding(top = 3.dp),
+                                )
                             }
                             Spacer(Modifier.width(12.dp))
                             Text(formatDuration(ms), style = MaterialTheme.typography.titleSmall, color = Sp.colors.textDim)

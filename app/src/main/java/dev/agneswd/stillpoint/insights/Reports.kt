@@ -21,6 +21,15 @@ data class Report(
     val screenMillis: Long get() = productiveMillis + distractingMillis + uncategorizedMillis
 }
 
+enum class UsageCategory { PRODUCTIVE, DISTRACTING, OTHER }
+
+/** Uses the same priority and essential-app exclusions as the focus report. */
+fun usageCategory(pkg: String, settings: Settings, essentialPackages: Set<String> = emptySet()): UsageCategory = when {
+    pkg in settings.productivePackages -> UsageCategory.PRODUCTIVE
+    pkg !in essentialPackages && settings.focusMode.blocks(pkg, settings.focusPackages) -> UsageCategory.DISTRACTING
+    else -> UsageCategory.OTHER
+}
+
 /** Only complete days with a saved budget count. Later budget edits do not rewrite them. */
 fun limitStreak(usage: List<UsageDay>, pkg: String, today: LocalDate = LocalDate.now()): Int {
     val byDay = usage.associateBy { it.day }
@@ -50,11 +59,11 @@ fun report(
     val records = usage.filter { LocalDate.parse(it.day) in start..today }
     val total = selected.sumOf { it.focusedMillis } / 60_000
     val tags = selected.groupBy { it.tag.ifBlank { "Untagged" } }.map { (tag, list) -> tag to list.sumOf { it.focusedMillis } / 60_000 }.sortedByDescending { it.second }
-    val productive = records.sumOf { record -> record.perApp.filterKeys { it in settings.productivePackages }.values.sum() }
+    val productive = records.sumOf { record ->
+        record.perApp.filterKeys { usageCategory(it, settings, essentialPackages) == UsageCategory.PRODUCTIVE }.values.sum()
+    }
     val distracting = records.sumOf { record ->
-        record.perApp.filterKeys { pkg ->
-            settings.focusMode.blocks(pkg, settings.focusPackages) && pkg !in settings.productivePackages && pkg !in essentialPackages
-        }.values.sum()
+        record.perApp.filterKeys { usageCategory(it, settings, essentialPackages) == UsageCategory.DISTRACTING }.values.sum()
     }
     val uncategorized = records.sumOf { it.perApp.values.sum() } - productive - distracting
     // Compare complete days with the first seven recorded complete days.
