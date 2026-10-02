@@ -3,6 +3,10 @@ package dev.agneswd.stillpoint.ui
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import dev.agneswd.stillpoint.ui.design.ScheduleIcon
+import dev.agneswd.stillpoint.ui.design.scheduleIconChoices
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -125,12 +129,46 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
     val original = route.original
     var draft by route::draft
     var picking by remember { mutableStateOf<Boolean?>(null) } // true = start, false = end
+    var pickingIcon by remember { mutableStateOf(false) }
     val save: () -> Unit = {
         context.app.scope.launch {
             if (dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, draft.copy(name = draft.name.trim()))) {
                 kotlinx.coroutines.withContext(Dispatchers.Main) { onClose() }
             }
         }
+    }
+    if (pickingIcon) {
+        AlertDialog(
+            onDismissRequest = { pickingIcon = false },
+            title = { Text("Choose a schedule icon") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Automatic follows the start time. Pick another icon for your own routine.", color = Sp.colors.textDim)
+                    scheduleIconChoices.chunked(3).forEach { choices ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            choices.forEach { (id, label) ->
+                                Column(
+                                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                                        .background(if (draft.icon == id) Sp.colors.brandSoft else Sp.colors.background)
+                                        .selectable(draft.icon == id, role = Role.RadioButton) {
+                                            draft = draft.copy(icon = id)
+                                            pickingIcon = false
+                                        }.padding(vertical = 10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    ScheduleIcon(id, draft.startMinute, size = 34.dp)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(label, style = MaterialTheme.typography.labelMedium, color = Sp.colors.text,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                }
+                            }
+                            repeat(3 - choices.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { pickingIcon = false }) { Text("Close") } },
+        )
     }
     EditorFrame(
         if (original == null) "New schedule" else "Edit schedule",
@@ -147,6 +185,10 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).trackTextFieldFocus(),
             )
+            ListRow(
+                "Schedule icon", scheduleIconChoices.firstOrNull { it.first == draft.icon }?.second ?: "Automatic",
+                onClick = { pickingIcon = true },
+            ) { ScheduleIcon(draft.icon, draft.startMinute, size = 40.dp) }
             ListRow("Starts", minuteText(draft.startMinute), onClick = { picking = true })
             ListRow(
                 "Ends",

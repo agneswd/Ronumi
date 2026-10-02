@@ -49,6 +49,7 @@ import dev.agneswd.stillpoint.ui.design.ChunkyButton
 import dev.agneswd.stillpoint.ui.design.ChunkyCard
 import dev.agneswd.stillpoint.ui.design.DayPart
 import dev.agneswd.stillpoint.ui.design.DayPartIcon
+import dev.agneswd.stillpoint.ui.design.ScheduleIcon
 import dev.agneswd.stillpoint.ui.design.ScreenTitle
 import dev.agneswd.stillpoint.ui.design.LightPalette
 import dev.agneswd.stillpoint.ui.design.Sp
@@ -211,7 +212,7 @@ private fun SummaryTile(label: String, value: String, color: Color, modifier: Mo
 fun ScheduleCard(schedule: Schedule, modifier: Modifier = Modifier, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
     ChunkyCard(modifier.fillMaxWidth(), onClick = onClick, contentPadding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            DayPartIcon(dayPartAt(schedule.startMinute), size = 48.dp)
+            ScheduleIcon(schedule.icon, schedule.startMinute, size = 48.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(schedule.name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
