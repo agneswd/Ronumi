@@ -62,53 +62,19 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
 
     private fun foregroundTimes(from: Long, to: Long): Map<String, Long> {
         if (!hasAccess()) return emptyMap()
-        val totals = HashMap<String, Long>()
-        val seen = HashSet<String>()
-        var current: String? = null
-        var start = from
-        fun close(at: Long) {
-            current?.let { totals[it] = (totals[it] ?: 0L) + (at - start).coerceAtLeast(0) }
-            current = null
-        }
-
+        val timeline = ForegroundTimeline(from, to)
         // Find the app already open at midnight, even before its first event today.
         val events = manager.queryEvents((from - 86_400_000).coerceAtLeast(0), to)
         val event = UsageEvents.Event()
         while (events.getNextEvent(event)) {
-            val pkg = event.packageName
-            if (event.timeStamp < from) {
-                when (event.eventType) {
-                    UsageEvents.Event.ACTIVITY_RESUMED -> current = pkg
-                    UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED -> if (current == pkg) current = null
-                    UsageEvents.Event.SCREEN_NON_INTERACTIVE, UsageEvents.Event.DEVICE_SHUTDOWN -> current = null
-                }
-                continue
-            }
             when (event.eventType) {
-                UsageEvents.Event.ACTIVITY_RESUMED -> {
-                    if (current != pkg) {
-                        close(event.timeStamp)
-                        current = pkg
-                        start = event.timeStamp
-                    }
-                    seen += pkg
-                }
-
-                UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED -> {
-                    if (current == pkg) {
-                        close(event.timeStamp)
-                    } else if (pkg !in seen && current == null) {
-                        // The app was already open when the range started.
-                        totals[pkg] = (totals[pkg] ?: 0L) + (event.timeStamp - from)
-                    }
-                    seen += pkg
-                }
-
-                UsageEvents.Event.SCREEN_NON_INTERACTIVE, UsageEvents.Event.DEVICE_SHUTDOWN -> close(event.timeStamp)
+                UsageEvents.Event.ACTIVITY_RESUMED -> event.packageName?.let { timeline.resume(it, event.timeStamp) }
+                UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED ->
+                    event.packageName?.let { timeline.pause(it, event.timeStamp) }
+                UsageEvents.Event.SCREEN_NON_INTERACTIVE, UsageEvents.Event.DEVICE_SHUTDOWN -> timeline.screenOff(event.timeStamp)
             }
         }
-        close(to)
-        return totals
+        return timeline.result()
     }
 
     private fun unlocks(from: Long, to: Long): Int {
