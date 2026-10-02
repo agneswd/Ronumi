@@ -22,7 +22,7 @@ Each run must save screenshots, a report, and the crash log.
 - A changed app budget rewrites past limit streak results.
 - Streak freezes are spent twice or badges disappear after a missed day.
 - Widgets start multiple sessions or show stale focus state after a session ends.
-- The minified release crashes or gains network permission.
+- The minified release crashes, or local focus features require a network connection.
 - A quest update changes XP from old sessions or replaces a day's saved target.
 - Abandoned sessions count as completed-session quests.
 - Wardrobe previews equip locked items or overwrite another slot.
@@ -129,3 +129,37 @@ Continue and Add a note also stay visible at 1080x1640 with font scale 1.2.
 Notes retain multiline input, and an outside tap dismisses the keyboard.
 Wardrobe items remain reachable at font scale 2. Closed hats cover the sprout; open headwear keeps it visible.
 Active streaks remain lit before today's step, on the normal light or dark card background.
+
+## Pending checks for changes after c9b935d
+
+Revision `c9b935d` passed Android 9 and Android 16 CI. Earlier results above apply to that work, not all newer changes.
+The next device and CI runs must cover these failures:
+
+- Schema 5 loses prior data or assigns incorrect preference defaults.
+- Old backups fail without the new fields. Invalid theme or schedule icon IDs enter saved settings.
+- System mode ignores a phone theme change. Forced Light or Dark follows the phone instead.
+- A theme change resets navigation or Settings scroll position, or leaves dialogs and block screens in the old theme.
+- Notification switches change enforcement, stop automatic planned sessions, or erase held messages.
+- A schedule icon changes after editing, restart, or restore. Automatic icons stop following the start time.
+- Pet progress resets after restart or grants the hidden reward before its requirement is met.
+- Rest days or frozen days lower Pebble's mood. Partial focus fails to acknowledge a return.
+- New animation loops snap at their boundary or move clothing separately from the body.
+- Automatic update checks continue after being disabled, or download an APK without a user action.
+- Network failure prevents local focus or leaves the update screen stuck.
+- A wrong-package, older, modified, oversized, or differently signed APK reaches the installer.
+- Installation bypasses Android confirmation or fails to recover after install permission is granted.
+
+The app now has intentional Internet access for GitHub updates. Test local focus and blocking without a network.
+Do not treat a successful GitHub metadata response as proof of a complete signed update installation.
+
+Local checks for the new work passed:
+- `assembleDebug` and `lintDebug`.
+- Android 14 storage, progression, and notification workflows, with user data restored by each fixture.
+- Pure JVM mood cases, including rest-day focus and frozen-day focus.
+- Pure JVM update version, trusted URL, redirect, and signer-set rules.
+- Live GitHub no-release response shown in the app.
+- Automatic update toggle cancels and restores the persisted daily job.
+
+A source review checked the updater and found no remaining security blocker.
+It also found a forced-theme system-bar mismatch, which was corrected before the final build.
+A real signed update installation remains unverified because the repository has no public stable release yet.

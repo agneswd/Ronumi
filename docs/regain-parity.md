@@ -1,6 +1,6 @@
 # Local feature map
 
-Stillpoint implements features that can work without an account or server.
+Stillpoint focus features work without an account or server. Optional app updates use GitHub.
 This map compares product behavior. It does not claim complete Regain parity.
 
 | Area | Implemented | Verification or remaining work |
@@ -9,24 +9,24 @@ This map compares product behavior. It does not claim complete Regain parity.
 | Focus controls | App lists, strict sessions, home lock, tags, notes, summaries | Device checks cover app enforcement and home lock. |
 | Focus presentation | Interactive Pebble, five animated scenes, smooth transitions, bundled CC0 white, pink, brown, rain, and wave recordings | Imported recordings pass duration, level, clipping, and loop-seam checks. Start and stop use fades. Dawn has solid clouds; the space planet sits above controls. Rain has pond ripples. A full demo captures app audio. Physical-phone audio checks remain. |
 | Goals and rewards | Study days, four daily quests from 24 templates, XP, levels, 30 badges, freezes | Quest rules expand on Home. Progress filters badges by category or earned state. Android 9 and 14 checks cover new quest fields, completion rules, old backup defaults, and stable saved targets. Earned legacy badges remain. |
-| Pebble wardrobe | 36 colors, clothes, hats, and accessories across levels 1 to 20 | Preview locked items; equip one item per slot. Android 9 and 14 checks cover persistence, backup fields, and rejection of locked or invalid items. Device checks cover locked previews, equip controls, hat fit, and scrollable large-text layouts. |
-| Interface | System light and dark themes, Pebble pet reactions, saved Settings scroll position | Device checks cover scroll restoration, keyboard dismissal, and badge details. Checks also cover the compact completion summary and wardrobe at larger text sizes. |
+| Pebble wardrobe | 36 level rewards across levels 1 to 20, plus a hidden outfit | Preview locked items; equip one item per slot. Android 9 and 14 checks cover persistence, backup fields, and rejection of locked or invalid items. Device checks cover locked previews, equip controls, hat fit, and scrollable large-text layouts. |
+| Interface | System, Light, and Dark theme choices; vector onboarding icons; saved Settings scroll position | Device checks cover scroll restoration, keyboard dismissal, and badge details. Checks also cover the compact completion summary and wardrobe at larger text sizes. |
 | Planned focus | Local alarms, automatic start with exact access, reminders, ten-minute snooze | Device checks cover automatic start after process death and completion with the screen off. JVM checks cover DST and time-zone selection. Reboot, clock-change broadcasts, and snooze still need device checks. |
 | App limits | Gentle and strict limits, counted five-minute passes, reminders, limit streaks, change warnings | Device checks cover real limits and daily pass bounds. JVM checks confirm strict limits ignore older gentle passes. Midnight and reminder device checks remain. |
-| Block schedules | Listed apps or all except a list, chosen days, overnight windows | JVM checks cover overnight windows, week rollover, and end boundaries. Device rollover remains. Planner changes recheck active protection. |
+| Block schedules | Listed apps or all except a list, chosen days, overnight windows, custom icons or time-based automatic icons | JVM checks cover overnight windows, week rollover, and end boundaries. Device rollover remains. Planner changes recheck active protection. |
 | Temporary pause | Ten-minute block pause | Focus app blocks remain active. Protected schedules refuse pause. |
 | Short videos | YouTube Shorts, Instagram Reels, Snapchat Spotlight, Facebook Reels | Current installed YouTube forces an update. Current versions of all four apps remain to test. |
 | First video | One identified video per app visit | Unknown video titles stay blocked. Visible title matching needs real-app checks. |
 | Websites | Domain and subdomain lists, adult-domain list, allow-list mode | Chrome block-list behavior passes. Allow-list behavior and other browsers remain to test. |
 | YouTube study | Chosen channels, home-feed blocking | Unknown channels stay blocked in recognized players. Current YouTube verification remains. |
-| Notifications | App selection, focus-only or all-day holding, scheduled private summaries | Real notification updates, process restart, and duplicate delivery have device checks. JVM checks cover changed inbox content after delivery, repeated summaries, and backward clock changes. Alarm delivery timing remains. |
+| Notifications | App selection, focus-only or all-day holding, scheduled private summaries, separate optional notification switches | Real notification updates, process restart, and duplicate delivery have device checks. JVM checks cover changed inbox content after delivery, repeated summaries, and backward clock changes. Alarm delivery timing remains. |
 | Protection | Blocks-tab lock, supported system-settings checks, schedule-editor checks, multi-window detection | Android permissions and OEM behavior limit enforcement. Multi-window and uninstall routes remain to test. |
 | Reports | Day, week, month, tags, daily average, productive, distracting, and uncategorized app time, unlocks, held counts, baseline time saved | Usage records persist locally. JVM checks cover midnight usage and category accounting. Time saved appears after seven recorded complete days. The UI shows all three categories and their total, and excludes essential apps from distracting time. |
 | Setup | Mascot questions, app selection, permissions, optional first focus | Device checks cover first launch and saved setup. |
 | Widgets | Done - screen-time, focus, goal, and calendar widgets | Widgets refresh after database commits. Launcher rendering appears in the demo. |
-| Backup | Versioned local JSON, validated restore, schema migrations | Android 9 checks cover schema 1 to 4. Storage checks cover round trip, invalid files, and protected restore. Schema 4 adds wardrobe and quest fields. |
+| Backup | Versioned local JSON, validated restore, schema migrations | Android 9 checks cover schema 1 to 4. Storage checks cover round trip, invalid files, and protected restore. Schema 4 adds wardrobe and quest fields. Schema 5 adds notification preferences, schedule icons, pet count, theme choice, and update-check preference. New migration checks remain pending. |
 
-Cloud sync, social focus rooms, leaderboards, friends, subscriptions, ads, and analytics are outside this offline app.
+Cloud sync, social focus rooms, leaderboards, friends, subscriptions, ads, and analytics are outside this app.
 
 The sound picker wraps six choices in rows of three. Theme labels remain outside rounded image clips.
 Real-app detection and manufacturer-specific permission flows need device coverage before a stable release.
@@ -62,3 +62,21 @@ Current validation includes successful debug builds and lint, plus progression c
 Android 9 also passed onboarding, home, storage, notifications, and planned focus.
 CI results are recorded for each branch revision in GitHub Actions.
 The previous Android workflow at `f9a10ac` passed both Android 9 and Android 16 jobs.
+
+## Changes after the last green revision
+
+Revision `c9b935d` passed Android 9 and Android 16 CI. That result does not cover the newer changes listed below.
+
+- Pebble's idle, happy, proud, thoughtful, sad, sleeping, and waving poses have different motion.
+- Recent focus habits determine the home mood. Rest days and freezes do not count as missed study days.
+- Petting progress is saved locally and can unlock a hidden outfit.
+- Schedule icons can be selected manually. Automatic icons still follow the start time.
+- Theme changes apply to the app, dialogs, and block screen without recreating the activity.
+- Optional focus notifications, planned reminders, and inbox summaries have separate switches.
+- GitHub update checks are optional. Downloads and installation each require a user action.
+
+Internet access now supports updates only. Focus features remain offline, and update requests do not upload app data.
+Local debug build and lint passed. Android 14 checks passed for schema 5 backups, pet unlock persistence, and muted inbox delivery.
+Pure JVM checks passed for mood rules and update URL, version, and signer policies.
+The live GitHub check reports no public release. The update switch cancels and restores the daily job.
+The complete signed update installation still needs a compatible release asset. Final revision CI remains to run.
