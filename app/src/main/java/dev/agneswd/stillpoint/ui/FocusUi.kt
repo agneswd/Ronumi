@@ -437,7 +437,7 @@ private fun GlassLabel(text: String, big: Boolean = false, modifier: Modifier = 
         textAlign = TextAlign.Center,
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.16f))
+            .background(Color.Black.copy(alpha = 0.55f))
             .padding(horizontal = 16.dp, vertical = if (big) 12.dp else 8.dp),
     )
 }
