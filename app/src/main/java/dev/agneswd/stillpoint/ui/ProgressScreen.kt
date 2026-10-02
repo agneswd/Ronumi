@@ -5,7 +5,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -60,6 +62,7 @@ import dev.agneswd.stillpoint.ui.design.Medal
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Pebble
 import dev.agneswd.stillpoint.ui.design.ScreenTitle
+import dev.agneswd.stillpoint.insights.Report
 import dev.agneswd.stillpoint.ui.design.Sp
 import dev.agneswd.stillpoint.ui.design.XpBolt
 import dev.agneswd.stillpoint.ui.design.appear
@@ -165,12 +168,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                 ChoiceButton(label, period == days, Modifier.weight(1f)) { period = days }
             }
         }
-        ListRow("${totals.focusMinutes} focus minutes", "${totals.averageMinutes} minutes a day across this period")
-        totals.tags.forEach { (tag, minutes) -> ListRow(tag, "$minutes focus minutes") }
-        ListRow("Productive screen time", formatDuration(totals.productiveMillis))
-        ListRow("Distracting screen time", formatDuration(totals.distractingMillis))
-        ListRow("Notifications held", "${totals.notificationsHeld} in this period")
-        ListRow("Time saved", totals.timeSavedMillis?.let(::formatDuration) ?: "Available after seven complete usage days")
+        ReportCard(totals, Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 12.dp).appear(200))
 
         SectionTitle("Screen time")
         ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(260)) {
@@ -248,6 +246,69 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
     }
 }
 
+/** The report for the chosen period: focus, where screen time went, tags, held notifications and time saved. */
+@Composable
+private fun ReportCard(totals: Report, modifier: Modifier) {
+    ChunkyCard(modifier.fillMaxWidth()) {
+        Column {
+            Text(formatMinutes(totals.focusMinutes.toInt()), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.brand)
+            Text("focus, ${formatMinutes(totals.averageMinutes.toInt())} a day on average", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+
+            val used = totals.productiveMillis + totals.distractingMillis
+            if (used > 0) {
+                Spacer(Modifier.height(18.dp))
+                Row(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp))) {
+                    val productive = totals.productiveMillis.toFloat() / used
+                    if (productive > 0f) Box(Modifier.weight(productive).fillMaxHeight().background(Sp.colors.mint))
+                    if (productive < 1f) Box(Modifier.weight(1f - productive).fillMaxHeight().background(Sp.colors.rose))
+                }
+                Spacer(Modifier.height(8.dp))
+                Row {
+                    Legend("Productive", formatDuration(totals.productiveMillis), Sp.colors.mint, Modifier.weight(1f))
+                    Legend("Distracting", formatDuration(totals.distractingMillis), Sp.colors.rose, Modifier.weight(1f))
+                }
+            }
+
+            if (totals.tags.isNotEmpty()) {
+                Spacer(Modifier.height(18.dp))
+                Text("By tag", style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+                val most = totals.tags.maxOf { it.second }.coerceAtLeast(1)
+                totals.tags.forEach { (tag, minutes) ->
+                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(tag, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.text, modifier = Modifier.width(96.dp), maxLines = 1)
+                        ShareBar(minutes.toFloat() / most, Modifier.weight(1f))
+                        Text(formatMinutes(minutes.toInt()), style = MaterialTheme.typography.titleSmall, color = Sp.colors.textDim, modifier = Modifier.padding(start = 10.dp))
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+            Box(Modifier.fillMaxWidth().height(2.dp).background(Sp.colors.border))
+            Spacer(Modifier.height(14.dp))
+            Row {
+                Column(Modifier.weight(1f)) {
+                    Text("${totals.notificationsHeld}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
+                    Text("notifications held", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(totals.timeSavedMillis?.let(::formatDuration) ?: "Soon", style = MaterialTheme.typography.titleLarge, color = Sp.colors.mintLip)
+                    Text(if (totals.timeSavedMillis == null) "time saved, after 7 days of data" else "time saved", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Legend(label: String, value: String, color: Color, modifier: Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(color))
+        Spacer(Modifier.width(6.dp))
+        Text("$label ", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+        Text(value, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+    }
+}
+
 @Composable
 private fun StatTile(icon: @Composable () -> Unit, value: String, label: String, modifier: Modifier) {
     ChunkyCard(modifier, contentPadding = 12.dp) {
@@ -308,10 +369,11 @@ private fun BadgeMedal(badge: Badge, size: androidx.compose.ui.unit.Dp) {
     val (fill, lip) = colors[kotlin.math.abs(badge.id.hashCode()) % colors.size]
     Box(contentAlignment = Alignment.Center) {
         Medal(fill, lip, locked = !badge.unlocked, size = size)
-        Text(
-            if (badge.unlocked) badgeLooks[badge.id] ?: "⭐" else "🔒",
-            style = if (size > 80.dp) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineSmall,
-        )
+        if (badge.unlocked) {
+            Text(badgeLooks[badge.id] ?: "⭐", style = if (size > 80.dp) MaterialTheme.typography.displaySmall else MaterialTheme.typography.headlineSmall)
+        } else {
+            Icon(painterResource(R.drawable.ic_lock), "Locked", tint = Sp.colors.textDim, modifier = Modifier.size(size * 0.34f))
+        }
     }
 }
 
