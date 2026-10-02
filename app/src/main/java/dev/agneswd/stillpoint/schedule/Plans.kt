@@ -20,8 +20,7 @@ import dev.agneswd.stillpoint.ui.MainActivity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /** Schedules persisted plans, notification batches, and focus phase boundaries. */
 object Plans {
@@ -32,12 +31,14 @@ object Plans {
 
     fun exactAllowed(context: Context): Boolean = Build.VERSION.SDK_INT < 31 || context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
 
-    /** Returns the next chosen local day and minute. Time-zone changes recalculate it. */
-    fun nextTime(minutes: Set<Int>, days: Int = 127, now: LocalDateTime = LocalDateTime.now()): Long? {
+    /** Resolves local times before comparing instants. An overlapping time runs once, at its first occurrence. */
+    fun nextTime(minutes: Set<Int>, days: Int = 127, now: ZonedDateTime = ZonedDateTime.now()): Long? {
         return (0..7).flatMap { offset ->
             val date = now.toLocalDate().plusDays(offset.toLong())
-            if (days and dayBit(date.dayOfWeek) == 0) emptyList() else minutes.map { date.atTime(it / 60, it % 60) }
-        }.filter { it > now }.minOrNull()?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+            if (days and dayBit(date.dayOfWeek) == 0) emptyList() else minutes.map {
+                date.atTime(it / 60, it % 60).atZone(now.zone).toInstant()
+            }
+        }.filter { it > now.toInstant() }.minOrNull()?.toEpochMilli()
     }
 
     suspend fun refresh(context: Context) = lock.withLock {
