@@ -93,7 +93,12 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
     val records by app.dao.usageDays().collectAsState(emptyList())
     var period by remember { mutableIntStateOf(7) }
     val s = settings ?: return
-    val totals = remember(sessions, records, s, period) { report(sessions, records, s, period) }
+    val essentials by produceState(emptySet<String>(), refresh) {
+        value = withContext(Dispatchers.IO) { app.catalog.essentials() }
+    }
+    val totals = remember(sessions, records, s, period, essentials) {
+        report(sessions, records, s, period, essentialPackages = essentials)
+    }
     val g = game ?: return
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -259,19 +264,28 @@ private fun ReportCard(totals: Report, modifier: Modifier) {
             Text(formatMinutes(totals.focusMinutes.toInt()), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.brand)
             Text("focus, ${formatMinutes(totals.averageMinutes.toInt())} a day on average", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
 
-            val used = totals.productiveMillis + totals.distractingMillis
+            val used = totals.screenMillis
             if (used > 0) {
                 Spacer(Modifier.height(18.dp))
-                Row(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp))) {
-                    val productive = totals.productiveMillis.toFloat() / used
-                    if (productive > 0f) Box(Modifier.weight(productive).fillMaxHeight().background(Sp.colors.mint))
-                    if (productive < 1f) Box(Modifier.weight(1f - productive).fillMaxHeight().background(Sp.colors.rose))
-                }
+                Text("${formatDuration(used)} screen time in this period", style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
                 Spacer(Modifier.height(8.dp))
-                Row {
-                    Legend("Productive", formatDuration(totals.productiveMillis), Sp.colors.mint, Modifier.weight(1f))
-                    Legend("Distracting", formatDuration(totals.distractingMillis), Sp.colors.rose, Modifier.weight(1f))
+                val categories = listOf(
+                    Triple("Productive", totals.productiveMillis, Sp.colors.mint),
+                    Triple("Distracting", totals.distractingMillis, Sp.colors.rose),
+                    Triple("Other apps", totals.uncategorizedMillis, Sp.colors.textDim),
+                )
+                Row(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp))) {
+                    categories.forEach { (_, duration, color) ->
+                        if (duration > 0) Box(Modifier.weight(duration.toFloat() / used).fillMaxHeight().background(color))
+                    }
                 }
+                categories.forEach { (label, duration, color) ->
+                    Spacer(Modifier.height(8.dp))
+                    Legend(label, formatDuration(duration), color, Modifier.fillMaxWidth())
+                }
+                Text("Productive apps are your choices. Distracting apps follow your focus block list. Other apps are the rest.",
+                    style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                    modifier = Modifier.padding(top = 8.dp))
             }
 
             if (totals.tags.isNotEmpty()) {
