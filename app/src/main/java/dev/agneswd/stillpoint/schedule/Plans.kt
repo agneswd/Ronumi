@@ -44,23 +44,23 @@ object Plans {
     suspend fun refresh(context: Context) = lock.withLock {
         val dao = context.app.dao
         val manager = context.getSystemService(AlarmManager::class.java)
-        listOf(PLAN, DELIVERY, PHASE).forEach { manager.cancel(pending(context, it)) }
         val preferences = context.getSharedPreferences("plans", Context.MODE_PRIVATE)
         val candidates = dao.allSchedules().filter { it.enabled && it.startFocus }.mapNotNull { s ->
             val snoozed = preferences.getLong("snooze-${s.id}", 0)
             val at = if (snoozed > System.currentTimeMillis()) snoozed else nextTime(setOf(s.startMinute), s.days)
             at?.let { s to it }
         }
-        candidates.minByOrNull { it.second }?.let { (plan, at) ->
-            schedule(context, PLAN, at, plan.id)
-        }
         val s = dao.currentSettings()
-        nextTime(s.notificationDeliveryTimes.mapNotNull(String::toIntOrNull).toSet())?.let {
-            schedule(context, DELIVERY, it)
-        }
-        dao.activeFocus()?.takeIf { it.running }?.let {
-            schedule(context, PHASE, maxOf(it.phaseEndsAt, System.currentTimeMillis() + 100), it.startedAt)
-        }
+        val plan = candidates.minByOrNull { it.second }
+        val delivery = nextTime(s.notificationDeliveryTimes.mapNotNull(String::toIntOrNull).toSet())
+        val focus = dao.activeFocus()?.takeIf { it.running }
+        // AlarmManager replaces a matching PendingIntent. A process kill must not leave a cancel/set gap.
+        if (plan == null) manager.cancel(pending(context, PLAN))
+        else schedule(context, PLAN, plan.second, plan.first.id)
+        if (delivery == null) manager.cancel(pending(context, DELIVERY))
+        else schedule(context, DELIVERY, delivery)
+        if (focus == null) manager.cancel(pending(context, PHASE))
+        else schedule(context, PHASE, maxOf(focus.phaseEndsAt, System.currentTimeMillis() + 100), focus.startedAt)
     }
 
     private fun pending(context: Context, kind: String, at: Long = 0, id: Long = 0): PendingIntent {
