@@ -87,8 +87,58 @@ Migration 4 to 5 adds columns without replacing existing data:
 | Settings | `autoUpdateChecks` | `true` |
 | Schedule | `icon` | `auto` |
 
-Backup validation checks theme and icon IDs. Missing fields in old backups receive the defaults.
+Backup validation checks theme and icon IDs. Missing fields in older record schemas receive the defaults.
 The pet counter persists locally and controls a hidden wardrobe reward.
+
+## Schema 6 and focus timing
+
+Migration 5 to 6 adds these fields without removing existing rows:
+
+| Table | Field | Default |
+| --- | --- | --- |
+| Settings | `freezeRewardedThrough` | Empty string |
+| FocusSession, ActiveFocus | `rewardDay` | Empty string |
+| FocusSession, ActiveFocus | `rewardStartHour` | `-1` |
+| ActiveFocus | `phaseElapsedMillis` | `0` |
+| ActiveFocus | `phaseAnchorElapsed` | `-1` |
+| ActiveFocus | `bootCount` | `-1` |
+
+The migration computes elapsed progress for an existing phase from its old wall timestamps.
+Paused phases use their pause timestamp. Running phases use the migration time. Values stay within the phase duration.
+This one-time conversion cannot distinguish earlier clock edits from elapsed time.
+
+New focus phases measure elapsed time with Android's monotonic clock. The service saves checkpoints every 30 seconds and at transitions.
+Wall-clock and time-zone changes do not add focus minutes. After reboot, the session resumes from its last saved checkpoint.
+Powered-off time does not count. Time since the last checkpoint can be lost on reboot.
+
+New sessions save their original reward date and start hour. Legacy sessions still derive these values from their timestamps and the current time zone.
+Reward dates do not split an overnight session between days. The calendar, reports, and widgets use the saved reward date.
+Freeze rewards store the latest rewarded milestone to prevent replay after a clock rollback.
+Local pass counters survive backup restore, while restored active passes expire.
+These checks do not make a user-controlled, offline device a trusted source of time.
+
+## Encrypted backups
+
+The file picker creates `.stillpoint` files. The export dialog requires a password of at least 12 characters.
+Passwords stay in memory and are not saved in preferences or UI restoration state. There is no password recovery.
+A password can restore the file on another device. Plaintext JSON imports are deliberately unsupported.
+
+The version-1 envelope uses AES-256-GCM with a 128-bit authentication tag, a random 16-byte salt, and a random 12-byte nonce.
+PBKDF2-HMAC-SHA256 derives the key with 600,000 iterations, following [OWASP guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+The version fixes the derivation cost. An input file cannot request more iterations.
+
+The authenticated header contains the eight-byte `STLPBAK!` marker, one-byte version, four-byte big-endian plaintext length, salt, and nonce.
+Plaintext is limited to 16 MiB. The envelope adds 57 bytes, including the authentication tag.
+Authentication and record validation finish before the restore transaction changes any rows.
+Wrong passwords and authentication failures share one error. Unsupported formats receive a separate explanation.
+
+Validation bounds collection sizes and limits one session to 48 focus hours, the maximum twelve-round Pomodoro duration.
+Restore remains locked during active focus or a protected schedule. One app-wide operation state prevents overlapping UI backup operations.
+The debug storage fixture checks encrypted round trip, tampering, wrong passwords, invalid records, and retained local pass counts.
+The Android 9 encrypted storage workflow passes, including wrong passwords, altered files, invalid records, and retained pass counts.
+
+Encryption protects backup contents from someone without the password. A password owner can still create modified records.
+Do not describe this as an anti-cheat guarantee. Export excludes held notification text, active sessions, and temporary passes.
 
 ## Built-in updates
 

@@ -72,8 +72,10 @@ Automatic Android backup is disabled.
 Internet access is used only to check GitHub for updates and download an update you choose.
 Focus and blocking work without a connection.
 
-You can export and restore a local backup in Settings. These files contain settings and history, but exclude held message text,
-active sessions, and temporary passes. Backups are not encrypted, so keep them somewhere private.
+Save a password-protected backup in Settings to move your settings and history to another phone.
+Choose a password with at least 12 characters and keep it safe. Stillpoint cannot recover a forgotten password.
+Backups exclude held message text, active sessions, and temporary passes. Restoring a backup does not refill used passes on the same phone.
+Only encrypted Stillpoint backups are accepted; older unencrypted JSON files cannot be restored.
 
 <details>
 <summary>Which permissions does Stillpoint need?</summary>

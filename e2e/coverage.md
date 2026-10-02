@@ -163,3 +163,39 @@ Local checks for the new work passed:
 A source review checked the updater and found no remaining security blocker.
 It also found a forced-theme system-bar mismatch, which was corrected before the final build.
 A real signed update installation remains unverified because the repository has no public stable release yet.
+
+## Encrypted backups and schema 6
+
+The backup format now requires a password. Earlier plaintext-backup device results do not verify this implementation.
+The existing storage workflow now covers encrypted export and restore, one authenticated invalid record, wrong passwords,
+changed ciphertext, plaintext rejection, and retained local pass counts. Other invalid record cases exercise validation directly.
+The fixture preserves the device's original pass rows after the check. It uses a debug-only password.
+
+A throwaway JVM harness was written before implementation. It now passes these crypto cases:
+
+- The correct password restores the original bytes, including Unicode text.
+- Repeated exports produce different encrypted bytes.
+- Wrong passwords, modified salt or nonce, and changed ciphertext fail authentication.
+- Truncated, appended, oversized, plaintext, and unsupported-version input is rejected.
+- The caller's password array remains unchanged, and an empty password is rejected.
+
+Android 9 passed all seven CI scenarios in `20261002-175503`, with no crashes.
+The storage artifact confirms encrypted round trip, wrong-password and tamper rejection, validated records, and retained pass counts.
+Migration preserved schema 1 records through schema 6. Planned focus completed after a real minute.
+
+The clock JVM harness passed clock jumps, pauses, reboot checkpoint recovery, reward dates, freeze replay, and bounded XP.
+These checks do not substitute for device lifecycle checks. Remaining manual checks include:
+
+- Schema 1 through 5 upgrades preserve records and progress in running or paused phases.
+- Passwords do not survive activity recreation. A running backup stays marked busy after leaving and returning to Settings.
+- Wrong passwords, altered files, and invalid authenticated records leave stored data unchanged.
+- Restoring an older backup preserves used passes and expires active passes.
+- Wall-clock jumps do not add focus minutes or complete a phase early.
+- Pause, resume, process death, and reboot keep the expected checkpoint and remaining duration.
+- A reboot does not count powered-off time. Any lost time is limited to the unsaved interval.
+- New reward dates remain stable across time-zone changes, while legacy history retains its compatibility behavior.
+- Returning to an old date cannot grant an already rewarded freeze milestone again.
+- Large or invalid focus totals cannot overflow XP arithmetic or hang level calculation.
+
+The new crypto JVM result does not prove Android provider behavior, file-picker access, or lifecycle handling.
+Local artifacts are in `e2e/artifacts/20261002-175503/`. They are not uploaded or committed.

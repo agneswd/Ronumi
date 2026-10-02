@@ -24,7 +24,7 @@ This map compares product behavior. It does not claim complete Regain parity.
 | Reports | Day, week, month, tags, daily average, productive, distracting, and uncategorized app time, unlocks, held counts, baseline time saved | Usage records persist locally. JVM checks cover midnight usage and category accounting. Time saved appears after seven recorded complete days. The UI shows all three categories and their total, and excludes essential apps from distracting time. |
 | Setup | Mascot questions, app selection, permissions, optional first focus | Device checks cover first launch and saved setup. |
 | Widgets | Done - screen-time, focus, goal, and calendar widgets | Widgets refresh after database commits. Launcher rendering appears in the demo. |
-| Backup | Versioned local JSON, validated restore, schema migrations | Android 9 checks cover schema 1 to 4. Storage checks cover round trip, invalid files, and protected restore. Schema 4 adds wardrobe and quest fields. Schema 5 adds notification preferences, schedule icons, pet count, theme choice, and update-check preference. New migration checks remain pending. |
+| Backup | Portable password-encrypted files, authenticated and validated restore, schema migrations | Pure JVM crypto and clock checks pass. Android 9 checks pass for encrypted round trip, failure handling, retained pass counts, and schema 1 to 6 migration. |
 
 Cloud sync, social focus rooms, leaderboards, friends, subscriptions, ads, and analytics are outside this app.
 
@@ -44,11 +44,11 @@ The report shows other apps and the complete screen-time total for the chosen pe
 
 The backend review found these remaining data and timing limits:
 
-- Active focus timestamps use wall time. Manual clock edits can change the remaining duration. A durable elapsed-time design needs a separate change.
-- Focus reports assign a session to its start date in the current time zone. Midnight sessions and time-zone changes can change daily totals.
+- Active focus now uses monotonic elapsed time with saved checkpoints. A reboot can lose time since the last checkpoint; powered-off time does not count.
+- New sessions retain their original reward date and hour. Legacy history still depends on the current time zone.
+- Overnight sessions still count toward one reward date. The model has no per-day focus intervals.
 - Held-message counts increase only for a new inbox key. Updating an existing key on another day does not increase that day's count.
 
-The current data model has no per-day focus intervals or durable elapsed-time anchor.
 Held-message counting needs a separate review. Backup validation now accepts civil days longer than 24 hours, with a bounded 48-hour allowance.
 
 The wardrobe stores item IDs in settings. It rechecks the current level inside a database transaction before equipping an item.
@@ -80,3 +80,18 @@ Local debug build and lint passed. Android 14 checks passed for schema 5 backups
 Pure JVM checks passed for mood rules and update URL, version, and signer policies.
 The live GitHub check reports no public release. The update switch cancels and restores the daily job.
 The complete signed update installation still needs a compatible release asset. Final revision CI remains to run.
+
+## Encrypted backups and stable focus timing
+
+Backups now require a password and use authenticated AES-256-GCM encryption. Plaintext JSON imports are no longer supported.
+The export dialog requires at least 12 characters. Passwords are not persisted, and there is no recovery mechanism.
+A restore keeps local pass-use counters and expires active passes. It cannot refill that device's daily pass budget.
+Encryption does not stop a password owner from editing records or make an offline clock trustworthy.
+
+Schema 6 adds monotonic phase checkpoints and stable reward dates. The migration preserves an existing phase's wall-time progress once.
+Later wall-clock changes cannot award extra elapsed focus time. New freeze milestones cannot replay after a backward clock change.
+Android 9 checks pass for schema migration, encrypted storage, progression, notifications, and a real scheduled focus session.
+Pure JVM checks cover clock jumps, pause, reboot checkpoints, stable reward dates, XP bounds, and freeze replay.
+Physical-device reboot and clock-change behavior remain unverified.
+The pure JVM crypto harness passed round trip, wrong-password, header and ciphertext tampering, truncation, size limits, and unsupported formats.
+Debug build and lint pass. CI for this batch is pending.
