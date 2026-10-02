@@ -254,6 +254,7 @@ private fun App(navigator: Navigator) {
             dev.agneswd.stillpoint.game.PebbleStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1, s?.petTapCount ?: 0),
     ) {
         Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
+            SecretReveal()
             val running = focus
             val celebrateId = celebrate
             val route = navigator.stack.lastOrNull()
