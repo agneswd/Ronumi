@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sound
+import dev.agneswd.stillpoint.ui.design.Sfx
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -230,6 +232,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             kind = ButtonKind.MINT,
             icon = painterResource(R.drawable.ic_play),
             height = 58.dp,
+            sound = Sound.START,
         )
     }
 }
@@ -346,6 +349,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                     Modifier.fillMaxWidth(),
                     kind = if (focus.running) ButtonKind.SECONDARY else ButtonKind.MINT,
                     icon = painterResource(if (focus.running) R.drawable.ic_pause else R.drawable.ic_play),
+                    sound = if (focus.running) Sound.TOGGLE_OFF else Sound.TOGGLE_ON,
                 )
             }
             if (!focus.strict) {
@@ -353,7 +357,10 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                     "GIVE UP",
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { askGiveUp = true }.padding(14.dp),
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
+                        Sfx.play(Sound.TAP)
+                        askGiveUp = true
+                    }.padding(14.dp),
                 )
             } else {
                 Text("Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
@@ -385,6 +392,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                         },
                         Modifier.fillMaxWidth(),
                         kind = ButtonKind.GHOST,
+                        sound = Sound.GIVE_UP,
                     )
                 }
             }
@@ -441,7 +449,20 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
     val xpGained = after.xp - before.xp
     val streakUp = after.streak > before.streak
     val levelUp = after.level.number > before.level.number
+    val questsDone = after.quests.count { it.done } > before.quests.count { it.done }
     var notes by remember { mutableStateOf(session.notes) }
+    // The reward sounds play in the same order as the reward animations.
+    LaunchedEffect(sessionId) {
+        Sfx.play(if (session.completed) Sound.COMPLETE else Sound.TAP)
+        if (questsDone) {
+            kotlinx.coroutines.delay(900)
+            Sfx.play(Sound.QUEST)
+        }
+        if (streakUp || levelUp) {
+            kotlinx.coroutines.delay(700)
+            Sfx.play(if (levelUp) Sound.LEVEL_UP else Sound.STREAK)
+        }
+    }
     var noteOpen by remember { mutableStateOf(false) }
     BackHandler(onBack = onDone)
 

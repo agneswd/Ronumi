@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint
 
+import dev.agneswd.stillpoint.ui.design.Sfx
+
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -27,6 +29,7 @@ class StillpointApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Sfx.init(this)
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannels(
             listOf(

@@ -216,10 +216,7 @@ fun ScheduleCard(schedule: Schedule, modifier: Modifier = Modifier, onClick: () 
                 Text(schedule.name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
                 Text(scheduleSummary(schedule), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim, textAlign = TextAlign.Start)
             }
-            Switch(
-                schedule.enabled, onToggle,
-                colors = SwitchDefaults.colors(checkedTrackColor = Sp.colors.mint, uncheckedTrackColor = Sp.colors.surfaceHigh, uncheckedBorderColor = Sp.colors.border),
-            )
+            MintSwitch(schedule.enabled, onToggle)
         }
     }
 }

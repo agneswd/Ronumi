@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.guard
 
+import dev.agneswd.stillpoint.ui.design.Sound
+import dev.agneswd.stillpoint.ui.design.Sfx
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -79,6 +81,7 @@ class BlockActivity : ComponentActivity() {
         val gentle = intent.getBooleanExtra(EXTRA_GENTLE, false)
         // The E2E test reads this line. UI dumps would pause the guard, so it cannot read the screen.
         Log.i("Stillpoint", "block shown: $title")
+        Sfx.play(Sound.BLOCK)
         // Most blocks leave the user on the home screen. A Shorts block returns to the rest of the app.
         val leave = { if (kind in homeKinds) goHome() else finish() }
         setContent {

@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sound
+import dev.agneswd.stillpoint.ui.design.Sfx
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -293,7 +295,10 @@ private fun TabBar(navigator: Navigator) {
                 Column(
                     Modifier
                         .weight(1f)
-                        .clickable(remember { MutableInteractionSource() }, indication = null) { navigator.tab = tab }
+                        .clickable(remember { MutableInteractionSource() }, indication = null) {
+                            if (navigator.tab != tab) Sfx.play(Sound.TAP)
+                            navigator.tab = tab
+                        }
                         .padding(vertical = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {

@@ -39,6 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -77,8 +79,10 @@ fun ChunkyButton(
     enabled: Boolean = true,
     icon: Painter? = null,
     height: Dp = 54.dp,
+    sound: Sound? = Sound.TAP,
 ) {
     val source = remember { MutableInteractionSource() }
+    val haptics = LocalHapticFeedback.current
     val pressed by source.collectIsPressedAsState()
     val colors = if (enabled) colorsFor(kind) else ButtonColors(Sp.colors.surfaceHigh, Sp.colors.border, Sp.colors.textDim, null)
     val lip = if (kind == ButtonKind.GHOST) 0.dp else Lip
@@ -87,7 +91,11 @@ fun ChunkyButton(
     Box(
         modifier
             .height(height + lip)
-            .clickable(source, indication = null, enabled = enabled, onClick = onClick),
+            .clickable(source, indication = null, enabled = enabled) {
+                haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                sound?.let(Sfx::play)
+                onClick()
+            },
         // The caller's width becomes the face's minimum width. Without one, the button fits its label.
         propagateMinConstraints = true,
     ) {
@@ -132,18 +140,28 @@ fun ChunkyCard(
     selected: Boolean = false,
     fill: Color = Sp.colors.background,
     contentPadding: Dp = 16.dp,
+    sound: Sound = Sound.TAP,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val c = Sp.colors
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
+    val haptics = LocalHapticFeedback.current
     val border = if (selected) c.brand else c.border
     val body = if (selected) c.brandSoft else fill
     val lipPx = 4.dp
     val sink by animateDpAsState(if (pressed) lipPx - 1.dp else 0.dp, spring(stiffness = Spring.StiffnessHigh), label = "cardSink")
     Box(
         modifier
-            .then(if (onClick != null) Modifier.clickable(source, indication = null, onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(source, indication = null) {
+                        haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        Sfx.play(sound)
+                        onClick()
+                    }
+                } else Modifier,
+            )
             .padding(bottom = lipPx)
             .drawBehind {
                 val r = CornerRadius(18.dp.toPx())

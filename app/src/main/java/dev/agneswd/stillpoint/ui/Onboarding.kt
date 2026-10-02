@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sound
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -254,7 +255,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
         if (multi) Text("Pick all that fit.", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim, modifier = Modifier.padding(bottom = 8.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             options.forEachIndexed { i, option ->
-                ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(option.value) }, selected = option.value in selected) {
+                ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(option.value) }, selected = option.value in selected, sound = Sound.SELECT) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(option.emoji, style = MaterialTheme.typography.headlineMedium)
                         Spacer(Modifier.width(16.dp))
@@ -273,7 +274,7 @@ private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () 
         PebbleSays("When do you want to focus each day?", Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             DayPart.entries.forEachIndexed { i, part ->
-                ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(part) }, selected = part == selected, contentPadding = 12.dp) {
+                ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(part) }, selected = part == selected, contentPadding = 12.dp, sound = Sound.SELECT) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         DayPartIcon(part)
                         Spacer(Modifier.width(16.dp))
@@ -324,7 +325,7 @@ private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: 
                 }
             }
         }
-        ChunkyButton("Sounds great", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp))
+        ChunkyButton("Sounds great", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp), sound = Sound.QUEST)
     }
 }
 
@@ -395,7 +396,7 @@ private fun FirstFocus(onStart: () -> Unit, onSkip: () -> Unit) {
         Spacer(Modifier.weight(1f))
         PebbleSays("Let's try a 2 minute focus together. You'll see how it feels!", Mood.HAPPY, Modifier.fillMaxWidth(), side = false, pebbleSize = 170.dp)
         Spacer(Modifier.weight(1f))
-        ChunkyButton("Start 2 minute focus", onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play))
+        ChunkyButton("Start 2 minute focus", onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play), sound = Sound.START)
         ChunkyButton("Maybe later", onSkip, Modifier.fillMaxWidth().padding(top = 4.dp), kind = ButtonKind.GHOST)
     }
 }

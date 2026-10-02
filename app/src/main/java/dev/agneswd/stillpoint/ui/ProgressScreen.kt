@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.ui.design.Sound
+import dev.agneswd.stillpoint.ui.design.Sfx
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -214,7 +216,10 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
             g.badges.chunked(3).forEachIndexed { row, chunk ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     chunk.forEachIndexed { i, badge ->
-                        BadgeView(badge, Modifier.weight(1f).popIn(300 + (row * 3 + i) * 60)) { openBadge = badge }
+                        BadgeView(badge, Modifier.weight(1f).popIn(300 + (row * 3 + i) * 60)) {
+                            Sfx.play(if (badge.unlocked) Sound.QUEST else Sound.TAP)
+                            openBadge = badge
+                        }
                     }
                     repeat(3 - chunk.size) { Spacer(Modifier.weight(1f)) }
                 }

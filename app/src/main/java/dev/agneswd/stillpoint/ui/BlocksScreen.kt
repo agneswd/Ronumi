@@ -55,6 +55,8 @@ import dev.agneswd.stillpoint.ui.design.Flame
 import dev.agneswd.stillpoint.ui.design.Mood
 import dev.agneswd.stillpoint.ui.design.Pebble
 import dev.agneswd.stillpoint.ui.design.ScreenTitle
+import dev.agneswd.stillpoint.ui.design.Sfx
+import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sp
 import dev.agneswd.stillpoint.ui.design.appear
 import dev.agneswd.stillpoint.ui.design.popIn
@@ -248,7 +250,11 @@ private fun AddButton(label: String, onClick: () -> Unit) {
 @Composable
 fun MintSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
     Switch(
-        checked, onChange,
+        checked,
+        { on ->
+            Sfx.play(if (on) Sound.TOGGLE_ON else Sound.TOGGLE_OFF)
+            onChange(on)
+        },
         colors = SwitchDefaults.colors(checkedTrackColor = Sp.colors.mint, uncheckedTrackColor = Sp.colors.surfaceHigh, uncheckedBorderColor = Sp.colors.border),
     )
 }

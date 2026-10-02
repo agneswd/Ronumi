@@ -1,5 +1,9 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import dev.agneswd.stillpoint.ui.design.Sfx
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -80,6 +84,15 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                             app.scope.launch { app.dao.updateSettings { it.copy(productivePackages = picked) } }
                         })
                     }) { Chevron() }
+                }
+            }
+
+            SectionTitle("Sound")
+            Group {
+                var sounds by remember { mutableStateOf(Sfx.enabled) }
+                SwitchRow("Sound effects", "Taps, rewards and Pebble's reactions. They follow the media volume.", sounds) { on ->
+                    Sfx.enabled = on
+                    sounds = on
                 }
             }
 
