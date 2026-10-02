@@ -26,3 +26,39 @@ Each run must save screenshots, a report, and the crash log.
 
 Real YouTube, Instagram, Snapchat, and Facebook checks need compatible installed apps.
 Report an unavailable app as a validation gap. A fixture does not prove real-app detection.
+
+## Backend checks completed
+
+Pure-JVM checks use the production sample generator and compiled application classes.
+They cover these behavior gaps:
+
+- Rain and waves clip, have a DC offset, differ greatly in volume, or cannot render faster than playback.
+- Output buffers reset noise filters or the wave envelope. Stop and restart omit the short fade.
+- DST local-time comparison selects a past autumn alarm or skips a future spring alarm.
+- A DST gap changes candidate order. Alarm selection must compare resolved instants.
+- Overnight windows use the end day's mask, include the end minute, or fail at the Sunday-to-Monday boundary.
+- Midnight screen-off and pause events count the same foreground interval twice.
+- A saved gentle pass bypasses a limit after its mode becomes strict.
+- Disabling short Pomodoro breaks also removes the fourth-round long break.
+- Notification summaries omit changed text on an existing inbox row, or repeat an unchanged row.
+- Rest days break streaks, frozen days count as focus days, or a missed day removes an earned badge.
+- Daily usage boundaries assume every local day has 24 hours.
+
+Rain and waves use mono 16-bit PCM at 22,050 Hz. The 20-second renders have no clipped samples.
+Rain peak/RMS is 0.587/0.131. Waves peak/RMS is 0.817/0.140. Existing noise RMS is 0.138 to 0.144.
+The throwaway audio harness was removed. No audio files are needed by the app.
+
+## Device checks still required
+
+- Render sound controls and listen for start, stop, switch, and rapid pause/resume clicks.
+- Move the clock backward while a blocked app remains open. Content checks and block screens must continue.
+- Cross midnight with a foreground app, a used pass, and an overnight protected schedule.
+- Reboot with a pending plan, a snoozed plan, and a running focus session.
+- Change the time zone around a pending plan and notification delivery time.
+- Deliver during the spring gap and autumn overlap. Confirm one delivery per resolved occurrence.
+- Apply a freeze twice and cross a week reward boundary after rest days and missed days.
+- Complete multiple Pomodoro rounds, including zero short breaks and zero long breaks.
+- Scroll the smaller onboarding viewport to the fifth choice. CI uses the existing 1080x2400 test viewport.
+
+CI runs on the backend branch and the PR. It uploads APKs and lint reports only.
+It prints failure diagnostics from the disposable CI device. It does not upload e2e/artifacts/.
