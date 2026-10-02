@@ -186,13 +186,34 @@ private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float) {
 
 /** Arms folded over the belly: strict and not moving. */
 private fun DrawScope.drawCrossedArms(u: Float) {
-    val back = listOf(Offset(18f * u, 76f * u), Offset(64f * u, 87f * u))
-    val front = listOf(Offset(82f * u, 76f * u), Offset(36f * u, 87f * u))
-    listOf(back, front).forEach { (from, to) ->
-        drawLine(BodyShade, from, to, 15.5f * u, StrokeCap.Round)
-        drawLine(BodyBottom, from, to, 13f * u, StrokeCap.Round)
-        drawCircle(BodyTop.copy(alpha = 0.55f), 2.6f * u, to + Offset(if (to.x > from.x) -2f * u else 2f * u, -1.5f * u))
+    val back = Path().apply {
+        moveTo(15f * u, 63f * u)
+        cubicTo(5f * u, 65f * u, 8f * u, 84f * u, 22f * u, 88f * u)
+        cubicTo(35f * u, 91f * u, 53f * u, 83f * u, 66f * u, 77f * u)
+        cubicTo(74f * u, 73f * u, 69f * u, 65f * u, 62f * u, 68f * u)
+        lineTo(29f * u, 78f * u)
+        quadraticTo(21f * u, 77f * u, 23f * u, 67f * u)
+        quadraticTo(22f * u, 63f * u, 15f * u, 63f * u)
+        close()
     }
+    drawPath(back, BodyBottom)
+    val front = Path().apply {
+        moveTo(85f * u, 63f * u)
+        cubicTo(96f * u, 67f * u, 91f * u, 88f * u, 77f * u, 90f * u)
+        cubicTo(63f * u, 92f * u, 46f * u, 86f * u, 32f * u, 80f * u)
+        cubicTo(24f * u, 77f * u, 28f * u, 69f * u, 36f * u, 71f * u)
+        lineTo(70f * u, 80f * u)
+        quadraticTo(79f * u, 79f * u, 77f * u, 68f * u)
+        quadraticTo(78f * u, 63f * u, 85f * u, 63f * u)
+        close()
+    }
+    drawPath(front, Brush.verticalGradient(listOf(BodyTop, BodyBottom), 63f * u, 91f * u))
+    // A single lower seam separates the folded arms without outlining the shoulders.
+    val fold = Path().apply {
+        moveTo(35f * u, 81f * u)
+        cubicTo(48f * u, 86f * u, 65f * u, 91f * u, 77f * u, 89f * u)
+    }
+    drawPath(fold, BodyShade.copy(alpha = 0.6f), style = Stroke(1.8f * u, cap = StrokeCap.Round))
 }
 
 private fun DrawScope.drawSprout(mood: Mood, u: Float, b: Float, wave: Float) {
@@ -258,9 +279,7 @@ private fun DrawScope.drawFace(mood: Mood, u: Float, blink: Float, look: Offset)
         }
         Mood.SLEEPY -> {
             listOf(left, right).forEach { e ->
-                drawOval(Color.White, Offset(e.x - 10f * u, e.y - 1f * u), Size(20f * u, 9f * u))
-                drawCircle(Ink, 4.5f * u, Offset(e.x, e.y + 4f * u))
-                drawLine(BodyBottom, Offset(e.x - 11f * u, e.y), Offset(e.x + 11f * u, e.y), 3.2f * u, StrokeCap.Round)
+                drawArc(Ink, 20f, 140f, false, Offset(e.x - 8f * u, e.y - 6f * u), Size(16f * u, 10f * u), style = stroke)
             }
         }
         else -> {
