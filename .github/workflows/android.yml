@@ -48,7 +48,7 @@ jobs:
           api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
-          profile: pixel_7
+          profile: pixel_2
           script: python3 .github/scripts/verify_android.py --only schema_upgrade,onboarding,today_screen,storage_workflow,notification_workflow,planned_focus_workflow
       - name: Save build files and lint reports
         if: always()
