@@ -458,9 +458,13 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
             kotlinx.coroutines.delay(900)
             Sfx.play(Sound.QUEST)
         }
-        if (streakUp || levelUp) {
+        if (levelUp) {
             kotlinx.coroutines.delay(700)
-            Sfx.play(if (levelUp) Sound.LEVEL_UP else Sound.STREAK)
+            Sfx.play(Sound.LEVEL_UP)
+        }
+        if (streakUp) {
+            kotlinx.coroutines.delay(if (levelUp) 1_500 else 700)
+            Sfx.play(Sound.STREAK)
         }
     }
     var noteOpen by remember { mutableStateOf(false) }
