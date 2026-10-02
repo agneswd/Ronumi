@@ -41,7 +41,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
     val access = rememberAccess()
-    var showPermissions by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val showPermissions = navigator.showPermissions
     val settings by app.dao.settings().collectAsState(null)
     val schedules by app.dao.schedules().collectAsState(emptyList())
     val focus by app.dao.activeFocusFlow().collectAsState(null)
@@ -68,7 +68,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
         Column(Modifier.weight(1f).verticalScroll(navigator.settingsScroll)) {
             SectionTitle("Permissions")
             if (access.allAllowed) {
-                ListRow("All permissions allowed", if (showPermissions) "Hide details" else "Review permissions", onClick = { showPermissions = !showPermissions })
+                ListRow("All permissions allowed", if (showPermissions) "Hide details" else "Review permissions", onClick = { navigator.showPermissions = !showPermissions })
             }
             if (!access.allAllowed || showPermissions) {
                 Column(Modifier.padding(horizontal = ScreenPadding)) {

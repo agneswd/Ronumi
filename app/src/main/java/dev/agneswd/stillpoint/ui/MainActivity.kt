@@ -102,6 +102,7 @@ sealed interface Route {
 /** Opens new screens. The tabs and editors get it instead of a navigation library. */
 class Navigator : androidx.lifecycle.ViewModel() {
     val settingsScroll = androidx.compose.foundation.ScrollState(0)
+    var showPermissions by mutableStateOf(false)
     var tab by mutableStateOf(Tab.HOME)
     val stack = mutableStateListOf<Route>()
 
