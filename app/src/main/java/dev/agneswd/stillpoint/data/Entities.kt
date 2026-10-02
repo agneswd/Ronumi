@@ -26,6 +26,18 @@ enum class FocusSound { OFF, WHITE, PINK, BROWN }
 
 enum class FocusPhase { FOCUS, BREAK }
 
+/** How a focus session counts time. */
+enum class TimerMode {
+    /** One countdown. */
+    TIMER,
+
+    /** Counts up until the user stops it. */
+    STOPWATCH,
+
+    /** Focus rounds with short breaks and a long break after every fourth round. */
+    POMODORO,
+}
+
 /** A daily time budget for one app. The day resets at local midnight. */
 @Serializable
 @Entity
@@ -104,6 +116,20 @@ data class Settings(
     val protection: Boolean = false,
     val heldPackages: Set<String> = emptySet(),
     val holdAlways: Boolean = false,
+    val timerMode: TimerMode = TimerMode.TIMER,
+    val longBreakMinutes: Int = 15,
+    val focusTheme: String = "LAKE",
+    /** True after the first-launch setup. */
+    val onboarded: Boolean = false,
+    /** Answers from the setup questions. */
+    val purpose: String = "",
+    val distractions: Set<String> = emptySet(),
+    /** Streak freezes the user holds. One is used up for each missed day. */
+    val streakFreezes: Int = 1,
+    /** Days (ISO dates) that a streak freeze covered. */
+    val frozenDays: Set<String> = emptySet(),
+    /** The streak week count that last earned a freeze, so each week pays once. */
+    val freezeWeeksRewarded: Int = 0,
 )
 
 /**
@@ -128,4 +154,11 @@ data class ActiveFocus(
     val lockHome: Boolean,
     val sound: FocusSound,
     val tag: String = "",
-)
+    val timerMode: TimerMode = TimerMode.TIMER,
+    /** When the user paused, or 0 while the timer runs. A pause works like a break. */
+    val pausedAt: Long = 0,
+    val longBreakMinutes: Int = 15,
+    val theme: String = "LAKE",
+) {
+    val running: Boolean get() = pausedAt == 0L
+}

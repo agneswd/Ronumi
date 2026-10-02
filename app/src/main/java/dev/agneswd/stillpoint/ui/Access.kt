@@ -8,10 +8,26 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import dev.agneswd.stillpoint.ui.design.ChunkyButton
+import dev.agneswd.stillpoint.ui.design.ChunkyCard
+import dev.agneswd.stillpoint.ui.design.Sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,8 +90,7 @@ fun AccessRows(access: Access, includeOptional: Boolean) {
     }
     AccessRow(
         "Accessibility",
-        "Sees which app is open so Stillpoint can block it. On Android 13 and later, if the switch is grey, " +
-            "open App info, tap the menu and allow restricted settings first.",
+        "Sees which app is open so Stillpoint can block it. If the switch is grey, open App info, tap the menu, then allow restricted settings.",
         access.guard,
     ) { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
     if (!includeOptional) return
@@ -99,11 +114,28 @@ fun AccessRows(access: Access, includeOptional: Boolean) {
 
 @Composable
 private fun AccessRow(title: String, why: String, granted: Boolean, open: () -> Unit) {
-    ListRow(title, why) {
-        if (granted) {
-            Icon(painterResource(R.drawable.ic_check), "Allowed", tint = MaterialTheme.colorScheme.primary)
-        } else {
-            OutlinedButton(onClick = open) { Text("Allow") }
+    val icon = when (title) {
+        "Usage access" -> R.drawable.ic_timer
+        "Accessibility" -> R.drawable.ic_tab_blocks
+        "Notifications" -> R.drawable.ic_bell
+        else -> R.drawable.ic_tag
+    }
+    ChunkyCard(Modifier.fillMaxWidth().padding(vertical = 5.dp), contentPadding = 14.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconTile(icon, if (granted) Sp.colors.mint else Sp.colors.brand)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
+                Text(why, style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+            }
+            Spacer(Modifier.width(10.dp))
+            if (granted) {
+                Box(Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Sp.colors.mint), contentAlignment = Alignment.Center) {
+                    Icon(painterResource(R.drawable.ic_check), "Allowed", tint = Sp.colors.onFill, modifier = Modifier.size(20.dp))
+                }
+            } else {
+                ChunkyButton("Allow", open, Modifier.width(96.dp), height = 40.dp)
+            }
         }
     }
 }

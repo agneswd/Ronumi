@@ -161,7 +161,7 @@ class Converters {
         Settings::class,
         ActiveFocus::class,
     ],
-    version = 1,
+    version = 2,
 )
 @TypeConverters(Converters::class)
 abstract class StillpointDatabase : RoomDatabase() {
@@ -169,6 +169,10 @@ abstract class StillpointDatabase : RoomDatabase() {
 
     companion object {
         fun open(context: Context): StillpointDatabase =
-            Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db").build()
+            Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db")
+                // Nothing is released yet, so a schema change may start from an empty database.
+                // Add real migrations before the first public release.
+                .fallbackToDestructiveMigration(dropAllTables = true)
+                .build()
     }
 }

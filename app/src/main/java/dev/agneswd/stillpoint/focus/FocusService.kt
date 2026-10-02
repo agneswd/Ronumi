@@ -17,6 +17,8 @@ import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.ActiveFocus
 import dev.agneswd.stillpoint.data.FocusPhase
 import dev.agneswd.stillpoint.data.FocusSound
+import dev.agneswd.stillpoint.data.TimerMode
+import kotlinx.coroutines.awaitCancellation
 import dev.agneswd.stillpoint.ui.MainActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -56,7 +58,10 @@ class FocusService : LifecycleService() {
                 return@collectLatest
             }
             goForeground(notification(focus))
-            if (focus.phase == FocusPhase.FOCUS && focus.sound != FocusSound.OFF) noise.play(focus.sound) else noise.stop()
+            val playing = focus.phase == FocusPhase.FOCUS && focus.running && focus.sound != FocusSound.OFF
+            if (playing) noise.play(focus.sound) else noise.stop()
+            // A paused session waits here until the row changes again.
+            if (!focus.running) awaitCancellation()
             delay((focus.phaseEndsAt - System.currentTimeMillis()).coerceAtLeast(0))
             Focus.advance(this)
         }
@@ -70,17 +75,20 @@ class FocusService : LifecycleService() {
     private fun placeholder(): Notification = builder().setContentTitle("Focus").build()
 
     private fun notification(focus: ActiveFocus): Notification {
-        val title = when (focus.phase) {
-            FocusPhase.FOCUS -> if (focus.rounds > 1) "Focus, round ${focus.round} of ${focus.rounds}" else "Focus"
-            FocusPhase.BREAK -> "Break"
+        val title = when {
+            !focus.running -> "Paused"
+            focus.phase == FocusPhase.BREAK -> "Break"
+            focus.rounds > 1 -> "Focus, round ${focus.round} of ${focus.rounds}"
+            else -> "Focus"
         }
+        val stopwatch = focus.timerMode == TimerMode.STOPWATCH
         val builder = builder()
             .setContentTitle(title)
             .setContentText(focus.tag.ifBlank { null })
-            .setWhen(focus.phaseEndsAt)
-            .setShowWhen(true)
-            .setUsesChronometer(true)
-            .setChronometerCountDown(true)
+            .setWhen(if (stopwatch) focus.phaseStartedAt else focus.phaseEndsAt)
+            .setShowWhen(focus.running)
+            .setUsesChronometer(focus.running)
+            .setChronometerCountDown(!stopwatch)
         if (!focus.strict) {
             val giveUp = PendingIntent.getService(this, 1, intent(this).setAction(ACTION_GIVE_UP), PendingIntent.FLAG_IMMUTABLE)
             builder.addAction(0, "End session", giveUp)

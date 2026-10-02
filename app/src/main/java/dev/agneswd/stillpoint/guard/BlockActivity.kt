@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.guard
 
+import dev.agneswd.stillpoint.ui.design.NumberStyle
+import dev.agneswd.stillpoint.ui.design.StillpointTheme
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -34,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import dev.agneswd.stillpoint.app
-import dev.agneswd.stillpoint.ui.StillpointTheme
 import kotlinx.coroutines.delay
 
 /** The full-screen block. The guard opens it over a blocked app, feed or site. */

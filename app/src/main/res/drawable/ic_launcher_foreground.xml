@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A ring around a still dot. -->
+<!-- Pebble, the Stillpoint mascot. Same shapes as ui/design/Pebble.kt. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:pathData="M54,32a22,22 0,1 1,0 44a22,22 0,1 1,0 -44z"
-        android:strokeColor="#FFA3B0FF"
-        android:strokeWidth="4.5" />
-    <path
-        android:fillColor="#FFFF9CB0"
-        android:pathData="M54,48a6,6 0,1 1,0 12a6,6 0,1 1,0 -12z" />
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#33000000" android:pathData="M36.84,87.82 A17.16,2.31 0 1,1 71.16,87.82 A17.16,2.31 0 1,1 36.84,87.82 Z" />
+    <path android:pathData="M54.00,29.74 C71.82,29.74 82.38,48.22 82.38,64.06 C82.38,79.90 69.84,86.50 54.00,86.50 C38.16,86.50 25.62,79.90 25.62,64.06 C25.62,48.22 36.18,29.74 54.00,29.74 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="29.7" android:endX="54" android:endY="86.5">
+                <item android:offset="0" android:color="#FFE4E8FF" />
+                <item android:offset="1" android:color="#FFB3BCFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#FFF4F5FF" android:pathData="M40.14,73.96 A13.86,9.90 0 1,1 67.86,73.96 A13.86,9.90 0 1,1 40.14,73.96 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M37.83,53.50 A6.93,8.58 0 1,1 51.69,53.50 A6.93,8.58 0 1,1 37.83,53.50 Z M56.31,53.50 A6.93,8.58 0 1,1 70.17,53.50 A6.93,8.58 0 1,1 56.31,53.50 Z" />
+    <path android:fillColor="#FF262841" android:pathData="M40.27,54.16 A4.49,4.49 0 1,1 49.25,54.16 A4.49,4.49 0 1,1 40.27,54.16 Z M58.75,54.16 A4.49,4.49 0 1,1 67.73,54.16 A4.49,4.49 0 1,1 58.75,54.16 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M41.79,52.44 A1.52,1.52 0 1,1 44.83,52.44 A1.52,1.52 0 1,1 41.79,52.44 Z M60.27,52.44 A1.52,1.52 0 1,1 63.31,52.44 A1.52,1.52 0 1,1 60.27,52.44 Z" />
+    <path android:fillColor="#B3FF8FAB" android:pathData="M34.20,62.41 A4.29,2.31 0 1,1 42.78,62.41 A4.29,2.31 0 1,1 34.20,62.41 Z M65.22,62.41 A4.29,2.31 0 1,1 73.80,62.41 A4.29,2.31 0 1,1 65.22,62.41 Z" />
+    <path android:fillColor="#FF262841" android:pathData="M48.72,62.74 Q54.00,63.73 59.28,62.74 Q58.62,70.66 54.00,70.66 Q49.38,70.66 48.72,62.74 Z" />
+    <path android:fillColor="#FFFF7C9C" android:pathData="M50.70,69.01 A3.30,1.72 0 1,1 57.30,69.01 A3.30,1.72 0 1,1 50.70,69.01 Z" />
+    <path android:strokeColor="#FF1FA874" android:strokeWidth="1.72" android:strokeLineCap="round" android:pathData="M54.00,30.40 Q53.34,26.44 54.66,23.14" />
+    <path android:fillColor="#FF34D399" android:pathData="M54.66,23.14 Q52.02,16.54 46.08,18.52 Q48.72,24.46 54.66,23.14 Z M54.66,23.14 Q57.30,16.54 63.24,18.52 Q60.60,24.46 54.66,23.14 Z" />
 </vector>

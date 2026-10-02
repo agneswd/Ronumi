@@ -37,7 +37,7 @@ data class Rules(
     val sites: Set<String> = emptySet(),
     val focus: ActiveFocus? = null,
 ) {
-    val focusing: Boolean get() = focus?.phase == FocusPhase.FOCUS
+    val focusing: Boolean get() = focus?.let { it.phase == FocusPhase.FOCUS && it.running } == true
 
     fun activeSchedules(now: LocalDateTime): List<Schedule> = schedules.filter { it.enabled && it.isActive(now) }
 

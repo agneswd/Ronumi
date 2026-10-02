@@ -1,7 +1,15 @@
 package dev.agneswd.stillpoint.ui
 
 import android.content.Intent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import dev.agneswd.stillpoint.ui.design.ButtonKind
+import dev.agneswd.stillpoint.ui.design.ChunkyButton
+import dev.agneswd.stillpoint.ui.design.Sp
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,10 +26,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -60,15 +68,9 @@ private fun EditorFrame(
     actionEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    Scaffold { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onClose) { Text("Close") }
-                Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).padding(horizontal = 8.dp))
-                if (action != null) TextButton(onClick = onAction, enabled = actionEnabled) { Text(action) }
-            }
-            Box(Modifier.weight(1f)) { content() }
-        }
+    Column(Modifier.fillMaxSize()) {
+        TopBar(title, onClose, action, actionEnabled, onAction)
+        Box(Modifier.weight(1f)) { content() }
     }
 }
 
@@ -109,7 +111,7 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
                         }
                     }
                     ListRow(item.label, onClick = toggle, leading = { AppIcon(item.packageName) }) {
-                        if (!route.single) Checkbox(checked, { toggle() })
+                        if (!route.single) Checkbox(checked, { toggle() }, colors = CheckboxDefaults.colors(checkedColor = Sp.colors.brand))
                     }
                 }
             }
@@ -158,11 +160,16 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 DayOfWeek.entries.forEach { day ->
                     val bit = 1 shl (day.value - 1)
                     val on = draft.days and bit != 0
-                    TextButton(onClick = { draft = draft.copy(days = draft.days xor bit) }) {
+                    Box(
+                        Modifier.size(40.dp).clip(RoundedCornerShape(20.dp))
+                            .background(if (on) Sp.colors.brand else Sp.colors.surfaceHigh)
+                            .clickable { draft = draft.copy(days = draft.days xor bit) },
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Text(
                             day.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                            color = if (on) Sp.colors.onFill else Sp.colors.textDim,
                         )
                     }
                 }
@@ -186,13 +193,15 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
 
             if (original != null) {
                 Spacer(Modifier.height(24.dp))
-                TextButton(
-                    onClick = {
+                ChunkyButton(
+                    "Delete schedule",
+                    {
                         context.app.scope.launch { context.app.dao.deleteSchedule(original) }
                         onClose()
                     },
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                ) { Text("Delete schedule", color = MaterialTheme.colorScheme.error) }
+                    Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
+                    kind = ButtonKind.DANGER,
+                )
             }
             Spacer(Modifier.height(32.dp))
         }

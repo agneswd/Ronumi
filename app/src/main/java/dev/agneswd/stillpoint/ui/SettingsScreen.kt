@@ -30,7 +30,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Composable
-fun SetupScreen(navigator: Navigator) {
+fun SettingsScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
     val access = rememberAccess()
@@ -53,9 +53,11 @@ fun SetupScreen(navigator: Navigator) {
         uri?.let { report("Restore") { importBackup(context, app.dao, it) } }
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize()) {
+      TopBar("Settings", onClose)
+      Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
         SectionTitle("Permissions")
-        AccessRows(access, includeOptional = true)
+        Column(Modifier.padding(horizontal = ScreenPadding)) { AccessRows(access, includeOptional = true) }
 
         SectionTitle("Backup")
         ListRow("Save a backup", "Limits, schedules, sites, settings and focus history in one file.", onClick = {
@@ -78,5 +80,6 @@ fun SetupScreen(navigator: Navigator) {
         val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
         Text("Version $version", color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(horizontal = ScreenPadding))
         Spacer(Modifier.height(32.dp))
+      }
     }
 }
