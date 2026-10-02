@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
+        <receiver android:name=".StorageCheckReceiver" android:exported="true" android:permission="android.permission.DUMP" />
         <!-- Debug builds only: a page with every mascot mood and component. -->
         <activity
             android:name=".DesignGalleryActivity"

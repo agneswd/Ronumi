@@ -11,11 +11,16 @@ import argparse
 import datetime
 import pathlib
 import re
+import os
+import shlex
 import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
+import json
+import sqlite3
 
+SERIAL = os.environ.get("ANDROID_SERIAL", "emulator-5554")
 PKG = "dev.agneswd.stillpoint"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 APK = ROOT / "app/build/outputs/apk/debug/app-debug.apk"
@@ -32,7 +37,7 @@ shots = 0
 
 
 def adb(*args: str, check: bool = True) -> str:
-    out = subprocess.run(["adb", *args], capture_output=True, text=True)
+    out = subprocess.run(["adb", "-s", SERIAL, *args], capture_output=True, text=True)
     if check and out.returncode != 0:
         raise RuntimeError(f"adb {' '.join(args)} failed: {out.stderr.strip()}")
     return out.stdout
@@ -43,23 +48,23 @@ def sh(cmd: str) -> str:
 
 
 def screen() -> ET.Element:
-    for _ in range(3):
-        sh("uiautomator dump /sdcard/ui.xml >/dev/null 2>&1")
-        raw = adb("exec-out", "cat", "/sdcard/ui.xml", check=False)
-        if raw.strip().startswith("<?xml"):
-            return ET.fromstring(raw)
-        time.sleep(0.5)
-    return ET.fromstring("<hierarchy/>")
+    raw = sh(f"am instrument -w -r {PKG}.e2e/{PKG}.e2e.E2eDriver")
+    for line in raw.splitlines():
+        if line.startswith("INSTRUMENTATION_RESULT: hierarchy="):
+            return ET.fromstring(line.split("=", 1)[1])
+    raise AssertionError("The Android test driver returned no accessibility tree: " + raw[-1000:])
 
 
 def find(text: str, exact: bool = False):
     """The center of the last node whose text or description matches. Lists come after input fields."""
     match = None
     for node in screen().iter("node"):
+        if node.get("visible") == "false":
+            continue
         for attr in ("text", "content-desc"):
             value = node.get(attr, "")
-            if (value == text) if exact else (text.lower() in value.lower()):
-                x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
+            if (value.casefold() == text.casefold()) if exact else (text.lower() in value.lower()):
+                x1, y1, x2, y2 = map(int, re.findall(r"-?\d+", node.get("bounds")))
                 match = (x1 + x2) // 2, (y1 + y2) // 2
     return match
 
@@ -84,6 +89,7 @@ def gone(text: str, timeout: float = 10):
 
 
 def tap(text: str, timeout: float = 15, exact: bool = False):
+    print(f"tap {text}", flush=True)
     x, y = wait_for(text, timeout, exact)
     sh(f"input tap {x} {y}")
     time.sleep(0.8)
@@ -99,7 +105,7 @@ def scroll_to(text: str, tries: int = 8):
 
 
 def type_text(text: str):
-    sh(f"input text '{text}'")
+    sh("input text " + shlex.quote(text.replace(" ", "%s")))
     time.sleep(0.5)
     # Close the keyboard so later taps do not land on keys. Back closes only the keyboard.
     sh("input keyevent KEYCODE_BACK")
@@ -110,7 +116,7 @@ def shot(name: str):
     global shots
     shots += 1
     path = RUN / f"{shots:02d}-{name}.png"
-    path.write_bytes(subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True).stdout)
+    path.write_bytes(subprocess.run(["adb", "-s", SERIAL, "exec-out", "screencap", "-p"], capture_output=True).stdout)
     return path.name
 
 
@@ -136,6 +142,7 @@ def home():
 
 def fresh_install():
     adb("install", "-r", "-t", str(APK))
+    adb("install", "-r", "-t", str(ROOT / "e2e-driver/build/outputs/apk/debug/e2e-driver-debug.apk"))
     sh(f"pm clear {PKG}")
     sh(f"appops set {PKG} GET_USAGE_STATS allow")
     sh(f"pm grant {PKG} android.permission.POST_NOTIFICATIONS")
@@ -149,6 +156,7 @@ def fresh_install():
     sh(f"am set-debug-app --persistent {CHROME}")
     sh("echo 'chrome --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line")
     sh(f"am force-stop {CHROME}")
+    sh(f"pm grant {CHROME} android.permission.POST_NOTIFICATIONS")
     sh("logcat -c")
     time.sleep(2)
 
@@ -198,13 +206,153 @@ def stays_open(fragment: str, seconds: float):
         time.sleep(1)
 
 
+def onboarding():
+    open_stillpoint("HOME")
+    tap("Get started")
+    tap("Continue")
+    tap("Continue")
+    tap("Work", exact=True)
+    tap("Continue")
+    tap("1 hour")
+    tap("Continue")
+    tap("Social media")
+    tap("Continue")
+    tap("I'll set it later")
+    tap("Continue")
+    tap("Sounds great")
+    for _ in range(4):
+        tap("Continue")
+    tap("Continue")
+    tap("Continue")
+    tap("Maybe later")
+    wait_for("Daily quests")
+    return shot("home-after-setup")
+
+
 def today_screen():
-    open_stillpoint("TODAY")
-    wait_for("Screen time today")
-    wait_for("Most used")
+    open_stillpoint("HOME")
+    wait_for("Daily quests")
     if find("Finish setup"):
-        raise AssertionError("The setup prompt shows although adb granted the permissions")
-    return shot("today")
+        raise AssertionError("Setup prompt shows although permissions are granted")
+    return shot("home")
+
+
+def device_workflow(scenario: str):
+    sh(f"run-as {PKG} rm -f files/device-check.txt")
+    sh(f"am broadcast -f 0x20 -n {PKG}/.StorageCheckReceiver --es scenario {scenario}")
+    end = time.time() + 15
+    while time.time() < end:
+        result = sh(f"run-as {PKG} cat files/device-check.txt")
+        if result.startswith(("PASS", "FAIL")):
+            (RUN / f"{scenario}-check.txt").write_text(result)
+            if not result.startswith("PASS"):
+                raise AssertionError(result)
+            return result.splitlines()[1:]
+        time.sleep(0.3)
+    raise AssertionError(f"{scenario} did not return a result")
+
+
+def schema_upgrade():
+    """Install the first database schema, then open it with the real upgraded app."""
+    schema = json.loads((ROOT / "app/schemas/dev.agneswd.stillpoint.data.StillpointDatabase/1.json").read_text())["database"]
+    fixture = RUN / "schema-1.db"
+    now = int(time.time() * 1000)
+    values = {
+        "Settings": {"focusGoalMinutes": 90, "focusMinutes": 25, "focusRounds": 4, "breakMinutes": 5, "focusMode": "LISTED", "focusSound": "OFF"},
+        "AppLimit": {"packageName": CLOCK, "minutesPerDay": 17, "mode": "GENTLE", "enabled": 1},
+        "Schedule": {"id": 1, "name": "Preserve this plan", "startMinute": 1380, "endMinute": 360, "days": 127, "mode": "LISTED", "enabled": 1},
+        "BlockedSite": {"domain": "example.com"},
+        "FocusSession": {"id": 1, "startedAt": now - 1800000, "endedAt": now, "focusedMillis": 1800000, "completed": 1, "tag": "Preserve this history"},
+        "HeldNotification": {"id": 1, "packageName": CLOCK, "title": "Preserve this message", "postedAt": now},
+        "ActiveFocus": {"startedAt": now, "phase": "FOCUS", "phaseStartedAt": now, "phaseEndsAt": now + 1500000, "round": 1, "rounds": 4, "focusMinutes": 25, "breakMinutes": 5, "mode": "LISTED", "sound": "OFF", "tag": "Preserve this timer"},
+    }
+    with sqlite3.connect(fixture) as db:
+        for entity in schema["entities"]:
+            name = entity["tableName"]
+            db.execute(entity["createSql"].replace("${TABLE_NAME}", name))
+            columns = [f["columnName"] for f in entity["fields"]]
+            row = [values[name].get(f["columnName"], "" if f["affinity"] == "TEXT" else 0) for f in entity["fields"]]
+            db.execute(f"INSERT INTO {name} ({','.join(columns)}) VALUES ({','.join('?' for _ in row)})", row)
+        db.execute("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
+        db.execute("INSERT INTO room_master_table VALUES (42, ?)", (schema["identityHash"],))
+        db.execute("PRAGMA user_version=1")
+    sh(f"pm clear {PKG}")
+    adb("push", str(fixture), "/data/local/tmp/stillpoint-schema-1.db")
+    sh(f"run-as {PKG} mkdir -p databases")
+    sh(f"run-as {PKG} sh -c 'cat /data/local/tmp/stillpoint-schema-1.db > databases/stillpoint.db'")
+    try:
+        device_workflow("migration")
+        return "migration-check.txt"
+    finally:
+        fresh_install()
+
+
+def storage_workflow():
+    home()
+    details = device_workflow("storage")
+    open_stillpoint("PROGRESS")
+    wait_for("Progress", exact=True)
+    shot("progress-after-storage-check")
+    return f"storage-check.txt, {len(details)} device checks"
+
+
+def focus_survives_restart():
+    sh(f"am force-stop {PKG}")
+    time.sleep(2)
+    open_stillpoint("FOCUS")
+    wait_for("Pause", exact=True)
+    rebind()
+    open_app(CONTACTS)
+    wait_block("Contacts is blocked during focus")
+    return shot("focus-after-process-restart")
+
+
+def notification_workflow():
+    home()
+    device_workflow("notifications-start")
+    sh("cmd notification post -t 'First test' stillpoint-e2e 'First message'")
+    time.sleep(2)
+    sh("cmd notification post -t 'Updated test' stillpoint-e2e 'Updated message'")
+    time.sleep(2)
+    sh(f"am force-stop {PKG}")
+    open_stillpoint("HOME")
+    wait_for("Daily quests")
+    device_workflow("notifications-check")
+    return "notifications-check-check.txt"
+
+
+def planned_focus_workflow():
+    home()
+    sh(f"appops set {PKG} SCHEDULE_EXACT_ALARM allow")
+    device_workflow("plan-start")
+    pid = sh(f"pidof {PKG}").strip()
+    if pid:
+        sh(f"run-as {PKG} kill -9 {pid}")
+    end = time.time() + 80
+    while time.time() < end:
+        if "FocusService" in sh(f"dumpsys activity services {PKG}"):
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError("Planned focus did not start through the Android alarm")
+    open_stillpoint("FOCUS")
+    wait_for("Device alarm check", exact=True)
+    shot("focus-started-by-alarm")
+    rebind()
+    sh("input keyevent KEYCODE_SLEEP")
+    end = time.time() + 80
+    while time.time() < end:
+        if "FocusService" not in sh(f"dumpsys activity services {PKG}"):
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError("Focus service did not end while the screen was off")
+    try:
+        device_workflow("plan-check")
+    finally:
+        sh("input keyevent KEYCODE_WAKEUP")
+        sh("wm dismiss-keyguard")
+    return "plan-check-check.txt"
 
 
 def set_up_blocks_in_ui():
@@ -213,47 +361,39 @@ def set_up_blocks_in_ui():
     tap("Search")
     type_text("Clock")
     tap("Clock", exact=True)
-    wait_for("Limit for Clock")
-    for _ in range(6):  # 30m down to the 1m minimum
-        tap("-", exact=True)
+    wait_for("Daily limit for Clock")
+    for _ in range(6):
+        tap("Decrease daily limit", exact=True)
     wait_for("1m", exact=True)
     shot("limit-dialog")
     tap("Save")
-
     scroll_to("YouTube Shorts")
     tap("YouTube Shorts")
     scroll_to("Block a site")
     tap("Block a site")
     type_text("example.com")
     tap("Add", exact=True)
-    scroll_to("Lock Stillpoint while blocks run")
-    tap("Lock Stillpoint while blocks run")
-    shot("blocks-tab")
+    scroll_to("Lock Stillpoint")
+    tap("Lock Stillpoint")
+    name = shot("blocks")
     rebind()
-    sh("input swipe 540 700 540 1700 200")
-    sh("input swipe 540 700 540 1700 200")
-    sh("input swipe 540 700 540 1700 200")
-    return shot("blocks-tab-top")
+    return name
 
 
 def start_focus_in_ui():
-    open_stillpoint("FOCUS")
+    open_stillpoint("HOME")
+    tap("Start focus")
+    wait_for("Focus setup")
+    scroll_to("Blocked apps")
     tap("Blocked apps")
     tap("Search")
     type_text("Contacts")
     tap("Contacts", exact=True)
-    tap("Done (1)")
+    tap("Done (")
     scroll_to("Lock the home screen")
     tap("Lock the home screen")
-    scroll_to("Sound")
-    tap("Brown", exact=True)
-    shot("focus-options")
-    sh("input swipe 540 700 540 1700 200")
-    sh("input swipe 540 700 540 1700 200")
-    tap("What are you working on?")
-    type_text("Thesis")
-    tap("Start focus")
-    wait_for("Round 1 of 4")
+    tap("Start", exact=True)
+    wait_for("Pause", exact=True)
     name = shot("focus-running")
     rebind()
     return name
@@ -262,6 +402,9 @@ def start_focus_in_ui():
 def website_block():
     sh(f"am force-stop {CHROME}")
     sh(f"am start -a android.intent.action.VIEW -d https://example.com/some/page -p {CHROME} >/dev/null")
+    if find("No thanks", exact=True):
+        tap("No thanks", exact=True)
+    rebind()
     wait_block("example.com is blocked", timeout=30)
     name = shot("site-blocked-in-chrome")
     sh("input keyevent KEYCODE_BACK")
@@ -312,17 +455,32 @@ def strict_mode_protects_settings():
     return name
 
 
+def pause_resume():
+    open_stillpoint("FOCUS")
+    tap("Pause", exact=True)
+    wait_for("PAUSED", exact=True)
+    rebind()
+    open_app(CONTACTS)
+    stays_open("contacts", 5)
+    shot("paused-allows-contacts")
+    open_stillpoint("FOCUS")
+    tap("Resume", exact=True)
+    rebind()
+    open_app(CONTACTS)
+    wait_block("Contacts is blocked during focus")
+    return shot("resumed-blocks-contacts")
+
+
 def ending_focus_frees_app():
     open_stillpoint("FOCUS")
-    tap("End session")
-    # Sessions of a minute or more ask what they were for.
-    if find("You focused for"):
-        shot("session-notes")
-        tap("Save", exact=True)
+    tap("GIVE UP", exact=True)
+    tap("End session", exact=True)
+    if find("Nice effort!"):
+        tap("Continue", exact=True)
+    open_stillpoint("HOME")
     wait_for("Start focus")
     rebind()
     open_app(CONTACTS)
-    wait_top("contacts")
     stays_open("contacts", 5)
     name = shot("contacts-open-after-focus")
     home()
@@ -346,23 +504,34 @@ def gentle_limit():
 
 
 CHECKS = [
+    schema_upgrade,
+    onboarding,
     today_screen,
     set_up_blocks_in_ui,
     website_block,
     shorts_block,
     start_focus_in_ui,
+    focus_survives_restart,
     focus_blocks_app,
     home_lock_returns_to_focus,
     strict_mode_protects_settings,
+    pause_resume,
     ending_focus_frees_app,
     gentle_limit,
+    storage_workflow,
+    notification_workflow,
+    planned_focus_workflow,
 ]
 
 
 def main():
+    global APK
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", help="comma-separated check names")
+    parser.add_argument("--apk", type=pathlib.Path, help="APK to install, such as a signed release build")
     args = parser.parse_args()
+    if args.apk:
+        APK = args.apk.resolve()
     checks = [c for c in CHECKS if not args.only or c.__name__ in args.only.split(",")]
 
     RUN.mkdir(parents=True, exist_ok=True)
@@ -377,6 +546,8 @@ def main():
         except Exception as error:  # noqa: BLE001 - one failed check must not stop the others
             results.append((check.__name__, "FAIL", f"{error} [{shot('fail-' + check.__name__)}]"))
         print(f"{results[-1][1]} {check.__name__}: {results[-1][2]}", flush=True)
+        if results[-1][1] == "FAIL" and check in (onboarding, set_up_blocks_in_ui, start_focus_in_ui):
+            break
 
     crashes = adb("logcat", "-d", "-b", "crash", check=False).strip()
     (RUN / "crash.log").write_text(crashes or "No crashes.\n")
