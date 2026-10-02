@@ -1,6 +1,7 @@
 package dev.agneswd.stillpoint.e2e
 
 import android.app.Instrumentation
+import android.app.UiAutomation
 import android.os.Bundle
 import android.graphics.Rect
 import android.util.Xml
@@ -32,8 +33,10 @@ class E2eDriver : Instrumentation() {
         xml.setOutput(writer)
         xml.startDocument("UTF-8", true)
         xml.startTag(null, "hierarchy")
+        // Reading the screen must not stop the guard that the test is checking.
+        val automation = getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
         val root = (1..10).firstNotNullOfOrNull {
-            uiAutomation.rootInActiveWindow ?: run { Thread.sleep(100); null }
+            automation.rootInActiveWindow ?: run { Thread.sleep(100); null }
         }
         fun node(info: AccessibilityNodeInfo) {
             val bounds = Rect().also(info::getBoundsInScreen)

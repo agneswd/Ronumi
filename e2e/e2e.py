@@ -168,9 +168,9 @@ def fresh_install():
 
 # Checks. Each one starts from the state the one before it left.
 #
-# A UI dump connects a second accessibility client, and Android pauses other
-# accessibility services while it runs. So the checks set things up through the UI
-# first, call rebind(), and then watch enforcement with dumpsys and the block log only.
+# The UI reader preserves other accessibility services. Process-death checks still
+# rebind the guard because Android can mark a force-stopped service as crashed.
+# Enforcement checks use dumpsys and the block log instead of changing app state.
 
 def rebind():
     sh("settings put secure enabled_accessibility_services ''")
@@ -214,7 +214,9 @@ def stays_open(fragment: str, seconds: float):
 def onboarding():
     open_stillpoint("HOME")
     tap("Get started")
+    wait_for("Hi! I'm Pebble")
     tap("Continue")
+    wait_for("First, a few quick questions")
     tap("Continue")
     tap("Work", exact=True)
     tap("Continue")
@@ -224,10 +226,20 @@ def onboarding():
     tap("Continue")
     tap("I'll set it later")
     tap("Sounds great")
-    for _ in range(4):
-        tap("Continue")
-    tap("Continue")
-    tap("Continue")
+    for title in ("Scrolling Shorts?", "Buzz, buzz, buzz?", "Want to quit early?", "Build a streak"):
+        wait_for(title, exact=True)
+        tap("Continue", exact=True)
+    wait_for("Which apps steal your time?")
+    tap("Continue", exact=True)
+    wait_for("Usage access", exact=True)
+    # Schema setup and process stops can disable the fixture's accessibility service.
+    # Rebind it, then resume the app so its permission snapshot reads the new state.
+    rebind()
+    home()
+    open_stillpoint("HOME")
+    print("Accessibility services:", sh("settings get secure enabled_accessibility_services").strip(), flush=True)
+    wait_for("All set! I can protect your focus now.")
+    tap("Continue", exact=True)
     tap("Maybe later")
     wait_for("Daily quests")
     return shot("home-after-setup")
@@ -563,6 +575,14 @@ def main():
             results.append((check.__name__, "SKIP", str(reason)))
         except Exception as error:  # noqa: BLE001 - one failed check must not stop the others
             results.append((check.__name__, "FAIL", f"{error} [{shot('fail-' + check.__name__)}]"))
+            print("Failure window:", front(), flush=True)
+            try:
+                nodes = list(screen().iter("node"))
+                visible = [node.get("text") or node.get("content-desc") for node in nodes if node.get("visible") != "false"]
+                print("Failure visible text:", [text for text in visible if text][:80], flush=True)
+                print("Failure accessibility node count:", len(nodes), flush=True)
+            except Exception as diagnostic_error:
+                print("Cannot inspect failure screen:", diagnostic_error, flush=True)
         print(f"{results[-1][1]} {check.__name__}: {results[-1][2]}", flush=True)
         if results[-1][1] == "FAIL" and check in (onboarding, set_up_blocks_in_ui, start_focus_in_ui):
             break
