@@ -1,61 +1,30 @@
-# Regain feature map
+# Local feature map
 
-Stillpoint aims to cover every Regain feature that can work on the phone alone.
-This list comes from Regain's UI strings, its store listing, and its screens.
-Status: done, todo, or no (needs a server or an account).
+Stillpoint implements features that can work without an account or server.
+This map compares product behavior. It does not claim complete Regain parity.
 
-## Focus
-
-| Regain feature | Stillpoint | Status |
+| Area | Implemented | Verification or remaining work |
 |---|---|---|
-| Timer, stopwatch and Pomodoro modes | Focus modes: timer, stopwatch, Pomodoro with short and long breaks | todo |
-| Strict mode (deep focus): no early exit, home screen hidden | Strict and home lock | done |
-| "Giving up early" warning that the streak breaks | Give-up dialog with streak warning | todo |
-| Block apps, notifications, Shorts, adult sites during focus | Focus block options | todo (apps done) |
-| Ambient music | Generated noise plus rain, waves and brown noise | todo |
-| Themes for the timer | Timer themes | todo |
-| Session tags, notes, summary, discard | Tags, notes, summary screen, discard | todo (tags and notes done) |
-| Focus stats: day, week, month, tags, daily average | Focus stats screen | todo |
-| Daily study goal with active days | Goal with active days | todo (goal done) |
-| Streaks and milestones | Streak and milestone badges | todo (streak done) |
-| Focus schedules that start a session, with snooze and pause | Planned sessions with alarm notification, snooze, pause | todo |
-| Suggested schedules (morning, afternoon, evening) | Presets | todo |
-| Focus rooms, leaderboards, groups, friend nudges | - | no |
+| Focus modes | Timer, stopwatch, Pomodoro, short and long breaks | Timer blocking, pause, resume, and process recovery have device checks. Longer Pomodoro and sleep tests remain. |
+| Focus controls | App lists, strict sessions, home lock, tags, notes, summaries | Device checks cover app enforcement and home lock. |
+| Focus presentation | Pebble, timer scenes, transitions, generated white, pink, and brown noise | Rain and wave audio assets remain. |
+| Goals and rewards | Study days, quests, XP, levels, badges, freezes | Device storage checks cover historical XP and repeated freeze application. |
+| Planned focus | Local alarms, automatic start with exact access, reminders, ten-minute snooze | Device checks cover automatic start after process death and completion with the screen off. Reboot, time-zone changes, and snooze remain to test. |
+| App limits | Gentle and strict limits, counted five-minute passes, reminders, limit streaks, change warnings | Device checks cover real limits and daily pass bounds. Reminder timing remains to test. |
+| Block schedules | Listed apps or all except a list, chosen days, overnight windows | Overnight rollover needs a device check. Planner changes recheck active protection. |
+| Temporary pause | Ten-minute block pause | Focus app blocks remain active. Protected schedules refuse pause. |
+| Short videos | YouTube Shorts, Instagram Reels, Snapchat Spotlight, Facebook Reels | Current installed YouTube forces an update. Current versions of all four apps remain to test. |
+| First video | One identified video per app visit | Unknown video titles stay blocked. Visible title matching needs real-app checks. |
+| Websites | Domain and subdomain lists, adult-domain list, allow-list mode | Chrome block-list behavior passes. Allow-list behavior and other browsers remain to test. |
+| YouTube study | Chosen channels, home-feed blocking | Unknown channels stay blocked in recognized players. Current YouTube verification remains. |
+| Notifications | App selection, focus-only or all-day holding, scheduled private summaries | Real notification updates, process restart, and duplicate delivery have device checks. Alarm delivery timing remains. |
+| Protection | Blocks-tab lock, supported system-settings checks, schedule-editor checks, multi-window detection | Android permissions and OEM behavior limit enforcement. Multi-window and uninstall routes remain to test. |
+| Reports | Day, week, month, tags, daily average, app categories, unlocks, held counts, baseline time saved | Usage records persist locally. Time saved appears after seven recorded complete days. |
+| Setup | Mascot questions, app selection, permissions, optional first focus | Device checks cover first launch and saved setup. |
+| Widgets | Screen-time and focus widgets | Goal, calendar, unlock, and small usage variants remain for the next design pass. Launcher rendering remains to test. |
+| Backup | Versioned local JSON, validated restore, schema migrations | Device checks cover schema 1 to 3, round trip, invalid files, and protected restore. |
 
-## Blocks
+Cloud sync, social focus rooms, leaderboards, friends, subscriptions, ads, and analytics are outside this offline app.
 
-| Regain feature | Stillpoint | Status |
-|---|---|---|
-| Daily app limit with a wait before more time | App limits | done |
-| Emergency use: 5 minutes, a few times a day | Emergency passes with a daily count | todo |
-| App reminders every few minutes | App reminders | todo |
-| Limit streaks and a warning before you delete or raise a limit | Limit streaks and warning | todo |
-| Block schedules for sleep, study, family time | Schedules | done |
-| Pause blocks for a time | Pause all blocks | todo |
-| Block Reels and Shorts, "allow first reel" mode | Short video blocks with easy mode | todo (blocking done) |
-| Website blocker and adult blocker | Websites | done |
-| Browser study mode: allow only chosen sites | Site allow-list mode | todo |
-| YouTube study mode: allow only chosen channels | Channel allow-list | todo |
-| Block the YouTube home feed | Home feed block | todo |
-| Notification inbox, allowed and blocked apps, delivery times | Held notifications with delivery times | todo (holding done) |
-| Uninstall, split-screen and floating-window protection | Protections | todo (settings lock done) |
-
-## Insights
-
-| Regain feature | Stillpoint | Status |
-|---|---|---|
-| Daily and weekly screen time, productive versus distracting time | Today and week reports with app categories | todo (daily done) |
-| Phone unlocks | Unlocks | done |
-| Weekly report | Week report | todo |
-| Time saved banner | Time saved compared with the first week | todo |
-| Notifications blocked per day | Held count stats | todo |
-
-## Mascot, widgets, setup
-
-| Regain feature | Stillpoint | Status |
-|---|---|---|
-| Rega mascot with prompts and moods | Pebble, an original animated mascot | todo |
-| Mascot-led onboarding with questions and permission steps | Onboarding | todo |
-| Widgets: usage, small usage, focus, goal ring, study calendar, unlocks | Same set | todo (usage and focus done) |
-| Google sign-in, cloud backup | Local backup file | done |
-| Subscriptions, offers, ads, surveys, analytics | - | no |
+The next design pass can finish the extra widgets and audio assets.
+Real-app detection and manufacturer-specific permission flows need device coverage before a stable release.

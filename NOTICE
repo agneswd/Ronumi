@@ -1,0 +1,13 @@
+Stillpoint
+Copyright (C) 2026 agneswd
+
+Stillpoint source code and original artwork are licensed under GPL-3.0-only.
+See LICENSE for the full license text.
+
+Nunito font
+Copyright 2014 The Nunito Project Authors
+Licensed under the SIL Open Font License, Version 1.1.
+See licenses/Nunito-OFL.txt for the font license and copyright notice.
+
+Android and Kotlin libraries retain their respective licenses.
+Dependency coordinates and versions are listed in gradle/libs.versions.toml.
