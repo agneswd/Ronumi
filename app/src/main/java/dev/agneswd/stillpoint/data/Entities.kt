@@ -86,6 +86,8 @@ data class FocusSession(
     val tag: String = "",
     val notes: String = "",
     val goalMinutes: Int = 120,
+    /** Keeps the quest rules used when this day began. */
+    val questVersion: Int = 0,
 )
 
 /** A notification that the listener removed and kept for later. */
@@ -148,6 +150,8 @@ data class Settings(
     /** Local minutes after midnight, written as decimal strings. */
     val notificationDeliveryTimes: Set<String> = emptySet(),
     val productivePackages: Set<String> = emptySet(),
+    /** Equipped Pebble item IDs. An empty set uses the original appearance. */
+    val pebbleItems: Set<String> = emptySet(),
 )
 
 /**

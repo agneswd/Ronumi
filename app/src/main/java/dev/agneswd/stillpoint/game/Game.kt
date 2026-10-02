@@ -19,12 +19,12 @@ const val STREAK_MINUTES = 10
 private const val XP_PER_MINUTE = 1
 private const val XP_COMPLETED = 15
 
-data class Quest(val id: String, val title: String, val progress: Int, val target: Int, val xp: Int) {
+data class Quest(val id: String, val title: String, val progress: Int, val target: Int, val xp: Int, val category: String = "Focus", val detail: String = "") {
     val done: Boolean get() = progress >= target
     val fraction: Float get() = (progress.toFloat() / target).coerceIn(0f, 1f)
 }
 
-data class Badge(val id: String, val title: String, val detail: String, val unlocked: Boolean, val progress: Float)
+data class Badge(val id: String, val title: String, val detail: String, val unlocked: Boolean, val progress: Float, val category: String = "Milestones")
 
 data class Level(val number: Int, val xpInLevel: Int, val xpForNext: Int) {
     val fraction: Float get() = xpInLevel.toFloat() / xpForNext
@@ -94,11 +94,8 @@ fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate
     )
 }
 
-/**
- * Three quests for a day. The day picks them, so they stay the same all day
- * and change at midnight.
- */
-fun questsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): List<Quest> {
+/** Legacy rules stay unchanged so an upgrade cannot remove earned XP. */
+internal fun legacyQuestsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): List<Quest> {
     val minutes = (sessions.sumOf { it.focusedMillis } / 60_000).toInt()
     val completed = sessions.count { it.completed }
     val longest = (sessions.maxOfOrNull { it.focusedMillis } ?: 0L) / 60_000
@@ -142,6 +139,14 @@ private fun badges(sessions: List<FocusSession>, streak: Int, totalMinutes: Int)
     val longest = (sessions.maxOfOrNull { it.focusedMillis } ?: 0L) / 60_000
     fun b(id: String, title: String, detail: String, value: Float, target: Float) =
         Badge(id, title, detail, value >= target, (value / target).coerceIn(0f, 1f))
+    val completed = sessions.filter { it.completed }
+    val days = sessions.groupBy { day(it.startedAt) }
+    val activeDays = days.count { (_, rows) -> rows.sumOf { it.focusedMillis } >= STREAK_MINUTES * 60_000L }
+    val goalDays = days.count { (_, rows) -> rows.sumOf { it.focusedMillis } >= rows.minBy { it.startedAt }.goalMinutes * 60_000L }
+    val named = completed.count { it.tag.isNotBlank() }
+    val reflected = completed.count { it.notes.isNotBlank() }
+    val questDays = days.count { (date, rows) -> questsFor(date, rows, rows.minBy { it.startedAt }.goalMinutes).all { it.done } }
+    val questCount = days.entries.sumOf { (date, rows) -> questsFor(date, rows, rows.minBy { it.startedAt }.goalMinutes).count { it.done } }
     return listOf(
         b("first", "First step", "Finish your first focus session", sessions.count { it.completed }.toFloat(), 1f),
         b("streak3", "Warming up", "Keep a 3 day streak", streak.toFloat(), 3f),
@@ -152,8 +157,31 @@ private fun badges(sessions: List<FocusSession>, streak: Int, totalMinutes: Int)
         b("marathon", "Marathon", "Stay in one session for 2 hours", longest.toFloat(), 120f),
         b("early", "Early bird", "Start a session before 7 in the morning", if (hours.any { it < 7 }) 1f else 0f, 1f),
         b("night", "Night owl", "Start a session after 10 at night", if (hours.any { it >= 22 }) 1f else 0f, 1f),
-        b("sessions50", "Habit builder", "Finish 50 sessions", sessions.count { it.completed }.toFloat(), 50f),
-    )
+        b("sessions50", "Habit builder", "Finish 50 sessions", completed.size.toFloat(), 50f),
+        b("sessions5", "Finding a rhythm", "Finish 5 sessions", completed.size.toFloat(), 5f),
+        b("sessions10", "A steady start", "Finish 10 sessions", completed.size.toFloat(), 10f),
+        b("sessions25", "Practice makes progress", "Finish 25 sessions", completed.size.toFloat(), 25f),
+        b("sessions100", "Here to stay", "Finish 100 sessions", completed.size.toFloat(), 100f),
+        b("hours1", "Time well spent", "Focus for 1 hour in total", totalMinutes.toFloat(), 60f),
+        b("hours5", "Room to grow", "Focus for 5 hours in total", totalMinutes.toFloat(), 300f),
+        b("hours25", "Making room", "Focus for 25 hours in total", totalMinutes.toFloat(), 1500f),
+        b("hours100", "A lasting practice", "Focus for 100 hours in total", totalMinutes.toFloat(), 6000f),
+        b("streak14", "Two weeks together", "Keep a 14 day streak", streak.toFloat(), 14f),
+        b("days7", "Seven small steps", "Focus for at least 10 minutes on 7 days", activeDays.toFloat(), 7f),
+        b("days30", "Time after time", "Focus for at least 10 minutes on 30 days", activeDays.toFloat(), 30f),
+        b("days100", "Always welcome back", "Focus for at least 10 minutes on 100 days", activeDays.toFloat(), 100f),
+        b("goals1", "Your own pace", "Reach your daily goal once", goalDays.toFloat(), 1f),
+        b("goals7", "Making space", "Reach your daily goal on 7 days", goalDays.toFloat(), 7f),
+        b("goals30", "A plan that works", "Reach your daily goal on 30 days", goalDays.toFloat(), 30f),
+        b("named1", "With purpose", "Finish a named session", named.toFloat(), 1f),
+        b("named10", "Clear intentions", "Finish 10 named sessions", named.toFloat(), 10f),
+        b("notes1", "A moment to reflect", "Add a note to a completed session", reflected.toFloat(), 1f),
+        b("notes10", "Learning as you go", "Add notes to 10 completed sessions", reflected.toFloat(), 10f),
+        b("quests10", "Curious Pebble", "Complete 10 daily quests", questCount.toFloat(), 10f),
+        b("quests50", "Quest companion", "Complete 50 daily quests", questCount.toFloat(), 50f),
+        b("questday1", "A full little day", "Complete every quest on one day", questDays.toFloat(), 1f),
+        b("questday7", "Seven good days", "Complete every quest on 7 days", questDays.toFloat(), 7f),
+    ).filter { it.id !in setOf("early", "night", "marathon") || it.unlocked }
 }
 
 fun studyDay(settings: Settings, date: LocalDate): Boolean = settings.goalDays and (1 shl (date.dayOfWeek.value - 1)) != 0

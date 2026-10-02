@@ -236,7 +236,7 @@ class Converters {
         LimitPass::class,
         UsageDay::class,
     ],
-    version = 3,
+    version = 4,
 )
 @TypeConverters(Converters::class)
 abstract class StillpointDatabase : RoomDatabase() {
@@ -245,7 +245,7 @@ abstract class StillpointDatabase : RoomDatabase() {
     companion object {
         fun open(context: Context): StillpointDatabase =
             Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
     }
 }
@@ -309,5 +309,13 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("UPDATE HeldNotification SET notificationKey = 'legacy-' || id")
         db.execSQL("CREATE TABLE IF NOT EXISTS LimitPass (day TEXT NOT NULL, packageName TEXT NOT NULL, expiresAt INTEGER NOT NULL, uses INTEGER NOT NULL, PRIMARY KEY(day, packageName))")
         db.execSQL("CREATE TABLE IF NOT EXISTS UsageDay (day TEXT NOT NULL PRIMARY KEY, perApp TEXT NOT NULL, unlocks INTEGER NOT NULL, heldCount INTEGER NOT NULL, limitMinutes TEXT NOT NULL)")
+    }
+}
+
+/** Keeps old quest rewards and adds the equipped wardrobe without removing history. */
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE FocusSession ADD COLUMN questVersion INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE Settings ADD COLUMN pebbleItems TEXT NOT NULL DEFAULT ''")
     }
 }

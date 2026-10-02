@@ -162,6 +162,7 @@ object Focus {
                     completed = completed,
                     tag = focus.tag,
                     goalMinutes = focus.goalMinutes,
+                    questVersion = 1,
                 ),
             )
             Celebrations.offer(id)

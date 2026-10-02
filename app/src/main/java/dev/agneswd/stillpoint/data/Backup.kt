@@ -72,6 +72,7 @@ fun Backup.validated(): Backup {
     require(s.focusGoalMinutes in 5..1440 && s.focusMinutes in 1..240 && s.breakMinutes in 0..60 &&
         s.longBreakMinutes in 0..120 && s.focusRounds in 1..12 && s.goalDays in 1..127 &&
         s.emergencyPassesPerDay in 0..10 && s.streakFreezes in 0..2 && s.freezeWeeksRewarded >= 0) { "Invalid focus or game settings" }
+    require(s.pebbleItems.size <= 8 && s.pebbleItems.all { it.matches(Regex("[a-z][a-z0-9_]{0,63}")) }) { "Invalid Pebble items" }
     require(s.notificationDeliveryTimes.all { it.toIntOrNull() in 0..1439 }) { "Invalid notification delivery time" }
     require(s.frozenDays.all { runCatching { LocalDate.parse(it) }.isSuccess }) { "Invalid streak date" }
     require(limits.map { it.packageName }.distinct().size == limits.size && limits.all {
@@ -84,7 +85,7 @@ fun Backup.validated(): Backup {
     require(sites.map { it.domain }.distinct().size == sites.size && sites.all { hostOf(it.domain) == it.domain }) { "Invalid site list" }
     require(sessions.map { it.id }.distinct().size == sessions.size && sessions.all {
         it.id > 0 && it.startedAt > 0 && it.endedAt >= it.startedAt && it.focusedMillis >= 0 &&
-            it.focusedMillis <= it.endedAt - it.startedAt && it.goalMinutes in 5..1440
+            it.focusedMillis <= it.endedAt - it.startedAt && it.goalMinutes in 5..1440 && it.questVersion in 0..1
     }) { "Invalid focus history" }
     // A civil day can exceed 24 hours after a clock or time-zone change.
     require(usageDays.map { it.day }.distinct().size == usageDays.size && usageDays.all {
