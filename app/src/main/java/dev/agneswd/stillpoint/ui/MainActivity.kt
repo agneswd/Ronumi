@@ -84,6 +84,10 @@ sealed interface Route {
     data object Held : Route
     data object Settings : Route
     data object FocusSetup : Route
+    data object ShortVideos : Route
+    data object Websites : Route
+    data object Notifications : Route
+    data object Strict : Route
 }
 
 /** Opens new screens. The tabs and editors get it instead of a navigation library. */
@@ -237,6 +241,10 @@ private fun App(navigator: Navigator) {
                         Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
                         Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
                         Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
+                        Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
+                        Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
+                        Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
+                        Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
                         null -> Tabs(navigator, game)
                     }
                 }
