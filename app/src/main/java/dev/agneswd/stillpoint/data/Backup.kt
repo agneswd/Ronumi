@@ -86,9 +86,10 @@ fun Backup.validated(): Backup {
         it.id > 0 && it.startedAt > 0 && it.endedAt >= it.startedAt && it.focusedMillis >= 0 &&
             it.focusedMillis <= it.endedAt - it.startedAt && it.goalMinutes in 5..1440
     }) { "Invalid focus history" }
+    // A civil day can exceed 24 hours after a clock or time-zone change.
     require(usageDays.map { it.day }.distinct().size == usageDays.size && usageDays.all {
         runCatching { LocalDate.parse(it.day) }.isSuccess && it.unlocks >= 0 && it.heldCount >= 0 &&
-            it.perApp.all { (pkg, value) -> pkg.isNotBlank() && value in 0..86_400_000L } &&
+            it.perApp.all { (pkg, value) -> pkg.isNotBlank() && value in 0..172_800_000L } &&
             it.limitMinutes.all { (pkg, value) -> pkg.isNotBlank() && value in 1..1440 }
     }) { "Invalid usage history" }
     // Old files have no setup state or goal snapshot.
