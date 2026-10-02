@@ -273,7 +273,7 @@ private fun Welcome(onNext: () -> Unit) {
             ChunkyButton("Get started", onNext, Modifier.fillMaxWidth().appear(500))
             Spacer(Modifier.height(12.dp))
             Text(
-                "Free, offline and private. No account needed.",
+                "Free and private. Focus works offline. No account needed.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Sp.colors.textDim,
                 modifier = Modifier.appear(600),
@@ -423,7 +423,7 @@ private fun AccessStep(access: Access, onNext: () -> Unit) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             AccessRows(access, includeOptional = true)
             Text(
-                "Stillpoint has no internet access. What it sees stays on this phone.",
+                "Your app usage stays on this phone. Only update checks and downloads use the internet.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Sp.colors.textDim,
                 modifier = Modifier.padding(top = 12.dp),

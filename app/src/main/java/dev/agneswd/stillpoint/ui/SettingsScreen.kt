@@ -134,6 +134,8 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 }) { Chevron() }
             }
 
+            UpdateSettings(s)
+
             SectionTitle("Backup")
             Group {
                 ListRow("Save a backup", "Limits, schedules, sites, settings and focus history in one file.", onClick = {
@@ -148,7 +150,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
 
             SectionTitle("About")
             PebbleSays(
-                "I work offline. No account, no ads, no internet. Everything stays on this phone.",
+                "Focus works offline. No account or ads. GitHub is used only to check for and download app updates.",
                 Mood.WAVE,
                 Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
                 pebbleSize = 80.dp,

@@ -14,6 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import dev.agneswd.stillpoint.data.settings
 import dev.agneswd.stillpoint.schedule.Plans
 
@@ -37,6 +39,11 @@ class StillpointApp : Application() {
                 NotificationChannel(CHANNEL_EVENTS, "Focus events", NotificationManager.IMPORTANCE_DEFAULT),
             ),
         )
+        scope.launch {
+            dao.settings().map { it.autoUpdateChecks }.distinctUntilChanged().collect { enabled ->
+                dev.agneswd.stillpoint.update.UpdateScheduler.schedule(this@StillpointApp, enabled)
+            }
+        }
         scope.launch {
             combine(dao.settings(), dao.schedules(), dao.activeFocusFlow()) { _, _, _ -> Unit }.collect {
                 Plans.refresh(this@StillpointApp)
