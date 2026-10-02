@@ -18,6 +18,9 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
+import androidx.core.view.WindowCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -223,6 +226,17 @@ private fun App(navigator: Navigator) {
     }
 
     val s = settings
+    val dark = isSystemInDarkTheme()
+    val focusVisible = focus != null && !navigator.focusMinimized && navigator.stack.isEmpty() && celebrate == null
+    SideEffect {
+        val window = (context as? android.app.Activity)?.window
+        if (window != null) {
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                isAppearanceLightStatusBars = !dark && !focusVisible
+                isAppearanceLightNavigationBars = !dark && !focusVisible
+            }
+        }
+    }
     Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
         val running = focus
         val celebrateId = celebrate
