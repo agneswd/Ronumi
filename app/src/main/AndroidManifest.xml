@@ -53,6 +53,7 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
+            android:theme="@style/Theme.Stillpoint.Block"
             android:taskAffinity="dev.agneswd.stillpoint.block" />
 
         <service

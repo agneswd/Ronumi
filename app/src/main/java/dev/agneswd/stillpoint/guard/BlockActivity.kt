@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import dev.agneswd.stillpoint.data.settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
@@ -66,8 +67,16 @@ import java.time.LocalDate
 class BlockActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        overridePendingTransition(0, 0)
         enableEdgeToEdge()
         render()
+    }
+
+    override fun onDestroy() {
+        if (isFinishing) {
+            sendBroadcast(Intent(GuardService.ACTION_BLOCK_CLOSED).setPackage(packageName))
+        }
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -82,15 +91,31 @@ class BlockActivity : ComponentActivity() {
         val title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         val detail = intent.getStringExtra(EXTRA_DETAIL).orEmpty()
         val gentle = intent.getBooleanExtra(EXTRA_GENTLE, false)
+        val reveal = intent.getBooleanExtra(EXTRA_REVEAL, false)
         // The E2E test reads this line. UI dumps would pause the guard, so it cannot read the screen.
         Log.i("Stillpoint", "block shown: $title")
         Sfx.play(Sound.BLOCK)
-        // Most blocks leave the user on the home screen. A Shorts block returns to the rest of the app.
-        val leave = { if (kind in homeKinds) goHome() else finish() }
+        // App and schedule blocks go to the phone home screen.
+        // Shorts and study blocks stay inside the blocked app.
+        // A home-feed block only closes, because search is already open underneath.
+        val leave = {
+            when {
+                reveal -> closeWithoutAnimation()
+                kind == BlockKind.SHORTS || kind == BlockKind.STUDY -> returnToApp()
+                kind in homeKinds -> goHome()
+                else -> closeWithoutAnimation()
+            }
+        }
         setContent {
             val settings by app.dao.settings().collectAsState(null)
             val themeMode = settings?.themeMode ?: return@setContent
             StillpointTheme(themeMode = themeMode) {
+                // The guard's cover stays up until this screen has drawn. decorView.post is too early.
+                LaunchedEffect(title) {
+                    withFrameNanos { }
+                    withFrameNanos { }
+                    sendBroadcast(Intent(GuardService.ACTION_COVER_READY).setPackage(packageName))
+                }
                 val dark = Sp.colors.dark
                 androidx.compose.runtime.SideEffect {
                     androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
@@ -130,7 +155,19 @@ class BlockActivity : ComponentActivity() {
 
     private fun goHome() {
         startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        closeWithoutAnimation()
+    }
+
+    /** Asks the guard to leave Shorts or a blocked player, then closes this screen. */
+    private fun returnToApp() {
+        val pkg = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
+        sendBroadcast(Intent(GuardService.ACTION_RETURN).setPackage(packageName).putExtra(GuardService.EXTRA_BLOCKED_PACKAGE, pkg))
+        window.decorView.postDelayed({ closeWithoutAnimation() }, 250)
+    }
+
+    private fun closeWithoutAnimation() {
         finish()
+        overridePendingTransition(0, 0)
     }
 
     companion object {
@@ -139,17 +176,19 @@ class BlockActivity : ComponentActivity() {
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_DETAIL = "detail"
         private const val EXTRA_GENTLE = "gentle"
+        private const val EXTRA_REVEAL = "reveal"
         private const val WAIT_SECONDS = 10
         private val homeKinds = setOf(BlockKind.FOCUS, BlockKind.SCHEDULE, BlockKind.LIMIT, BlockKind.SITE, BlockKind.PROTECTION, BlockKind.MULTI_WINDOW)
 
-        fun intent(context: Context, pkg: String, reason: BlockReason): Intent =
+        fun intent(context: Context, pkg: String, reason: BlockReason, reveal: Boolean = false): Intent =
             Intent(context, BlockActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
                 .putExtra(EXTRA_PACKAGE, pkg)
                 .putExtra(EXTRA_KIND, reason.kind.name)
                 .putExtra(EXTRA_TITLE, reason.title)
                 .putExtra(EXTRA_DETAIL, reason.detail)
                 .putExtra(EXTRA_GENTLE, reason.gentle)
+                .putExtra(EXTRA_REVEAL, reveal)
     }
 
     @Composable

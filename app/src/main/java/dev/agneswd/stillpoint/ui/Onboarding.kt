@@ -314,6 +314,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
 
 @Composable
 private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () -> Unit, onNext: () -> Unit) {
+    val use24 = rememberUse24Hour()
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         PebbleSays("When do you want to focus each day?", Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -324,7 +325,7 @@ private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () 
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
                             Text(part.label, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                            Text("${minuteText(part.start)} to ${minuteText(part.end)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                            Text("${minuteText(part.start, use24)} to ${minuteText(part.end, use24)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                         }
                     }
                 }
@@ -344,13 +345,14 @@ private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () 
 
 @Composable
 private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: () -> Unit) {
+    val use24 = rememberUse24Hour()
     val minutes = goal.toIntOrNull() ?: 60
     val items = buildList {
         add(R.drawable.ic_activity_focus to "Focus ${if (minutes < 60) "$minutes minutes" else "${minutes / 60} hour${if (minutes >= 120) "s" else ""}"} a day")
         if ("shorts" in picked) add(R.drawable.ic_video to "Close Shorts and Reels for you")
         if ("notifications" in picked) add(R.drawable.ic_bell to "Hold notifications while you focus")
         if ("youtube" in picked || "social" in picked || "games" in picked) add(R.drawable.ic_tab_blocks to "Block your distracting apps during focus")
-        if (part != null) add(R.drawable.ic_timer to "${part.label} focus, ${minuteText(part.start)} to ${minuteText(part.end)}")
+        if (part != null) add(R.drawable.ic_timer to "${part.label} focus, ${minuteText(part.start, use24)} to ${minuteText(part.end, use24)}")
         add(R.drawable.ic_activity_flame to "A daily streak to keep you going")
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {

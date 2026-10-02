@@ -162,6 +162,8 @@ data class Settings(
     val notifyInboxSummaries: Boolean = true,
     val petTapCount: Int = 0,
     val themeMode: String = "SYSTEM",
+    /** SYSTEM follows the phone. H12 uses AM and PM. H24 uses a 24-hour clock. */
+    val clockFormat: String = "SYSTEM",
     val autoUpdateChecks: Boolean = true,
     /** Last calendar milestone that earned a freeze. Clock changes cannot replay it. */
     val freezeRewardedThrough: String = "",

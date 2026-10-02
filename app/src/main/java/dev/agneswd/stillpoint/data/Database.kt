@@ -248,7 +248,7 @@ class Converters {
         LimitPass::class,
         UsageDay::class,
     ],
-    version = 7,
+    version = 8,
 )
 @TypeConverters(Converters::class)
 abstract class StillpointDatabase : RoomDatabase() {
@@ -257,7 +257,7 @@ abstract class StillpointDatabase : RoomDatabase() {
     companion object {
         fun open(context: Context): StillpointDatabase =
             Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build()
     }
 }
@@ -365,5 +365,12 @@ private val MIGRATION_5_6 = object : Migration(5, 6) {
 private val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE Settings ADD COLUMN liveFocusTimer INTEGER NOT NULL DEFAULT 1")
+    }
+}
+
+/** Clock text follows the phone until the user picks 12-hour or 24-hour. */
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Settings ADD COLUMN clockFormat TEXT NOT NULL DEFAULT 'SYSTEM'")
     }
 }

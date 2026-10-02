@@ -87,6 +87,17 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                         }
                     }
                 }
+                ListRow("Clock", "System follows the time format on your phone.")
+                androidx.compose.foundation.layout.Row(
+                    Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(bottom = 16.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf("SYSTEM" to "System", "H12" to "12-hour", "H24" to "24-hour").forEach { (mode, label) ->
+                        ChoiceButton(label, s.clockFormat == mode, Modifier.weight(1f)) {
+                            app.scope.launch { app.dao.updateSettings { it.copy(clockFormat = mode) } }
+                        }
+                    }
+                }
             }
 
             SectionTitle("Sound")
