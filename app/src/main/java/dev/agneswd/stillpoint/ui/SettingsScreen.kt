@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -61,9 +60,11 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
         uri?.let { report("Restore") { importBackup(context, app.dao, it) } }
     }
 
+    // Keep the stored scroll offset until the full settings content is ready.
+    if (settings == null) return
     Column(Modifier.fillMaxSize()) {
         TopBar("Settings", onClose)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        Column(Modifier.weight(1f).verticalScroll(navigator.settingsScroll)) {
             SectionTitle("Permissions")
             Column(Modifier.padding(horizontal = ScreenPadding)) { AccessRows(access, includeOptional = true) }
 
