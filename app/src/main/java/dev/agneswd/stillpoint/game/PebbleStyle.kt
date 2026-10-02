@@ -3,10 +3,11 @@ package dev.agneswd.stillpoint.game
 /** One item can be worn in each slot. An empty slot keeps Pebble's original look. */
 enum class PebbleSlot { COLOR, OUTFIT, HAT, ACCESSORY }
 
-data class PebbleItem(val id: String, val name: String, val slot: PebbleSlot, val level: Int)
+data class PebbleItem(val id: String, val name: String, val slot: PebbleSlot, val level: Int, val minimumTaps: Int = 0)
 
 /** Stable IDs are saved in settings and backups. Level requirements never consume XP. */
 object PebbleStyles {
+    const val SECRET_PET_TAPS = 1000
     val items: List<PebbleItem> = listOf(
         PebbleItem("color_mint", "Mint", PebbleSlot.COLOR, 2),
         PebbleItem("color_peach", "Peach", PebbleSlot.COLOR, 3),
@@ -26,6 +27,7 @@ object PebbleStyles {
         PebbleItem("outfit_stars", "Star pajamas", PebbleSlot.OUTFIT, 13),
         PebbleItem("outfit_suit", "Little waistcoat", PebbleSlot.OUTFIT, 16),
         PebbleItem("outfit_cape", "Focus cape", PebbleSlot.OUTFIT, 19),
+        PebbleItem("outfit_star_guardian", "Star guardian", PebbleSlot.OUTFIT, 1, minimumTaps = SECRET_PET_TAPS),
         PebbleItem("hat_beanie", "Soft beanie", PebbleSlot.HAT, 2),
         PebbleItem("hat_bucket", "Bucket hat", PebbleSlot.HAT, 4),
         PebbleItem("hat_flower", "Daisy", PebbleSlot.HAT, 6),
@@ -46,9 +48,16 @@ object PebbleStyles {
         PebbleItem("accessory_star", "Pocket star", PebbleSlot.ACCESSORY, 19),
     )
 
+    fun isUnlocked(item: PebbleItem, level: Int, petTapCount: Int): Boolean =
+        item.level <= level && petTapCount >= item.minimumTaps
+
+    fun visibleItems(petTapCount: Int): List<PebbleItem> = items.filter {
+        it.minimumTaps == 0 || petTapCount >= it.minimumTaps
+    }
+
     /** Catalog order breaks invalid duplicate slots in a stable way. */
-    fun resolve(ids: Set<String>, level: Int): Set<String> = items
-        .filter { it.id in ids && it.level <= level }
+    fun resolve(ids: Set<String>, level: Int, petTapCount: Int = 0): Set<String> = items
+        .filter { it.id in ids && isUnlocked(it, level, petTapCount) }
         .distinctBy { it.slot }
         .mapTo(linkedSetOf()) { it.id }
 }

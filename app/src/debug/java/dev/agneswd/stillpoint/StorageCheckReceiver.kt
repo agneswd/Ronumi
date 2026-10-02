@@ -106,7 +106,7 @@ private suspend fun prepareNotifications(context: Context): String {
     val usage = dao.usageDay(day) ?: UsageDay(day, emptyMap(), 0)
     dao.saveUsageDay(usage.copy(heldCount = 0))
     context.getSharedPreferences("delivery", Context.MODE_PRIVATE).edit().clear().apply()
-    dao.updateSettings { it.copy(heldPackages = setOf("dev.agneswd.stillpoint.e2e"), holdAlways = true) }
+    dao.updateSettings { it.copy(heldPackages = setOf("dev.agneswd.stillpoint.e2e"), holdAlways = true, notifyInboxSummaries = false) }
     return "Notification listener prepared for device test messages."
 }
 
@@ -116,6 +116,16 @@ private suspend fun checkNotifications(context: Context): String {
         check(dao.allHeld().single().title == "Updated test")
         check(dao.usageDay(LocalDate.now().toString())?.heldCount == 1)
         val manager = context.getSystemService(android.app.NotificationManager::class.java)
+        manager.cancel(10)
+        val deliveryState = context.getSharedPreferences("delivery", Context.MODE_PRIVATE)
+        val beforeDelivery = deliveryState.all.toMap()
+        dev.agneswd.stillpoint.notify.Delivery.release(context)
+        kotlinx.coroutines.delay(100)
+        check(manager.activeNotifications.none { it.id == 10 })
+        check(deliveryState.all == beforeDelivery) { "Muted summaries marked messages as delivered" }
+        check(dao.allHeld().single().title == "Updated test")
+        check(dao.usageDay(LocalDate.now().toString())?.heldCount == 1)
+        dao.updateSettings { it.copy(notifyInboxSummaries = true) }
         dev.agneswd.stillpoint.notify.Delivery.release(context)
         // Android queues notification posts. Wait for the system to publish the result.
         val first = kotlinx.coroutines.withTimeout(5_000) {
@@ -125,7 +135,7 @@ private suspend fun checkNotifications(context: Context): String {
         kotlinx.coroutines.delay(100)
         dev.agneswd.stillpoint.notify.Delivery.release(context)
         check(manager.activeNotifications.single { it.id == 10 }.postTime == first)
-        return "Real notifications persisted across process restart. Updates did not duplicate the inbox or delivery."
+        return "Held messages survived muted summaries and process restart. Enabling summaries delivered pending content once."
     } finally {
         importBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.json")))
         context.getSystemService(android.app.NotificationManager::class.java).cancel(10)
@@ -146,7 +156,11 @@ private suspend fun checkMigration(context: Context): String {
     check(dao.activeFocus()?.goalMinutes == 90)
     check(dao.currentSettings().pebbleItems.isEmpty())
     check(dao.allSessions().single().questVersion == 0)
-    return "Schema 1 upgraded to schema 4. Original data and legacy quest rules were preserved."
+    check(dao.currentSettings().let { it.notifyFocusEvents && it.notifyPlanReminders && it.notifyInboxSummaries })
+    check(dao.allSchedules().single().icon == "auto")
+    check(dao.currentSettings().petTapCount == 0)
+    check(dao.currentSettings().themeMode == "SYSTEM" && dao.currentSettings().autoUpdateChecks)
+    return "Schema 1 upgraded to schema 5. Original data, quest rules, notification defaults, and automatic icons were preserved."
 }
 
 /** Exercises actual file I/O, Room transactions, and policy changes in the installed app. */
@@ -160,9 +174,10 @@ private suspend fun checkStorage(context: Context): String {
         val today = LocalDate.now()
         val yesterday = today.minusDays(1)
         val start = yesterday.atTime(9, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val fixture = Backup(settings = Settings(onboarded = true, focusGoalMinutes = 25),
+        val fixture = Backup(settings = Settings(onboarded = true, focusGoalMinutes = 25,
+            notifyFocusEvents = false, notifyPlanReminders = false, notifyInboxSummaries = false, petTapCount = 1000, themeMode = "DARK", autoUpdateChecks = false),
             limits = listOf(AppLimit("com.google.android.deskclock", 1)),
-            schedules = listOf(Schedule(1, "Overnight", 23 * 60, 6 * 60, days = 127)),
+            schedules = listOf(Schedule(1, "Overnight", 23 * 60, 6 * 60, days = 127, icon = "sleep")),
             sites = listOf(BlockedSite("example.com")),
             sessions = listOf(FocusSession(1, start, start + 25 * 60_000, 25 * 60_000, true, "Reading", "Local notes", 25)),
             usageDays = listOf(UsageDay(yesterday.toString(), mapOf("com.google.android.deskclock" to 12 * 60_000), 7, 2,
@@ -178,9 +193,35 @@ private suspend fun checkStorage(context: Context): String {
         check(roundTrip.usageDays.containsAll(fixture.usageDays))
         results += "Backup round trip preserved settings, limits, schedules, sites, notes, focus and usage history."
 
+        val oldTree = Json.parseToJsonElement(Json.encodeToString(fixture)).jsonObject
+        val oldBackup = JsonObject(oldTree.toMutableMap().apply {
+            put("settings", JsonObject(oldTree.getValue("settings").jsonObject.filterKeys {
+                it !in setOf("notifyFocusEvents", "notifyPlanReminders", "notifyInboxSummaries", "petTapCount", "themeMode", "autoUpdateChecks")
+            }))
+            put("schedules", JsonArray(oldTree.getValue("schedules").jsonArray.map {
+                JsonObject(it.jsonObject.filterKeys { key -> key != "icon" })
+            }))
+        })
+        val defaults = Json.decodeFromString<Backup>(oldBackup.toString()).validated()
+        check(defaults.settings.let { it.notifyFocusEvents && it.notifyPlanReminders && it.notifyInboxSummaries })
+        check(defaults.schedules.single().icon == "auto" && defaults.settings.petTapCount == 0)
+        check(defaults.settings.themeMode == "SYSTEM" && defaults.settings.autoUpdateChecks)
+        results += "Old backups use enabled notification defaults and automatic schedule icons."
+
         file.writeText(Json.encodeToString(fixture.copy(limits = listOf(AppLimit("bad", -1)))))
         check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
         check(dao.allSessions() == fixture.sessions && dao.allLimits() == fixture.limits)
+        file.writeText(Json.encodeToString(fixture.copy(schedules = fixture.schedules.map { it.copy(icon = "unknown") })))
+        check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
+        check(dao.allSchedules() == fixture.schedules)
+        for (badCount in listOf(-1, 1001)) {
+            file.writeText(Json.encodeToString(fixture.copy(settings = fixture.settings.copy(petTapCount = badCount))))
+            check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
+            check(dao.currentSettings().petTapCount == 1000)
+        }
+        file.writeText(Json.encodeToString(fixture.copy(settings = fixture.settings.copy(themeMode = "unknown"))))
+        check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
+        check(dao.currentSettings().themeMode == "DARK" && !dao.currentSettings().autoUpdateChecks)
         file.writeText("{broken")
         check(runCatching { importBackup(context, dao, Uri.fromFile(file)) }.isFailure)
         check(dao.allSessions() == fixture.sessions && dao.allLimits() == fixture.limits)
@@ -242,6 +283,22 @@ private suspend fun checkProgression(context: Context): String {
     val originalSessions = dao.allSessions().sortedBy { it.id }
     var insertedId: Long? = null
     try {
+        val secret = setOf("outfit_star_guardian")
+        dao.updateSettings { it.copy(petTapCount = 990) }
+        val taps = List(9) { dev.agneswd.stillpoint.game.PebblePets.pet(context) }
+        taps.forEach { it.join() }
+        check(dao.currentSettings().petTapCount == 999) { "Concurrent taps were lost" }
+        check(PebbleStyles.resolve(secret, 20, 999).isEmpty())
+        check(PebbleStyles.visibleItems(999).none { it.id in secret })
+        dev.agneswd.stillpoint.game.PebblePets.pet(context).join()
+        check(dao.currentSettings().petTapCount == 1000)
+        check(PebbleStyles.resolve(secret, 1, 1000) == secret)
+        dev.agneswd.stillpoint.game.PebblePets.pet(context).join()
+        check(dao.currentSettings().petTapCount == 1000) { "Tap counter exceeded its cap" }
+        val reopened = dev.agneswd.stillpoint.data.StillpointDatabase.open(context)
+        try {
+            check(reopened.dao().currentSettings().petTapCount == 1000) { "Unlock did not persist" }
+        } finally { reopened.close() }
         val worn = setOf("color_mint", "outfit_tee", "hat_beanie", "accessory_scarf")
         dao.updateSettings { it.copy(pebbleItems = worn) }
         check(dao.currentSettings().pebbleItems == worn) { "Room lost equipped items" }

@@ -67,7 +67,10 @@ data class Schedule(
     val enabled: Boolean = true,
     val startFocus: Boolean = false,
     val focusMinutes: Int = 25,
+    val icon: String = "auto",
 )
+
+val SCHEDULE_ICONS = setOf("auto", "focus", "study", "work", "sleep", "exercise", "coffee", "home", "music", "book")
 
 /** A blocked domain. It also blocks every subdomain. */
 @Serializable
@@ -152,6 +155,12 @@ data class Settings(
     val productivePackages: Set<String> = emptySet(),
     /** Equipped Pebble item IDs. An empty set uses the original appearance. */
     val pebbleItems: Set<String> = emptySet(),
+    val notifyFocusEvents: Boolean = true,
+    val notifyPlanReminders: Boolean = true,
+    val notifyInboxSummaries: Boolean = true,
+    val petTapCount: Int = 0,
+    val themeMode: String = "SYSTEM",
+    val autoUpdateChecks: Boolean = true,
 )
 
 /**

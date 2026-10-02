@@ -57,6 +57,7 @@ suspend fun importBackup(context: Context, dao: StillpointDao, source: Uri) {
         require(!current.protection || !dev.agneswd.stillpoint.guard.Rules(schedules = dao.allSchedules()).locked(java.time.LocalDateTime.now())) {
             "Restore is locked while a protected schedule runs"
         }
+        dev.agneswd.stillpoint.game.PebblePets.invalidatePendingTaps()
         dao.replaceAll(backup.copy(settings = backup.settings.copy(id = 0, pauseBlocksUntil = 0)))
     }
     context.getSharedPreferences("delivery", Context.MODE_PRIVATE).edit().clear().apply()
@@ -72,6 +73,8 @@ fun Backup.validated(): Backup {
     require(s.focusGoalMinutes in 5..1440 && s.focusMinutes in 1..240 && s.breakMinutes in 0..60 &&
         s.longBreakMinutes in 0..120 && s.focusRounds in 1..12 && s.goalDays in 1..127 &&
         s.emergencyPassesPerDay in 0..10 && s.streakFreezes in 0..2 && s.freezeWeeksRewarded >= 0) { "Invalid focus or game settings" }
+    require(s.themeMode in setOf("SYSTEM", "LIGHT", "DARK")) { "Invalid theme mode" }
+    require(s.petTapCount in 0..1000) { "Invalid Pebble tap count" }
     require(s.pebbleItems.size <= 8 && s.pebbleItems.all { it.matches(Regex("[a-z][a-z0-9_]{0,63}")) }) { "Invalid Pebble items" }
     require(s.notificationDeliveryTimes.all { it.toIntOrNull() in 0..1439 }) { "Invalid notification delivery time" }
     require(s.frozenDays.all { runCatching { LocalDate.parse(it) }.isSuccess }) { "Invalid streak date" }
@@ -80,7 +83,7 @@ fun Backup.validated(): Backup {
     }) { "Invalid app limits" }
     require(schedules.map { it.id }.distinct().size == schedules.size && schedules.all {
         it.id > 0 && it.name.isNotBlank() && it.startMinute in 0..1439 && it.endMinute in 0..1439 &&
-            it.days in 1..127 && it.focusMinutes in 1..240
+            it.days in 1..127 && it.focusMinutes in 1..240 && it.icon in SCHEDULE_ICONS
     }) { "Invalid schedules" }
     require(sites.map { it.domain }.distinct().size == sites.size && sites.all { hostOf(it.domain) == it.domain }) { "Invalid site list" }
     require(sessions.map { it.id }.distinct().size == sessions.size && sessions.all {

@@ -35,6 +35,15 @@ interface StillpointDao {
         saveSettings(change(settingsOrNull() ?: Settings()))
     }
 
+    @Query("UPDATE Settings SET petTapCount = petTapCount + 1 WHERE id = 0 AND petTapCount < 1000")
+    suspend fun incrementPetTapCount()
+
+    @Transaction
+    suspend fun recordPetTap() {
+        if (settingsOrNull() == null) saveSettings(Settings())
+        incrementPetTapCount()
+    }
+
     @Query("SELECT * FROM AppLimit ORDER BY packageName")
     fun limits(): Flow<List<AppLimit>>
 
@@ -236,7 +245,7 @@ class Converters {
         LimitPass::class,
         UsageDay::class,
     ],
-    version = 4,
+    version = 5,
 )
 @TypeConverters(Converters::class)
 abstract class StillpointDatabase : RoomDatabase() {
@@ -245,7 +254,7 @@ abstract class StillpointDatabase : RoomDatabase() {
     companion object {
         fun open(context: Context): StillpointDatabase =
             Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
     }
 }
@@ -317,5 +326,18 @@ private val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE FocusSession ADD COLUMN questVersion INTEGER NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE Settings ADD COLUMN pebbleItems TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/** Keeps existing notification behavior and selects schedule icons automatically after upgrade. */
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE Settings ADD COLUMN notifyFocusEvents INTEGER NOT NULL DEFAULT 1")
+        db.execSQL("ALTER TABLE Settings ADD COLUMN notifyPlanReminders INTEGER NOT NULL DEFAULT 1")
+        db.execSQL("ALTER TABLE Settings ADD COLUMN notifyInboxSummaries INTEGER NOT NULL DEFAULT 1")
+        db.execSQL("ALTER TABLE Schedule ADD COLUMN icon TEXT NOT NULL DEFAULT 'auto'")
+        db.execSQL("ALTER TABLE Settings ADD COLUMN petTapCount INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE Settings ADD COLUMN themeMode TEXT NOT NULL DEFAULT 'SYSTEM'")
+        db.execSQL("ALTER TABLE Settings ADD COLUMN autoUpdateChecks INTEGER NOT NULL DEFAULT 1")
     }
 }
