@@ -85,7 +85,11 @@ private suspend fun checkNotifications(context: Context): String {
         check(dao.usageDay(LocalDate.now().toString())?.heldCount == 1)
         val manager = context.getSystemService(android.app.NotificationManager::class.java)
         dev.agneswd.stillpoint.notify.Delivery.release(context)
-        val first = manager.activeNotifications.single { it.id == 10 }.postTime
+        // Android queues notification posts. Wait for the system to publish the result.
+        val first = kotlinx.coroutines.withTimeout(5_000) {
+            while (manager.activeNotifications.none { it.id == 10 }) kotlinx.coroutines.delay(50)
+            manager.activeNotifications.single { it.id == 10 }.postTime
+        }
         kotlinx.coroutines.delay(100)
         dev.agneswd.stillpoint.notify.Delivery.release(context)
         check(manager.activeNotifications.single { it.id == 10 }.postTime == first)
