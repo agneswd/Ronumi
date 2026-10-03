@@ -24,6 +24,7 @@ Keep the release keystore and passwords outside the repository. Keep a private b
 
 Use a disposable emulator. The test resets Stillpoint's app data and configures emulator permissions.
 A complete blocking run needs Chrome, Clock, Contacts, and a compatible YouTube installation.
+The browser matrix also runs Brave, Brave Beta, and Firefox when they are installed. Finish their welcome pages first.
 
 ```sh
 ./gradlew assembleDebug
