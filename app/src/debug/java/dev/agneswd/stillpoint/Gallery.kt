@@ -41,6 +41,12 @@ fun Gallery(page: String) {
                 FocusBackdrop(t, Modifier.padding(4.dp).size(170.dp, 300.dp))
             }
         }
+        "says" -> Column(Modifier.padding(16.dp)) {
+            dev.agneswd.stillpoint.ui.PebbleSays("Pick a daily focus goal", Mood.THINK, Modifier.fillMaxWidth(), pebbleSize = 84.dp)
+            dev.agneswd.stillpoint.ui.PebbleSays("Which apps steal your time? Pick all that fit, I will remember.", Mood.THINK, Modifier.fillMaxWidth(), pebbleSize = 84.dp)
+            dev.agneswd.stillpoint.ui.PebbleSays("Hi there!", Mood.HAPPY, Modifier.fillMaxWidth(), pebbleSize = 96.dp)
+            dev.agneswd.stillpoint.ui.Stepper("Focus length", 25, 5..240, 5, { "$it min" }) {}
+        }
         "components" -> {
             ScreenTitle("Components")
             ChunkyButton("Continue", {}, Modifier.fillMaxWidth())

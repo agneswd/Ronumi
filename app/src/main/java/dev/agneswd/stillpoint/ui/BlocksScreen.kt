@@ -295,9 +295,9 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                 Text("Daily limit for ${app.catalog.label(limit.packageName)}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    ChunkyButton("-", { minutes = (minutes - if (minutes > 60) 15 else 5).coerceAtLeast(1) }, Modifier.width(56.dp).semantics { contentDescription = "Decrease daily limit" }, kind = ButtonKind.SECONDARY)
+                    ChunkyButton("", { minutes = (minutes - if (minutes > 60) 15 else 5).coerceAtLeast(1) }, Modifier.width(56.dp).semantics { contentDescription = "Decrease daily limit" }, kind = ButtonKind.SECONDARY, icon = painterResource(R.drawable.ic_minus))
                     Text(formatMinutes(minutes), style = MaterialTheme.typography.displaySmall, color = Sp.colors.brand, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    ChunkyButton("+", { minutes = (minutes + if (minutes >= 60) 15 else 5).coerceAtMost(12 * 60) }, Modifier.width(56.dp).semantics { contentDescription = "Increase daily limit" }, kind = ButtonKind.SECONDARY)
+                    ChunkyButton("", { minutes = (minutes + if (minutes >= 60) 15 else 5).coerceAtMost(12 * 60) }, Modifier.width(56.dp).semantics { contentDescription = "Increase daily limit" }, kind = ButtonKind.SECONDARY, icon = painterResource(R.drawable.ic_plus))
                 }
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

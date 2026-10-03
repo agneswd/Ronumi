@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,10 +38,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -57,6 +63,7 @@ import dev.agneswd.stillpoint.ui.design.Pebble
 import dev.agneswd.stillpoint.ui.design.Sfx
 import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sp
+import dev.agneswd.stillpoint.ui.design.ThoughtDot
 import dev.agneswd.stillpoint.ui.design.XpBolt
 import kotlinx.coroutines.delay
 
@@ -163,25 +170,25 @@ fun IconTile(icon: Int, color: Color, size: Dp = 40.dp) {
 fun Stepper(label: String, value: Int, range: IntRange, step: Int, format: (Int) -> String, onChange: (Int) -> Unit) {
     ListRow(label) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RoundKey("-", enabled = value > range.first) { onChange((value - step).coerceIn(range)) }
+            RoundKey(R.drawable.ic_minus, "Decrease $label", enabled = value > range.first) { onChange((value - step).coerceIn(range)) }
             Text(format(value), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text, modifier = Modifier.widthIn(min = 64.dp), textAlign = TextAlign.Center)
-            RoundKey("+", enabled = value < range.last) { onChange((value + step).coerceIn(range)) }
+            RoundKey(R.drawable.ic_plus, "Increase $label", enabled = value < range.last) { onChange((value + step).coerceIn(range)) }
         }
     }
 }
 
 @Composable
-private fun RoundKey(label: String, enabled: Boolean, onClick: () -> Unit) {
+private fun RoundKey(icon: Int, description: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
-            .size(38.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .size(44.dp)
+            .clip(RoundedCornerShape(14.dp))
             .background(Sp.colors.surface)
-            .border(2.dp, Sp.colors.border, RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled, onClick = onClick),
+            .border(2.dp, Sp.colors.border, RoundedCornerShape(14.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, style = MaterialTheme.typography.titleLarge, color = if (enabled) Sp.colors.brand else Sp.colors.border)
+        Icon(painterResource(icon), description, tint = if (enabled) Sp.colors.brand else Sp.colors.border, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -199,7 +206,8 @@ fun PebbleSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Bo
         }
     }
     val bubble: @Composable () -> Unit = {
-        Box {
+        // Screen readers get the whole line once, not the hidden sizing copy and each typed letter.
+        Box(Modifier.clearAndSetSemantics { this.text = AnnotatedString(text) }) {
             // The full text keeps the bubble size steady while the words type out.
             Text(text, style = MaterialTheme.typography.titleMedium, color = Color.Transparent, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
             Text(
@@ -212,9 +220,10 @@ fun PebbleSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Bo
     }
     val bubbleShape = RoundedCornerShape(18.dp)
     if (side) {
+        val thinking = mood == Mood.THINK
         Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-            Pebble(mood, size = pebbleSize)
-            Spacer(Modifier.width(10.dp))
+            Pebble(mood, size = pebbleSize, thoughtDots = !thinking)
+            if (thinking) ThoughtTrail() else Spacer(Modifier.width(10.dp))
             Box(Modifier.weight(1f).border(2.dp, Sp.colors.border, bubbleShape)) { bubble() }
         }
     } else {
@@ -222,6 +231,17 @@ fun PebbleSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Bo
             Box(Modifier.padding(horizontal = 24.dp).border(2.dp, Sp.colors.border, bubbleShape)) { bubble() }
             Spacer(Modifier.height(14.dp))
             Pebble(mood, size = pebbleSize)
+        }
+    }
+}
+
+/** Three dots that grow from Pebble toward the middle of the bubble on its right. */
+@Composable
+private fun ThoughtTrail() {
+    Canvas(Modifier.size(20.dp, 24.dp)) {
+        val u = size.width / 20f
+        listOf(Offset(3f, 16.5f) to 1.9f, Offset(9.5f, 13.8f) to 2.7f, Offset(16.5f, 12f) to 3.4f).forEach { (center, radius) ->
+            drawCircle(ThoughtDot, radius * u, Offset(center.x * u, center.y * u))
         }
     }
 }

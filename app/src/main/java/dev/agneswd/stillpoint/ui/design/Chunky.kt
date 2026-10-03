@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -68,7 +69,8 @@ private val Lip = 5.dp
 
 /**
  * The main button. It sits on a darker lip and sinks into it when pressed, like a game key.
- * Disabled buttons turn flat and grey.
+ * Disabled buttons turn flat and grey. With an [icon] and empty [text] it is an icon key,
+ * and the caller gives it a content description.
  */
 @Composable
 fun ChunkyButton(
@@ -91,7 +93,7 @@ fun ChunkyButton(
     Box(
         modifier
             .height(height + lip)
-            .clickable(source, indication = null, enabled = enabled) {
+            .clickable(source, indication = null, enabled = enabled, role = Role.Button) {
                 haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                 sound?.let(Sfx::play)
                 onClick()
@@ -109,22 +111,24 @@ fun ChunkyButton(
                 .clip(shape)
                 .background(colors.fill)
                 .then(if (colors.border != null) Modifier.drawBehind { drawRoundRect(colors.border, style = Stroke(2.dp.toPx()), cornerRadius = CornerRadius(16.dp.toPx())) } else Modifier)
-                .padding(horizontal = if (height < 50.dp) 10.dp else 20.dp),
+                .padding(horizontal = if (text.isEmpty()) 0.dp else if (height < 50.dp) 10.dp else 20.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (icon != null) {
-                Icon(icon, null, tint = colors.content, modifier = Modifier.size(22.dp))
-                Spacer(Modifier.width(10.dp))
+                Icon(icon, null, tint = colors.content, modifier = Modifier.size(if (text.isEmpty()) 24.dp else 22.dp))
+                if (text.isNotEmpty()) Spacer(Modifier.width(10.dp))
             }
             // Long labels shrink to fit narrow buttons instead of being cut off.
-            val style = MaterialTheme.typography.labelLarge
-            BasicText(
-                text.uppercase(),
-                style = style.copy(color = colors.content, textAlign = TextAlign.Center),
-                maxLines = 1,
-                autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
-            )
+            if (text.isNotEmpty()) {
+                val style = MaterialTheme.typography.labelLarge
+                BasicText(
+                    text.uppercase(),
+                    style = style.copy(color = colors.content, textAlign = TextAlign.Center),
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
+                )
+            }
         }
     }
 }
@@ -155,7 +159,7 @@ fun ChunkyCard(
         modifier
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(source, indication = null) {
+                    Modifier.clickable(source, indication = null, role = Role.Button) {
                         haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                         sound?.let(Sfx::play)
                         onClick()
