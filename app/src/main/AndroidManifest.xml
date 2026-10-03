@@ -53,6 +53,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Plan notifications open this name. It is not exported, so other apps cannot start a plan. -->
+        <activity-alias
+            android:name=".ui.PlanStart"
+            android:exported="false"
+            android:targetActivity=".ui.MainActivity" />
+
         <activity
             android:name=".guard.BlockActivity"
             android:exported="false"
