@@ -14,8 +14,8 @@ android {
         // API 28 is the first release that reports unlock events through UsageStatsManager.
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.1.2"
     }
 
     buildFeatures {
