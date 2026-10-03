@@ -30,12 +30,12 @@ enum class FocusTheme(val label: String) {
  * The lake ripples spread from there.
  */
 @Composable
-fun FocusBackdrop(theme: FocusTheme, modifier: Modifier, center: Offset = Offset(0.5f, 0.38f)) {
-    val slow = loop(14000, "slow")
-    val mid = loop(5000, "mid")
-    val fast = loop(1200, "fast")
+fun FocusBackdrop(theme: FocusTheme, modifier: Modifier, center: Offset = Offset(0.5f, 0.38f), animated: Boolean = true) {
+    val slow = if (animated) loop(14000, "slow") else 0.35f
+    val mid = if (animated) loop(5000, "mid") else 0.35f
+    val fast = if (animated) loop(1200, "fast") else 0.35f
     // Space stars drift on a long loop of their own, so whole-number speeds stay calm.
-    val drift = loop(36000, "drift")
+    val drift = if (animated) loop(36000, "drift") else 0.35f
     Canvas(modifier) {
         when (theme) {
             FocusTheme.LAKE -> lake(slow, mid, center)

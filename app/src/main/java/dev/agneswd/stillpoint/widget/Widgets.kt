@@ -28,23 +28,37 @@ import java.time.LocalTime
 
 /** Redraws the home screen widgets. Call it when usage or focus state changes. */
 object Widgets {
+    /** Without widgets, the usage history needs a fresh record only this often. */
+    private const val RECORD_INTERVAL_MILLIS = 10 * 60_000L
+
+    @Volatile
+    private var recordedAt = 0L
+
     fun refresh(context: Context) {
         val app = context.app
         app.scope.launch {
-            val today = app.usage.day(LocalDate.now())
-            if (app.usage.hasAccess()) app.dao.recordUsage(UsageDay(today.date.toString(), today.perApp.toMap(), today.unlocks))
             val manager = AppWidgetManager.getInstance(context)
             fun ids(type: Class<*>) = manager.getAppWidgetIds(ComponentName(context, type))
-            val settings = app.dao.currentSettings()
+            val usageIds = ids(UsageWidget::class.java)
             val goalIds = ids(GoalWidget::class.java)
             val calendarIds = ids(CalendarWidget::class.java)
+            val focusIds = ids(FocusWidget::class.java)
+            val noWidgets = usageIds.isEmpty() && goalIds.isEmpty() && calendarIds.isEmpty() && focusIds.isEmpty()
+            // Focus checkpoints call this every 30 seconds. Without widgets, skip most usage reads.
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (noWidgets && recordedAt > 0 && now - recordedAt < RECORD_INTERVAL_MILLIS) return@launch
+            recordedAt = now
+            val today = app.usage.day(LocalDate.now())
+            if (app.usage.hasAccess()) app.dao.recordUsage(UsageDay(today.date.toString(), today.perApp.toMap(), today.unlocks))
+            if (noWidgets) return@launch
+            val settings = app.dao.currentSettings()
             // Session history also determines which Pebble items are unlocked.
             val sessions = app.dao.allSessions()
             val game = gameState(sessions, settings)
             val style = dev.agneswd.stillpoint.game.PebbleStyles.resolve(settings.pebbleItems, game.level.number, settings.petTapCount)
 
-            ids(UsageWidget::class.java).forEach { id ->
-                val history = app.dao.allUsageDays().associate { it.day to it.perApp.values.sum() }
+            val history = if (usageIds.isEmpty()) emptyMap() else app.dao.allUsageDays().associate { it.day to it.perApp.values.sum() }
+            usageIds.forEach { id ->
                 val week = (6 downTo 1).map { history[LocalDate.now().minusDays(it.toLong()).toString()] ?: 0L } + today.totalMillis
                 val (w, h) = artSize(context, manager, id, widthShare = 1f, heightShare = 0.4f)
                 manager.updateAppWidget(id, RemoteViews(context.packageName, R.layout.widget_usage).apply {
@@ -84,7 +98,6 @@ object Widgets {
                 })
             }
 
-            val focusIds = ids(FocusWidget::class.java)
             if (focusIds.isNotEmpty()) {
                 val focus = app.dao.activeFocus()
                 val views = RemoteViews(context.packageName, R.layout.widget_focus)

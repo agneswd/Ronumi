@@ -138,7 +138,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                         Box(
                             Modifier.size(64.dp, 84.dp).clip(RoundedCornerShape(16.dp))
                                 .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp)),
-                        ) { FocusBackdrop(theme, Modifier.fillMaxSize()) }
+                        ) { FocusBackdrop(theme, Modifier.fillMaxSize(), animated = false) }
                         Text(theme.label, style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
                     }
                 }
