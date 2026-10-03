@@ -121,7 +121,7 @@ fun BlocksScreen(navigator: Navigator) {
                         }
                         Spacer(Modifier.width(8.dp))
                     }
-                    MintSwitch(limit.enabled) { on -> app.scope.launch { dao.saveLimit(limit.copy(enabled = on)) } }
+                    MintSwitch(limit.enabled) { on -> app.scope.launch { PolicyActions.changeBlocks(context) { dao.saveLimit(limit.copy(enabled = on)) } } }
                 }
             }
         }
@@ -260,7 +260,7 @@ fun MintSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
 
 /** Strict mode hides the controls while a block runs, so the user cannot undo it in a weak moment. */
 @Composable
-private fun LockedNotice() {
+fun LockedNotice() {
     Column(Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
         Pebble(Mood.STRICT, size = 160.dp)
@@ -340,14 +340,18 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                         warning = true
                         return@ChunkyButton
                     }
-                    app.scope.launch { app.dao.saveLimit(limit.copy(minutesPerDay = minutes, reminderMinutes = reminder, mode = if (strict) LimitMode.STRICT else LimitMode.GENTLE)) }
+                    app.scope.launch {
+                        PolicyActions.changeBlocks(context) {
+                            app.dao.saveLimit(limit.copy(minutesPerDay = minutes, reminderMinutes = reminder, mode = if (strict) LimitMode.STRICT else LimitMode.GENTLE))
+                        }
+                    }
                     onDismiss()
                 }, Modifier.fillMaxWidth())
                 ChunkyButton(
                     if (isNew) "Cancel" else "Delete limit",
                     {
                         if (!isNew && !deleteWarning) { deleteWarning = true; return@ChunkyButton }
-                        if (!isNew) app.scope.launch { app.dao.deleteLimit(limit) }
+                        if (!isNew) app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.deleteLimit(limit) } }
                         onDismiss()
                     },
                     Modifier.fillMaxWidth(),

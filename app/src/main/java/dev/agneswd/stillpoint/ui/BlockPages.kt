@@ -45,7 +45,10 @@ import dev.agneswd.stillpoint.data.BlockedSite
 import dev.agneswd.stillpoint.data.Settings
 import dev.agneswd.stillpoint.data.settings
 import dev.agneswd.stillpoint.data.updateSettings
+import dev.agneswd.stillpoint.guard.PolicyActions
+import dev.agneswd.stillpoint.guard.Rules
 import dev.agneswd.stillpoint.guard.hostOf
+import java.time.LocalDateTime
 import dev.agneswd.stillpoint.guard.minuteText
 import dev.agneswd.stillpoint.ui.design.ChunkyButton
 import dev.agneswd.stillpoint.ui.design.ChunkyCard
@@ -76,12 +79,20 @@ private fun BlockPage(
     onClose: () -> Unit,
     content: @Composable ColumnScope.(Settings, SettingsUpdate) -> Unit,
 ) {
-    val app = LocalContext.current.app
+    val context = LocalContext.current
+    val app = context.app
     val settings by app.dao.settings().collectAsState(null)
-    val update: SettingsUpdate = { change -> app.scope.launch { app.dao.updateSettings(change) } }
+    val schedules by app.dao.schedules().collectAsState(emptyList())
+    val focus by app.dao.activeFocusFlow().collectAsState(null)
+    val update: SettingsUpdate = { change -> app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.updateSettings(change) } } }
     Column(Modifier.fillMaxSize()) {
         TopBar(title, onClose)
         val s = settings ?: return@Column
+        // This page can be open when a block starts. It locks like the Blocks tab.
+        if (s.protection && Rules(schedules = schedules, focus = focus).locked(LocalDateTime.now())) {
+            LockedNotice()
+            return@Column
+        }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             PebbleSays(pebble, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp), pebbleSize = 80.dp)
             content(s, update)
@@ -143,7 +154,8 @@ fun ShortVideosPage(onClose: () -> Unit) {
 
 @Composable
 fun WebsitesPage(onClose: () -> Unit) {
-    val app = LocalContext.current.app
+    val context = LocalContext.current
+    val app = context.app
     val sites by app.dao.sites().collectAsState(emptyList())
     BlockPage("Websites", "I watch the address bar in your browsers.", Mood.THINK, onClose) { s, update ->
         Group(Modifier.appear(0)) {
@@ -165,17 +177,18 @@ fun WebsitesPage(onClose: () -> Unit) {
             else "These sites and their subdomains are blocked.",
         )
         AddField(if (s.siteAllowList) "Allow a site, like example.com" else "Block a site, like example.com", KeyboardType.Uri, clean = ::hostOf) { domain ->
-            app.scope.launch { app.dao.addSite(BlockedSite(domain)) }
+            app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.addSite(BlockedSite(domain)) } }
         }
         ChipList(sites.map { it.domain }.toSet(), empty = if (s.siteAllowList) "No sites yet. Every website is blocked." else "No sites yet.") { domain ->
-            sites.firstOrNull { it.domain == domain }?.let { app.scope.launch { app.dao.deleteSite(it) } }
+            sites.firstOrNull { it.domain == domain }?.let { app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.deleteSite(it) } } }
         }
     }
 }
 
 @Composable
 fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
-    val app = LocalContext.current.app
+    val context = LocalContext.current
+    val app = context.app
     val held by app.dao.held().collectAsState(emptyList())
     val access = rememberAccess()
     var picking by remember { mutableStateOf(false) }
@@ -228,7 +241,7 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
     }
     if (picking) {
         TimeDialog(12 * 60, onDismiss = { picking = false }) { minute ->
-            app.scope.launch { app.dao.updateSettings { it.copy(notificationDeliveryTimes = it.notificationDeliveryTimes + minute.toString()) } }
+            app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.updateSettings { it.copy(notificationDeliveryTimes = it.notificationDeliveryTimes + minute.toString()) } } }
             picking = false
         }
     }

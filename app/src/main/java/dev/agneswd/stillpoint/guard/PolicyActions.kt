@@ -14,18 +14,29 @@ import java.time.LocalDateTime
 /** Rechecks current rules before spending a pass. Old block screens cannot bypass a new strict block. */
 object PolicyActions {
     /** Every schedule editor uses this check, including an editor opened before a block starts. */
-    suspend fun saveSchedule(context: Context, schedule: Schedule, delete: Boolean = false): Boolean {
+    suspend fun saveSchedule(context: Context, schedule: Schedule, delete: Boolean = false): Boolean =
+        unlessLocked(context, "Schedules are locked until the current block ends.") {
+            if (delete) context.app.dao.deleteSchedule(schedule) else context.app.dao.saveSchedule(schedule)
+        }
+
+    /**
+     * Saves a change to blocks, limits or sites unless protection locks them.
+     * A page opened before a block starts stays open, so the lock is checked again here.
+     */
+    suspend fun changeBlocks(context: Context, change: suspend () -> Unit): Boolean =
+        unlessLocked(context, "Blocks are locked until the current block ends.", change)
+
+    private suspend fun unlessLocked(context: Context, message: String, change: suspend () -> Unit): Boolean {
         val changed = context.app.database.withTransaction {
             val dao = context.app.dao
-            val s = dao.currentSettings()
-            if (s.protection && Rules(schedules = dao.allSchedules(), focus = dao.activeFocus()).locked(LocalDateTime.now())) {
+            if (dao.currentSettings().protection && Rules(schedules = dao.allSchedules(), focus = dao.activeFocus()).locked(LocalDateTime.now())) {
                 return@withTransaction false
             }
-            if (delete) dao.deleteSchedule(schedule) else dao.saveSchedule(schedule)
+            change()
             true
         }
         if (!changed) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-            android.widget.Toast.makeText(context, "Schedules are locked until the current block ends.", android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
         }
         return changed
     }
