@@ -91,17 +91,14 @@ class BlockActivity : ComponentActivity() {
         val title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         val detail = intent.getStringExtra(EXTRA_DETAIL).orEmpty()
         val gentle = intent.getBooleanExtra(EXTRA_GENTLE, false)
-        val reveal = intent.getBooleanExtra(EXTRA_REVEAL, false)
         // The E2E test reads this line. UI dumps would pause the guard, so it cannot read the screen.
         Log.i("Stillpoint", "block shown: $title")
         Sfx.play(Sound.BLOCK)
         // App and schedule blocks go to the phone home screen.
-        // Shorts and study blocks stay inside the blocked app.
-        // A home-feed block only closes, because search is already open underneath.
+        // Content blocks recover within the current app task.
         val leave = {
             when {
-                reveal -> closeWithoutAnimation()
-                kind == BlockKind.SHORTS || kind == BlockKind.STUDY -> returnToApp()
+                kind in contentKinds -> returnToApp()
                 kind in homeKinds -> goHome()
                 else -> closeWithoutAnimation()
             }
@@ -161,8 +158,10 @@ class BlockActivity : ComponentActivity() {
     /** Asks the guard to leave Shorts or a blocked player, then closes this screen. */
     private fun returnToApp() {
         val pkg = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
-        sendBroadcast(Intent(GuardService.ACTION_RETURN).setPackage(packageName).putExtra(GuardService.EXTRA_BLOCKED_PACKAGE, pkg))
-        window.decorView.postDelayed({ closeWithoutAnimation() }, 250)
+        sendBroadcast(Intent(GuardService.ACTION_RETURN).setPackage(packageName)
+            .putExtra(GuardService.EXTRA_BLOCKED_PACKAGE, pkg)
+            .putExtra(GuardService.EXTRA_BLOCK_KIND, intent.getStringExtra(EXTRA_KIND)))
+        closeWithoutAnimation()
     }
 
     private fun closeWithoutAnimation() {
@@ -176,11 +175,11 @@ class BlockActivity : ComponentActivity() {
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_DETAIL = "detail"
         private const val EXTRA_GENTLE = "gentle"
-        private const val EXTRA_REVEAL = "reveal"
         private const val WAIT_SECONDS = 10
-        private val homeKinds = setOf(BlockKind.FOCUS, BlockKind.SCHEDULE, BlockKind.LIMIT, BlockKind.SITE, BlockKind.PROTECTION, BlockKind.MULTI_WINDOW)
+        private val contentKinds = setOf(BlockKind.SHORTS, BlockKind.STUDY, BlockKind.SITE)
+        private val homeKinds = setOf(BlockKind.FOCUS, BlockKind.SCHEDULE, BlockKind.LIMIT, BlockKind.PROTECTION, BlockKind.MULTI_WINDOW)
 
-        fun intent(context: Context, pkg: String, reason: BlockReason, reveal: Boolean = false): Intent =
+        fun intent(context: Context, pkg: String, reason: BlockReason): Intent =
             Intent(context, BlockActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
                 .putExtra(EXTRA_PACKAGE, pkg)
@@ -188,7 +187,6 @@ class BlockActivity : ComponentActivity() {
                 .putExtra(EXTRA_TITLE, reason.title)
                 .putExtra(EXTRA_DETAIL, reason.detail)
                 .putExtra(EXTRA_GENTLE, reason.gentle)
-                .putExtra(EXTRA_REVEAL, reveal)
     }
 
     @Composable
@@ -243,7 +241,7 @@ class BlockActivity : ComponentActivity() {
                 Spacer(Modifier.height(8.dp))
                 Text(detail, style = MaterialTheme.typography.titleMedium, color = Sp.colors.textDim, textAlign = TextAlign.Center, modifier = Modifier.appear(200))
                 Spacer(Modifier.weight(1f))
-                ChunkyButton(if (kind == BlockKind.SHORTS || kind == BlockKind.STUDY) "Back to the app" else "Close", onClose, Modifier.fillMaxWidth())
+                ChunkyButton(if (kind == BlockKind.SITE) "Back to the browser" else if (kind in contentKinds) "Back to the app" else "Close", onClose, Modifier.fillMaxWidth())
                 if (gentle) {
                     Spacer(Modifier.height(14.dp))
                     MoreTime(wait, passes, onMore)

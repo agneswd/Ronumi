@@ -37,6 +37,7 @@ class FocusService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         if (intent?.action == ACTION_GIVE_UP) lifecycleScope.launch { Focus.giveUp(this@FocusService) }
+        if (intent?.action == ACTION_FINISH) lifecycleScope.launch { Focus.stopStopwatch(this@FocusService) }
         if (!started) {
             started = true
             goForeground(placeholder())
@@ -95,7 +96,10 @@ class FocusService : LifecycleService() {
             .setChronometerCountDown(!stopwatch)
             // Android 16 shows a promoted ongoing notification as a chip with the timer in the status bar.
             .setRequestPromotedOngoing(live)
-        if (!focus.strict) {
+        // A stopwatch has no early end. Finishing it counts as a completed session, as on the focus screen.
+        if (stopwatch) {
+            builder.addAction(0, "Finish", PendingIntent.getService(this, 2, intent(this).setAction(ACTION_FINISH), PendingIntent.FLAG_IMMUTABLE))
+        } else if (!focus.strict) {
             val giveUp = PendingIntent.getService(this, 1, intent(this).setAction(ACTION_GIVE_UP), PendingIntent.FLAG_IMMUTABLE)
             builder.addAction(0, "End session", giveUp)
         }
@@ -112,6 +116,7 @@ class FocusService : LifecycleService() {
     companion object {
         private const val NOTIFICATION_ID = 1
         private const val ACTION_GIVE_UP = "give_up"
+        private const val ACTION_FINISH = "finish"
 
         fun intent(context: Context) = Intent(context, FocusService::class.java)
 

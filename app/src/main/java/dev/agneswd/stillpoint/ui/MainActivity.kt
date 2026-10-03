@@ -112,10 +112,18 @@ class Navigator : androidx.lifecycle.ViewModel() {
     /** True when the user left a running session to look at the tabs. */
     var focusMinimized by mutableStateOf(false)
 
-    fun push(route: Route) = stack.add(route)
+    fun push(route: Route) {
+        if (stack.lastOrNull() != route) stack.add(route)
+    }
 
     fun pop() {
         stack.removeLastOrNull()
+    }
+
+    /** Closes focus setup and the screens opened from it. Screens under it stay. */
+    fun closeFocusSetup() {
+        val index = stack.indexOf(Route.FocusSetup)
+        if (index >= 0) stack.removeRange(index, stack.size)
     }
 }
 
@@ -167,7 +175,8 @@ class MainActivity : ComponentActivity() {
                 navigator.stack.clear()
                 // Without a running session, this opens the setup controls.
                 lifecycleScope.launch {
-                    val planId = intent.getLongExtra("planId", 0)
+                    // Only the plan notification can start a plan. Other apps cannot open the private alias.
+                    val planId = if (intent.component?.className == PLAN_START) intent.getLongExtra(EXTRA_PLAN, 0) else 0
                     val plan = app.dao.allSchedules().firstOrNull { it.id == planId && it.enabled && it.startFocus }
                     if (plan != null) dev.agneswd.stillpoint.focus.Focus.start(this@MainActivity, plan.name, plan = plan)
                     else if (app.dao.activeFocus() == null) navigator.push(Route.FocusSetup)
@@ -189,6 +198,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val EXTRA_TAB = "tab"
         private const val FOCUS = "FOCUS"
+        private const val EXTRA_PLAN = "planId"
+        private const val PLAN_START = "dev.agneswd.stillpoint.ui.PlanStart"
 
         fun intent(context: Context, target: String): Intent =
             Intent(context, MainActivity::class.java)
@@ -205,7 +216,11 @@ class MainActivity : ComponentActivity() {
             PendingIntent.getActivity(context, 12, intent(context, "INBOX"), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         fun pendingPlan(context: Context, id: Long): PendingIntent =
-            PendingIntent.getActivity(context, 100 + id.toInt(), focusIntent(context).putExtra("planId", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            PendingIntent.getActivity(
+                context, 100 + id.toInt(),
+                focusIntent(context).setClassName(context, PLAN_START).putExtra(EXTRA_PLAN, id),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
 
         fun pendingHome(context: Context): PendingIntent =
             PendingIntent.getActivity(context, 11, intent(context, Tab.HOME.name), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
@@ -233,8 +248,14 @@ private fun App(navigator: Navigator) {
     }
     val game = remember(sessions, settings, today) { settings?.let { gameState(sessions, it, today) } }
 
-    LaunchedEffect(focus == null) {
+    // A session can start from setup, a plan, or a widget. Setup must not offer a second one.
+    val setupOpen = Route.FocusSetup in navigator.stack
+    LaunchedEffect(focus == null, setupOpen) {
         if (focus == null) navigator.focusMinimized = false
+        else if (setupOpen) {
+            navigator.closeFocusSetup()
+            navigator.focusMinimized = false
+        }
     }
 
     val s = settings

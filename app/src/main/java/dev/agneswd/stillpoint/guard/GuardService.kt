@@ -52,6 +52,9 @@ class GuardService : AccessibilityService() {
     private var foreground: String? = null
     private var essentials = emptySet<String>()
     private var launchers = emptySet<String>()
+    private var browsers = emptySet<String>()
+    private var systemAppsUpdatedAt = 0L
+    private var evaluation: kotlinx.coroutines.Job? = null
     private val activityCache = HashMap<ComponentName, Boolean>()
     private var lastContentCheck = 0L
     private var lastBlockAt = 0L
@@ -60,45 +63,151 @@ class GuardService : AccessibilityService() {
     private val firstVideos = HashMap<String, String>()
     private var returnInProgress = false
     private var blockVisible = false
-    private var bypassDebounce = false
-    private var blockedThisCheck = false
     private var coverView: View? = null
-    private var returnPackage: String? = null
-    private var ytPlace = YoutubePlace.OTHER
-    private var ytQuery: String? = null
-    private var returnByBack = false
-    private var searchRestoreTries = 0
+    private var blockedPackage: String? = null
+    private var blockedKind: BlockKind? = null
+    private var returnStarted = 0L
+    private var returnStep = 0
+    private var stepStarted = 0L
+    private var lastTapAt = 0L
+    private var pendingContentPackage: String? = null
+    /** Packages that showed a screen other than their feed during this visit. Back then stays in the app. */
+    private val feedFreeScreen = HashSet<String>()
+    /** When each feed started to show a video without a readable title. */
+    private val untitledSince = HashMap<String, Long>()
+    private val contentCheck = Runnable {
+        pendingContentPackage?.let { checkContent(it, force = true) }
+    }
 
-    private val returnSettle: Runnable = object : Runnable {
+    /**
+     * Recovers in the blocked app under the cover, one step per run.
+     * Websites load a blank page in the same tab. Feeds go Back to the page that opened them,
+     * or to a safe tab when the feed is itself a tab or the first screen of this visit.
+     * Every step waits for the app to react before it tries the next one.
+     */
+    private val returnSettle = object : Runnable {
         override fun run() {
-            val pkg = returnPackage
-            val back = returnByBack
-            returnByBack = false
-            returnInProgress = false
-            bypassDebounce = true
-            blockedThisCheck = false
-            val restoreSearch = back && pkg == "com.google.android.youtube" && !landedOnSearch(pkg)
-            if (!restoreSearch && pkg != null && (foreground == pkg || appInFront() == pkg)) checkContent(pkg, force = true)
-            if (restoreSearch && searchRestoreTries < 1) {
-                searchRestoreTries++
-                returnInProgress = true
-                launchYoutubeSearch()
-                bypassDebounce = false
-                handler.postDelayed(this, RETURN_SETTLE_MILLIS)
-            } else {
-                searchRestoreTries = 0
-                bypassDebounce = false
-                if (!blockedThisCheck) hideCover()
+            val pkg = blockedPackage ?: return finishReturn()
+            val kind = blockedKind ?: return finishReturn()
+            val front = appInFront()
+            val now = SystemClock.elapsedRealtime()
+            val elapsed = now - returnStarted
+            if (front != pkg) {
+                // The block activity needs a frame to finish. Never send actions to another app.
+                if ((front == null || front == packageName) && elapsed < 800) handler.postDelayed(this, 50)
+                else finishReturn()
+                return
             }
+            val roots = windowRoots(pkg)
+            if (roots.isEmpty()) {
+                if (elapsed < 1200) handler.postDelayed(this, 80) else finishReturn()
+                return
+            }
+            if (kind == BlockKind.SITE) settleSite(pkg, roots, elapsed) else settleFeed(pkg, kind, roots, now, elapsed)
         }
     }
+
+    private fun settleSite(pkg: String, roots: List<AccessibilityNodeInfo>, elapsed: Long) {
+        val now = SystemClock.elapsedRealtime()
+        if (returnStep == 0) {
+            // The rule can change while the block is open. Keep a page that is now allowed.
+            val host = roots.firstNotNullOfOrNull { it.browserHost() }
+            if (host != null && blockedSite(host, rules) == null) return finishReturn()
+            // Some toolbars take a second to open their editor. Another tap meanwhile would close it again.
+            val editing = roots.any { it.browserAddressBar()?.isFocused == true }
+            if (editing || now - lastTapAt >= EDITOR_WAIT_MILLIS) {
+                if (!editing) lastTapAt = now
+                if (roots.any { it.clearBrowserPage(::tapBrowserControl) }) returnStep = 1
+            }
+        } else if (roots.none { it.browserAddressBar()?.isFocused == true }) {
+            finishReturn()
+            checkContent(pkg, force = true)
+            return
+        }
+        if (elapsed < 2500) {
+            handler.postDelayed(returnSettle, 100)
+            return
+        }
+        // This browser did not load the blank page. Its blocked page must not stay usable.
+        finishReturn()
+        performGlobalAction(GLOBAL_ACTION_HOME)
+    }
+
+    private fun settleFeed(pkg: String, kind: BlockKind, roots: List<AccessibilityNodeInfo>, now: Long, elapsed: Long) {
+        if (!contentStillBlocked(pkg, roots)) return finishReturn()
+        val feed = shortsFeeds.firstOrNull { it.packageName == pkg && kind == BlockKind.SHORTS }
+        when {
+            returnStep == 0 -> {
+                val asTab = feed != null && (roots.any(feed::tabSelected) || pkg !in feedFreeScreen)
+                when {
+                    kind == BlockKind.STUDY && rules.settings.blockYoutubeHome && roots.any { it.youtubeHome() } ->
+                        if (!roots.any { it.openYoutubeSearch() }) clickSafeNav(pkg, roots)
+                    // A feed tab has no page under it. Back could leave the app, so pick another tab.
+                    asTab && clickSafeNav(pkg, roots) -> Unit
+                    else -> performGlobalAction(GLOBAL_ACTION_BACK)
+                }
+                returnStep = 1
+                stepStarted = now
+            }
+            // Search and profile pages need a moment to replace the player before the next try.
+            returnStep == 1 && now - stepStarted >= FEED_SETTLE_MILLIS -> {
+                clickSafeNav(pkg, roots)
+                returnStep = 2
+                stepStarted = now
+            }
+            returnStep == 2 && now - stepStarted >= FEED_SETTLE_MILLIS || elapsed >= 2500 -> {
+                // Nothing left the feed. Show the block again instead of the feed.
+                finishReturn()
+                checkContent(pkg, force = true)
+                return
+            }
+        }
+        handler.postDelayed(returnSettle, 100)
+    }
+
+    private fun finishReturn() {
+        returnInProgress = false
+        handler.removeCallbacks(returnSettle)
+        hideCover()
+    }
+
+    private fun contentRulesActive(): Boolean {
+        val current = rules
+        if (current.settings.contentOnlyDuringFocus && !current.focusing) return false
+        return current.settings.pauseBlocksUntil <= System.currentTimeMillis() ||
+            current.settings.protection && current.locked(LocalDateTime.now())
+    }
+
+    private fun contentStillBlocked(pkg: String, roots: List<AccessibilityNodeInfo>): Boolean {
+        val current = rules
+        if (!contentRulesActive()) return false
+        if (shortsFeeds.any { it.packageName == pkg && it.enabled(current.settings) && roots.any(it::isShowing) }) return true
+        if (pkg != "com.google.android.youtube") return false
+        if (current.settings.blockYoutubeHome && roots.any { it.youtubeHome() }) return true
+        if (!current.settings.youtubeStudyMode || roots.none { it.youtubePlayer() }) return false
+        val channel = roots.firstNotNullOfOrNull { it.youtubeChannel() }
+        return channel == null || current.settings.allowedYoutubeChannels.none { channelKey(it) == channelKey(channel) }
+    }
+
+    /** The blocked site for [host] under [current] rules, or null when the host is allowed. */
+    private fun blockedSite(host: String, current: Rules): String? =
+        if (current.settings.siteAllowList) host.takeIf { !allowedSite(it, current.sites) }
+        else blockedSiteFor(host, current.sites, current.settings.blockAdultSites)
 
     private val returnReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 ACTION_COVER_READY -> if (!returnInProgress) hideCover()
                 ACTION_BLOCK_CLOSED -> blockVisible = false
-                ACTION_RETURN -> returnToApp(intent.getStringExtra(EXTRA_BLOCKED_PACKAGE) ?: foreground ?: return)
+                ACTION_RETURN -> {
+                    val pkg = intent.getStringExtra(EXTRA_BLOCKED_PACKAGE) ?: return
+                    val kind = BlockKind.entries.firstOrNull { it.name == intent.getStringExtra(EXTRA_BLOCK_KIND) } ?: return
+                    if (kind !in setOf(BlockKind.SITE, BlockKind.SHORTS, BlockKind.STUDY)) return
+                    // The accessibility service can reconnect while the block activity is still open.
+                    blockedPackage = pkg
+                    blockedKind = kind
+                    returnToApp(pkg)
+                }
             }
         }
     }
@@ -116,13 +225,15 @@ class GuardService : AccessibilityService() {
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_SCREEN_OFF) { foreground = null; firstVideos.clear() }
+            if (intent.action == Intent.ACTION_SCREEN_OFF) { foreground = null; forgetVisit(); finishReturn() }
             Widgets.refresh(context)
         }
     }
 
     override fun onServiceConnected() {
         refreshSystemApps()
+        // A reconnect gets no window event for the app already in front. Check it as soon as rules load.
+        appInFront()?.let(::setForeground)
         val dao = app.dao
         scope.launch {
             combine(dao.settings(), dao.limits(), dao.schedules(), dao.sites(), dao.activeFocusFlow()) { settings, limits, schedules, sites, focus ->
@@ -130,6 +241,7 @@ class GuardService : AccessibilityService() {
             }.collect {
                 rules = it
                 evaluate()
+                foreground?.let { checkContent(it, force = true) }
             }
         }
         handler.postDelayed(tick, TICK_MILLIS)
@@ -149,9 +261,7 @@ class GuardService : AccessibilityService() {
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(tick)
-        handler.removeCallbacks(returnSettle)
-        handler.removeCallbacks(coverTimeout)
+        handler.removeCallbacksAndMessages(null)
         hideCover()
         runCatching { unregisterReceiver(returnReceiver) }
         runCatching { unregisterReceiver(screenReceiver) }
@@ -178,7 +288,9 @@ class GuardService : AccessibilityService() {
 
             // The Shorts tab click arrives before the player draws. Cover it now.
             AccessibilityEvent.TYPE_VIEW_CLICKED, AccessibilityEvent.TYPE_VIEW_SELECTED -> {
-                if (pkg == "com.google.android.youtube" && rules.settings.blockYoutubeShorts && eventSaysShorts(event)) {
+                val settings = rules.settings
+                if (pkg == "com.google.android.youtube" && settings.blockYoutubeShorts && !settings.allowFirstShort &&
+                    contentRulesActive() && eventSaysShorts(event)) {
                     showCover()
                     handler.removeCallbacks(coverTimeout)
                     handler.postDelayed(coverTimeout, 700)
@@ -189,7 +301,7 @@ class GuardService : AccessibilityService() {
     }
 
     private val coverTimeout = Runnable {
-        if (!blockVisible && !returnInProgress) hideCover()
+        if (!returnInProgress) hideCover()
     }
 
     /** True when the event is the YouTube Shorts tab, not a video title that merely contains the word. */
@@ -199,10 +311,7 @@ class GuardService : AccessibilityService() {
         event.text.forEach { it?.toString()?.let(values::add) }
         event.source?.contentDescription?.toString()?.let(values::add)
         event.source?.text?.toString()?.let(values::add)
-        return values.any { value ->
-            val text = value.trim()
-            text.equals("Shorts", true) || text.startsWith("Shorts ", true) || text.startsWith("Shorts,", true)
-        }
+        return values.any { labelMatches(it, "Shorts") }
     }
 
     /**
@@ -228,24 +337,37 @@ class GuardService : AccessibilityService() {
     private fun setForeground(pkg: String) {
         if (pkg == packageName) { foreground = pkg; return }
         if (foreground != pkg) {
-            if (foreground != packageName) firstVideos.clear()
+            if (foreground != packageName) forgetVisit()
             visitStarted = SystemClock.elapsedRealtime()
             lastReminder = 0
         }
         foreground = pkg
     }
 
+    private fun forgetVisit() {
+        firstVideos.clear()
+        feedFreeScreen.clear()
+        untitledSince.clear()
+    }
+
     private fun refreshSystemApps() {
+        val now = SystemClock.elapsedRealtime()
+        if (essentials.isNotEmpty() && now - systemAppsUpdatedAt < 30_000) return
+        systemAppsUpdatedAt = now
         val catalog = app.catalog
         essentials = catalog.essentials()
         launchers = catalog.launchers()
+        browsers = browserPackages()
     }
 
     private fun evaluate() {
         val pkg = foreground ?: return
         if (pkg == packageName) return
         val current = rules
-        scope.launch {
+        val essentials = essentials
+        val launchers = launchers
+        evaluation?.cancel()
+        evaluation = scope.launch {
             val verdict = withContext(Dispatchers.Default) {
                 current.decide(
                     pkg = pkg,
@@ -253,7 +375,7 @@ class GuardService : AccessibilityService() {
                     now = LocalDateTime.now(),
                     essentials = essentials,
                     launchers = launchers,
-                    allowedUntil = app.dao.pass(LocalDate.now().toString(), pkg)?.expiresAt ?: 0,
+                    allowedUntil = if (current.limits[pkg]?.enabled == true) app.dao.pass(LocalDate.now().toString(), pkg)?.expiresAt ?: 0 else 0,
                     use24Hour = uses24HourClock(current.settings.clockFormat),
                     usedToday = { app.usage.todayMillis(pkg) },
                 )
@@ -283,21 +405,30 @@ class GuardService : AccessibilityService() {
     }
 
     private fun checkContent(pkg: String, force: Boolean) {
-        // Remember search before the rules finish loading. Otherwise the first blocked Short has no page to return to.
-        if (pkg == "com.google.android.youtube") {
-            val early = windowRoots(pkg)
-            if (early.isNotEmpty()) noteYoutubePlace(early)
-        }
-        if (pkg !in watchedPackages && !rules.settings.blockMultiWindow) return
+        if (returnInProgress || blockVisible && appInFront() == packageName) return
+        if (pkg !in watchedPackages && pkg !in browsers && !rules.settings.blockMultiWindow) return
         val elapsed = SystemClock.elapsedRealtime()
-        if (!force && elapsed - lastContentCheck < CONTENT_THROTTLE_MILLIS) return
+        if (!force && elapsed - lastContentCheck < CONTENT_THROTTLE_MILLIS) {
+            pendingContentPackage = pkg
+            handler.removeCallbacks(contentCheck)
+            handler.postDelayed(contentCheck, CONTENT_THROTTLE_MILLIS - (elapsed - lastContentCheck))
+            return
+        }
+        handler.removeCallbacks(contentCheck)
         lastContentCheck = elapsed
         val now = System.currentTimeMillis()
         val current = rules
+        val protected = current.settings.protection && current.locked(LocalDateTime.now())
+        val contentEnabled = !current.settings.contentOnlyDuringFocus || current.focusing
+        val watchesContent = contentEnabled && (
+            shortsFeeds.any { it.packageName == pkg && it.enabled(current.settings) } ||
+                pkg == "com.google.android.youtube" && (current.settings.blockYoutubeHome || current.settings.youtubeStudyMode) ||
+                pkg in browsers && (current.sites.isNotEmpty() || current.settings.siteAllowList || current.settings.blockAdultSites)
+            )
+        if (!watchesContent && !(protected && pkg in protectedScreens) && !current.settings.blockMultiWindow) return
         val roots = windowRoots(pkg)
         if (roots.isEmpty()) return
 
-        val protected = current.settings.protection && current.locked(LocalDateTime.now())
         if (!protected && current.settings.pauseBlocksUntil > now) return
         if (current.settings.blockMultiWindow && current.locked(LocalDateTime.now()) && pkg !in essentials &&
             (windows.any { it.isInPictureInPictureMode } || windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
@@ -305,61 +436,55 @@ class GuardService : AccessibilityService() {
             block(pkg, BlockReason(BlockKind.MULTI_WINDOW, "Multiple app windows are blocked", "Use one app during this block."))
             return
         }
-        if (returnInProgress) return
-        // The blocked feed stays in the window under the block screen and keeps sending events.
-        // Starting the block again would cover the screen and never take the cover down.
-        if (blockVisible && !bypassDebounce && appInFront() == packageName) return
-        val contentEnabled = !current.settings.contentOnlyDuringFocus || current.focusing
         if (contentEnabled) shortsFeeds.firstOrNull { it.packageName == pkg && it.enabled(current.settings) }?.let { feed ->
             val root = roots.firstOrNull(feed::isShowing)
-            if (root != null) {
-                val identity = feed.videoIdentity(root)
-                val first = firstVideos[pkg]
-                // Wait for a title before allowing one video. A missing title must not open the feed.
-                if (current.settings.allowFirstShort) {
-                    if (identity == null) return
-                    if (first == null || first == identity) {
-                        firstVideos[pkg] = identity
-                        return
+            if (root == null) {
+                feedFreeScreen += pkg
+                untitledSince.remove(pkg)
+            } else {
+                if (current.settings.allowFirstShort && feed.titleIds.isNotEmpty()) {
+                    val identity = feed.videoIdentity(root)
+                    val first = firstVideos[pkg]
+                    if (identity == null) {
+                        // A title can draw after the player. Wait a moment, then block a video without one.
+                        val since = untitledSince.getOrPut(pkg) { elapsed }
+                        if (elapsed - since < TITLE_WAIT_MILLIS) {
+                            pendingContentPackage = pkg
+                            handler.postDelayed(contentCheck, TITLE_WAIT_MILLIS - (elapsed - since))
+                            return
+                        }
+                    } else {
+                        untitledSince.remove(pkg)
+                        if (first == null || first == identity) {
+                            firstVideos[pkg] = identity
+                            return
+                        }
                     }
                 }
                 silence(roots)
-                // Cover first, then leave the player. A new activity on a playing video moves
-                // YouTube into a picture-in-picture window, and the video keeps going.
-                // A Short opened from search keeps its back stack. Home or Subscriptions would replace that search.
-                showCover()
-                val fromSearch = ytPlace == YoutubePlace.SEARCH
-                val left = if (fromSearch) false else clickSafeNav(pkg, roots)
-                block(pkg, BlockReason(BlockKind.SHORTS, "${feed.name} is blocked", "The rest of the app still works."), reveal = left)
+                block(pkg, BlockReason(BlockKind.SHORTS, "${feed.name} is blocked", "The rest of the app still works."))
                 return
             }
         }
         if (contentEnabled && pkg == "com.google.android.youtube") {
             if (current.settings.blockYoutubeHome && roots.any { it.youtubeHome() }) {
-                // Open search under the cover. Closing the block then shows search, not the feed.
-                roots.any { it.openYoutubeSearch() }
-                block(pkg, BlockReason(BlockKind.STUDY, "YouTube home is blocked", "Search for a video or use your subscriptions."), reveal = true)
+                block(pkg, BlockReason(BlockKind.STUDY, "YouTube home is blocked", "Search for a video or use your subscriptions."))
                 return
             }
             if (current.settings.youtubeStudyMode && roots.any { it.youtubePlayer() }) {
                 val channel = roots.firstNotNullOfOrNull { it.youtubeChannel() }
                 if (channel == null || current.settings.allowedYoutubeChannels.none { channelKey(it) == channelKey(channel) }) {
                     silence(roots)
-                    showCover()
-                    val left = clickSafeNav(pkg, roots)
-                    block(pkg, BlockReason(BlockKind.STUDY, "This YouTube channel is blocked", "Only your chosen channels work in study mode."), reveal = left)
+                    block(pkg, BlockReason(BlockKind.STUDY, "This YouTube channel is blocked", "Only your chosen channels work in study mode."))
                     return
                 }
             }
         }
 
-        roots.firstNotNullOfOrNull { it.browserHost(pkg) }?.let { host ->
+        roots.takeIf { pkg in browsers }?.firstNotNullOfOrNull { it.browserHost() }?.let { host ->
             if (!contentEnabled) return@let
-            val site = if (current.settings.siteAllowList && !allowedSite(host, current.sites)) host
-                else blockedSiteFor(host, if (current.settings.siteAllowList) emptySet() else current.sites, current.settings.blockAdultSites)
-                    ?: return@let
-            // Leave the page when the block closes. A back press now would also close the block screen.
-            block(pkg, BlockReason(BlockKind.SITE, "$site is blocked", "You put this site on your block list."))
+            val site = blockedSite(host, current) ?: return@let
+            block(pkg, BlockReason(BlockKind.SITE, "$site is blocked", "Going back opens a blank page in this tab."))
             return
         }
 
@@ -383,16 +508,21 @@ class GuardService : AccessibilityService() {
      * Covers the screen before the block activity draws, then opens that activity.
      * A global back press is not used here. It can dismiss the block and play the video again.
      */
-    private fun block(pkg: String, reason: BlockReason, reveal: Boolean = false) {
+    private fun block(pkg: String, reason: BlockReason) {
         val now = SystemClock.elapsedRealtime()
-        if (!bypassDebounce && now - lastBlockAt < BLOCK_DEBOUNCE_MILLIS) return
+        if (now - lastBlockAt < BLOCK_DEBOUNCE_MILLIS) return
         lastBlockAt = now
-        blockedThisCheck = true
         if (blockVisible && appInFront() == packageName) return
         blockVisible = true
+        blockedPackage = pkg
+        blockedKind = reason.kind
         showCover()
-        startActivity(BlockActivity.intent(this, pkg, reason, reveal))
-        handler.postDelayed({ dismissPip() }, 400)
+        startActivity(BlockActivity.intent(this, pkg, reason))
+        handler.removeCallbacks(coverTimeout)
+        handler.postDelayed(coverTimeout, 2000)
+        if (reason.kind == BlockKind.SHORTS || reason.kind == BlockKind.STUDY) {
+            handler.postDelayed({ if (blockVisible && blockedPackage == pkg) dismissPip() }, 400)
+        }
     }
 
     /**
@@ -470,69 +600,29 @@ class GuardService : AccessibilityService() {
         audio.dispatchMediaKeyEvent(KeyEvent(clock, clock, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PAUSE, 0))
     }
 
-    /** Remembers the YouTube page under the player. A Short must not erase a search that is still open. */
-    private fun noteYoutubePlace(roots: List<AccessibilityNodeInfo>) {
-        val feed = shortsFeeds.first { it.packageName == "com.google.android.youtube" }
-        val shorts = roots.any(feed::isShowing)
-        if (!shorts) {
-            val place = roots.firstNotNullOfOrNull { root -> root.youtubePlace().takeIf { it != YoutubePlace.OTHER } }
-            if (place != null) ytPlace = place
-        } else if (roots.any { it.youtubeSearchOpen() }) {
-            ytPlace = YoutubePlace.SEARCH
-        }
-        roots.firstNotNullOfOrNull { it.youtubeSearchQuery() }?.let { ytQuery = it }
-    }
-
-    private fun landedOnSearch(pkg: String): Boolean =
-        appInFront() == pkg && windowRoots(pkg).any { it.youtubeSearchOpen() }
-
-    /** Moves the open app off Shorts, Reels, or a blocked player. The cover stays up during the move. */
+    /** Finish the block activity first, then recover in the existing app task under the cover. */
     private fun returnToApp(pkg: String) {
+        if (returnInProgress || pkg != blockedPackage) return
         returnInProgress = true
         blockVisible = false
+        returnStarted = SystemClock.elapsedRealtime()
+        returnStep = 0
+        stepStarted = returnStarted
+        lastTapAt = 0L
         showCover()
-        returnPackage = pkg
         handler.removeCallbacks(returnSettle)
-        if (pkg == "com.google.android.youtube" && ytPlace == YoutubePlace.SEARCH) {
-            returnByBack = true
-            searchRestoreTries = 0
-            // The block screen closes 250ms after the broadcast. Back must reach YouTube, not the block.
-            handler.postDelayed({
-                if (appInFront() == pkg) performGlobalAction(GLOBAL_ACTION_BACK)
-            }, 320)
-            handler.postDelayed(returnSettle, 1000)
-            return
-        }
-        returnByBack = false
-        val roots = windowRoots(pkg)
-        val clicked = clickSafeNav(pkg, roots)
-        if (!clicked) launchSafeScreen(pkg)
-        handler.postDelayed(returnSettle, RETURN_SETTLE_MILLIS)
+        handler.post(returnSettle)
     }
 
-    private fun launchYoutubeSearch() {
-        val query = ytQuery?.takeIf { it.isNotBlank() }
-        val uri = if (query == null) "https://www.youtube.com/results?search_query="
-            else "https://www.youtube.com/results?search_query=${android.net.Uri.encode(query)}"
-        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri))
-            .setPackage("com.google.android.youtube")
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
-        runCatching { startActivity(intent) }
-    }
-
-    private fun launchSafeScreen(pkg: String) {
-        val uri = when (pkg) {
-            "com.google.android.youtube" -> if (rules.settings.blockYoutubeHome) "https://www.youtube.com/feed/subscriptions" else "https://www.youtube.com/"
-            "com.instagram.android" -> "https://www.instagram.com/"
-            "com.facebook.katana" -> "https://www.facebook.com/"
-            else -> null
-        }
-        val intent = if (uri != null) {
-            Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri)).setPackage(pkg)
-        } else {
-            packageManager.getLaunchIntentForPackage(pkg)
-        } ?: return
-        runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    /** Tap only a known native address control when its accessibility click action is missing. */
+    private fun tapBrowserControl(node: AccessibilityNodeInfo) {
+        if (!returnInProgress || appInFront() != blockedPackage) return
+        val bounds = android.graphics.Rect().also(node::getBoundsInScreen)
+        val display = resources.displayMetrics
+        if (!bounds.intersect(0, 0, display.widthPixels, display.heightPixels) || bounds.isEmpty) return
+        val path = android.graphics.Path().apply { moveTo(bounds.exactCenterX(), bounds.exactCenterY()) }
+        dispatchGesture(android.accessibilityservice.GestureDescription.Builder()
+            .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 40)).build(), null, null)
     }
 
     private fun showCover() {
@@ -543,6 +633,7 @@ class GuardService : AccessibilityService() {
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                (if (returnInProgress) WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE else 0) or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.OPAQUE,
@@ -567,11 +658,14 @@ class GuardService : AccessibilityService() {
         const val ACTION_COVER_READY = "dev.agneswd.stillpoint.action.COVER_READY"
         const val ACTION_BLOCK_CLOSED = "dev.agneswd.stillpoint.action.BLOCK_CLOSED"
         const val EXTRA_BLOCKED_PACKAGE = "package"
+        const val EXTRA_BLOCK_KIND = "kind"
 
         private const val TICK_MILLIS = 20_000L
         private const val CONTENT_THROTTLE_MILLIS = 80L
         private const val BLOCK_DEBOUNCE_MILLIS = 300L
-        private const val RETURN_SETTLE_MILLIS = 700L
+        private const val FEED_SETTLE_MILLIS = 900L
+        private const val EDITOR_WAIT_MILLIS = 1200L
+        private const val TITLE_WAIT_MILLIS = 1500L
 
         /** Screens where someone can turn off or remove this app. */
         private val protectedScreens = setOf(
@@ -582,7 +676,7 @@ class GuardService : AccessibilityService() {
             "com.android.permissioncontroller",
         )
 
-        private val watchedPackages = shortsFeeds.map { it.packageName }.toSet() + browserUrlBars.keys + protectedScreens
+        private val watchedPackages = shortsFeeds.map { it.packageName }.toSet() + protectedScreens
 
         fun isEnabled(context: Context): Boolean {
             val enabled = android.provider.Settings.Secure.getString(

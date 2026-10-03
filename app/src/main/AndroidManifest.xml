@@ -18,6 +18,11 @@
     <!-- The app pickers list launchable apps only. -->
     <queries>
         <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
@@ -47,6 +52,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Plan notifications open this name. It is not exported, so other apps cannot start a plan. -->
+        <activity-alias
+            android:name=".ui.PlanStart"
+            android:exported="false"
+            android:targetActivity=".ui.MainActivity" />
 
         <activity
             android:name=".guard.BlockActivity"

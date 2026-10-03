@@ -11,6 +11,7 @@ import dev.agneswd.stillpoint.game.applyStreakFreezes
 import dev.agneswd.stillpoint.guard.PolicyActions
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonObject
@@ -30,6 +31,15 @@ class StorageCheckReceiver : BroadcastReceiver() {
             val result = runCatching {
                 when (intent.getStringExtra("scenario")) {
                     "migration" -> checkMigration(context)
+                    "focus-state" -> {
+                        val focus = context.app.dao.activeFocus()
+                        if (focus == null) "{}" else kotlinx.serialization.json.buildJsonObject {
+                            put("startedAt", JsonPrimitive(focus.startedAt))
+                            put("tag", JsonPrimitive(focus.tag))
+                            put("timerMode", JsonPrimitive(focus.timerMode.name))
+                            put("focusMinutes", JsonPrimitive(focus.focusMinutes))
+                        }.toString()
+                    }
                     "storage" -> checkStorage(context)
                     "notifications-start" -> prepareNotifications(context)
                     "notifications-check" -> checkNotifications(context)
@@ -37,6 +47,20 @@ class StorageCheckReceiver : BroadcastReceiver() {
                     "progression-workflow" -> checkProgression(context)
                     "demo-wardrobe" -> prepareDemoWardrobe(context)
                     "plan-start" -> preparePlan(context)
+                    // A plan that never runs by itself. Only an intent can start it.
+                    "plan-intent" -> {
+                        check(context.app.dao.activeFocus() == null)
+                        context.app.dao.saveSchedule(Schedule(name = "Plan intent check", startMinute = 0, endMinute = 1, days = 0, startFocus = true, focusMinutes = 5))
+                        context.app.dao.allSchedules().last { it.name == "Plan intent check" }.id.toString()
+                    }
+                    "plan-intent-cleanup" -> {
+                        context.app.dao.allSchedules().filter { it.name == "Plan intent check" }.forEach { context.app.dao.deleteSchedule(it) }
+                        "deleted"
+                    }
+                    "plan-notification" -> {
+                        dev.agneswd.stillpoint.ui.MainActivity.pendingPlan(context, intent.getLongExtra("planId", 0)).send()
+                        "sent"
+                    }
                     "plan-check" -> checkPlan(context)
                     else -> error("Unknown check")
                 }

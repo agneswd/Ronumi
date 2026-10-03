@@ -103,6 +103,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
     val settings by app.dao.settings().collectAsState(null)
     val sessions by app.dao.sessions().collectAsState(emptyList())
     var tag by remember { mutableStateOf("") }
+    var starting by remember { mutableStateOf(false) }
     val s = settings ?: return
     val update: SettingsUpdate = { change -> app.scope.launch { app.dao.updateSettings(change) } }
     val recentTags = remember(sessions) { sessions.map { it.tag }.filter { it.isNotBlank() && it != "First focus" }.distinct().take(6) }
@@ -137,7 +138,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                         Box(
                             Modifier.size(64.dp, 84.dp).clip(RoundedCornerShape(16.dp))
                                 .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp)),
-                        ) { FocusBackdrop(theme, Modifier.fillMaxSize()) }
+                        ) { FocusBackdrop(theme, Modifier.fillMaxSize(), animated = false) }
                         Text(theme.label, style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
                     }
                 }
@@ -220,13 +221,19 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             Spacer(Modifier.height(24.dp))
         }
         ChunkyButton(
-            "Start",
+            if (starting) "Starting..." else "Start",
             {
+                if (starting) return@ChunkyButton
+                starting = true
                 app.scope.launch {
-                    Focus.start(context, tag)
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        navigator.focusMinimized = false
-                        onClose()
+                    try {
+                        Focus.start(context, tag)
+                    } finally {
+                        // The user may have left setup meanwhile. Close setup only, never the screen on top.
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.NonCancellable) {
+                            navigator.focusMinimized = false
+                            navigator.closeFocusSetup()
+                        }
                     }
                 }
             },
@@ -235,6 +242,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             icon = painterResource(R.drawable.ic_play),
             height = 58.dp,
             sound = Sound.START,
+            enabled = !starting,
         )
     }
 }
@@ -375,7 +383,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                     }.padding(14.dp),
                 )
             } else {
-                Text("Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
+                Text(if (stopwatch) "Strict mode: no pauses. Finish when you are done." else "Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
             }
         }
     }

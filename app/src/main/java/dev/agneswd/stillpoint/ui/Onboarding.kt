@@ -1,7 +1,6 @@
 package dev.agneswd.stillpoint.ui
 
-import dev.agneswd.stillpoint.ui.design.Sfx
-import dev.agneswd.stillpoint.ui.design.Sound
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -118,57 +117,55 @@ val commonDistractions = setOf(
 fun Onboarding(onDone: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
+    val view = androidx.compose.ui.platform.LocalView.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var finishing by rememberSaveable { mutableStateOf(false) }
     var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
     var forward by remember { mutableStateOf(true) }
     var purpose by rememberSaveable { mutableStateOf("") }
     var goal by rememberSaveable { mutableStateOf("") }
-    var picked by remember { mutableStateOf(setOf<String>()) }
-    var dayPart by remember { mutableStateOf<DayPart?>(null) }
-    var noSchedule by remember { mutableStateOf(false) }
-    var apps by remember { mutableStateOf<Set<String>?>(null) }
+    // Rotation keeps the answers along with the slide.
+    var picked by rememberSaveable { mutableStateOf(setOf<String>()) }
+    var dayPart by rememberSaveable { mutableStateOf<DayPart?>(null) }
+    var noSchedule by rememberSaveable { mutableStateOf(false) }
+    var apps by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     val installed by produceState<List<InstalledApp>>(emptyList()) {
         value = withContext(Dispatchers.IO) { app.catalog.launchableApps() }
     }
     val access = rememberAccess()
 
-    // Play one short sequence per slide. Leaving the slide cancels pending cues.
-    LaunchedEffect(step) {
-        when (step) {
-            Step.PLAN -> {
-                val checks = 2 + listOf("shorts" in picked, "notifications" in picked,
-                    picked.any { it in setOf("youtube", "social", "games") }, dayPart != null).count { it }
-                kotlinx.coroutines.delay(400)
-                repeat(checks) {
-                    Sfx.play(Sound.SELECT)
-                    kotlinx.coroutines.delay(220)
+    // Cues stop when the slide changes or the app leaves the foreground.
+    LaunchedEffect(step, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            fun tick() { view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK) }
+            fun confirm() { view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK) }
+            when (step) {
+                Step.PLAN -> {
+                    val checks = 2 + listOf("shorts" in picked, "notifications" in picked,
+                        picked.any { it in setOf("youtube", "social", "games") }, dayPart != null).count { it }
+                    kotlinx.coroutines.delay(400)
+                    repeat(checks) {
+                        tick()
+                        kotlinx.coroutines.delay(220)
+                    }
                 }
-            }
-            Step.SHORTS -> {
-                kotlinx.coroutines.delay(320)
-                Sfx.play(Sound.BLOCK)
-                kotlinx.coroutines.delay(400)
-                Sfx.play(Sound.SLIDE)
-            }
-            Step.NOTIFY -> {
-                kotlinx.coroutines.delay(650)
-                repeat(3) {
-                    Sfx.play(Sound.NOTIFICATION)
-                    kotlinx.coroutines.delay(933)
+                Step.SHORTS -> {
+                    kotlinx.coroutines.delay(320)
+                    confirm()
+                    kotlinx.coroutines.delay(400)
+                    tick()
                 }
-            }
-            else -> {
-                kotlinx.coroutines.delay(350)
-                Sfx.play(when (step) {
-                    Step.WELCOME, Step.HELLO -> Sound.WELCOME
-                    Step.ASK, Step.PURPOSE, Step.DISTRACTIONS -> Sound.QUESTION
-                    Step.GOAL, Step.WHEN -> Sound.SELECT
-                    Step.STRICT -> Sound.BLOCK
-                    Step.STREAK -> Sound.STREAK
-                    Step.APPS -> Sound.SLIDE
-                    Step.ACCESS -> Sound.TOGGLE_ON
-                    Step.FIRST -> Sound.START
-                    else -> Sound.TAP
-                })
+                Step.NOTIFY -> {
+                    kotlinx.coroutines.delay(650)
+                    repeat(3) {
+                        tick()
+                        kotlinx.coroutines.delay(933)
+                    }
+                }
+                else -> {
+                    kotlinx.coroutines.delay(350)
+                    tick()
+                }
             }
         }
     }
@@ -180,6 +177,8 @@ fun Onboarding(onDone: () -> Unit) {
     fun next() = go(Step.entries[step.ordinal + 1])
 
     fun finish(firstFocus: Boolean) {
+        if (finishing) return
+        finishing = true
         val chosen = apps ?: installed.map { it.packageName }.filter { it in commonDistractions }.toSet()
         app.scope.launch {
             dayPart?.let { part ->
@@ -246,7 +245,7 @@ fun Onboarding(onDone: () -> Unit) {
                 Step.STREAK -> Slide("Build a streak", "Focus a little every day. Keep the flame alive.", ::next) { StreakScene() }
                 Step.APPS -> AppsStep(installed, apps ?: installed.map { it.packageName }.filter { it in commonDistractions }.toSet(), onChange = { apps = it }, onNext = ::next)
                 Step.ACCESS -> AccessStep(access, onNext = ::next)
-                Step.FIRST -> FirstFocus(onStart = { finish(firstFocus = true) }, onSkip = { finish(firstFocus = false) })
+                Step.FIRST -> FirstFocus(enabled = !finishing, onStart = { finish(firstFocus = true) }, onSkip = { finish(firstFocus = false) })
             }
         }
     }
@@ -271,13 +270,6 @@ private fun Welcome(onNext: () -> Unit) {
             )
             Spacer(Modifier.weight(1f))
             ChunkyButton("Get started", onNext, Modifier.fillMaxWidth().appear(500))
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "Free and private. Focus works offline. No account needed.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Sp.colors.textDim,
-                modifier = Modifier.appear(600),
-            )
         }
     }
 }
@@ -371,7 +363,7 @@ private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: 
                 }
             }
         }
-        ChunkyButton("Sounds great", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp), sound = Sound.QUEST)
+        ChunkyButton("Sounds great", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp))
     }
 }
 
@@ -437,12 +429,12 @@ private fun AccessStep(access: Access, onNext: () -> Unit) {
 }
 
 @Composable
-private fun FirstFocus(onStart: () -> Unit, onSkip: () -> Unit) {
+private fun FirstFocus(enabled: Boolean, onStart: () -> Unit, onSkip: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(24.dp)) {
         Spacer(Modifier.weight(1f))
         PebbleSays("Let's try a 2 minute focus together. You'll see how it feels!", Mood.HAPPY, Modifier.fillMaxWidth(), side = false, pebbleSize = 170.dp)
         Spacer(Modifier.weight(1f))
-        ChunkyButton("Start 2 minute focus", onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play), sound = Sound.START)
-        ChunkyButton("Maybe later", onSkip, Modifier.fillMaxWidth().padding(top = 4.dp), kind = ButtonKind.GHOST)
+        ChunkyButton("Start 2 minute focus", onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play), enabled = enabled)
+        ChunkyButton("Maybe later", onSkip, Modifier.fillMaxWidth().padding(top = 4.dp), kind = ButtonKind.GHOST, enabled = enabled)
     }
 }

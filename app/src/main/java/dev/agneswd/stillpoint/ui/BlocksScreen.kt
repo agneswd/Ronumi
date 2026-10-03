@@ -121,7 +121,7 @@ fun BlocksScreen(navigator: Navigator) {
                         }
                         Spacer(Modifier.width(8.dp))
                     }
-                    MintSwitch(limit.enabled) { on -> app.scope.launch { dao.saveLimit(limit.copy(enabled = on)) } }
+                    MintSwitch(limit.enabled) { on -> app.scope.launch { PolicyActions.changeBlocks(context) { dao.saveLimit(limit.copy(enabled = on)) } } }
                 }
             }
         }
@@ -260,7 +260,7 @@ fun MintSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
 
 /** Strict mode hides the controls while a block runs, so the user cannot undo it in a weak moment. */
 @Composable
-private fun LockedNotice() {
+fun LockedNotice() {
     Column(Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
         Pebble(Mood.STRICT, size = 160.dp)
@@ -295,9 +295,9 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                 Text("Daily limit for ${app.catalog.label(limit.packageName)}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    ChunkyButton("-", { minutes = (minutes - if (minutes > 60) 15 else 5).coerceAtLeast(1) }, Modifier.width(56.dp).semantics { contentDescription = "Decrease daily limit" }, kind = ButtonKind.SECONDARY)
+                    ChunkyButton("", { minutes = (minutes - if (minutes > 60) 15 else 5).coerceAtLeast(1) }, Modifier.width(56.dp).semantics { contentDescription = "Decrease daily limit" }, kind = ButtonKind.SECONDARY, icon = painterResource(R.drawable.ic_minus))
                     Text(formatMinutes(minutes), style = MaterialTheme.typography.displaySmall, color = Sp.colors.brand, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    ChunkyButton("+", { minutes = (minutes + if (minutes >= 60) 15 else 5).coerceAtMost(12 * 60) }, Modifier.width(56.dp).semantics { contentDescription = "Increase daily limit" }, kind = ButtonKind.SECONDARY)
+                    ChunkyButton("", { minutes = (minutes + if (minutes >= 60) 15 else 5).coerceAtMost(12 * 60) }, Modifier.width(56.dp).semantics { contentDescription = "Increase daily limit" }, kind = ButtonKind.SECONDARY, icon = painterResource(R.drawable.ic_plus))
                 }
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -340,14 +340,18 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                         warning = true
                         return@ChunkyButton
                     }
-                    app.scope.launch { app.dao.saveLimit(limit.copy(minutesPerDay = minutes, reminderMinutes = reminder, mode = if (strict) LimitMode.STRICT else LimitMode.GENTLE)) }
+                    app.scope.launch {
+                        PolicyActions.changeBlocks(context) {
+                            app.dao.saveLimit(limit.copy(minutesPerDay = minutes, reminderMinutes = reminder, mode = if (strict) LimitMode.STRICT else LimitMode.GENTLE))
+                        }
+                    }
                     onDismiss()
                 }, Modifier.fillMaxWidth())
                 ChunkyButton(
                     if (isNew) "Cancel" else "Delete limit",
                     {
                         if (!isNew && !deleteWarning) { deleteWarning = true; return@ChunkyButton }
-                        if (!isNew) app.scope.launch { app.dao.deleteLimit(limit) }
+                        if (!isNew) app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.deleteLimit(limit) } }
                         onDismiss()
                     },
                     Modifier.fillMaxWidth(),

@@ -26,11 +26,12 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 APK = ROOT / "app/build/outputs/apk/debug/app-debug.apk"
 RUN = ROOT / "e2e/artifacts" / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 CLOCK = "com.google.android.deskclock"
-CONTACTS = "com.google.android.contacts"
 CHROME = "com.android.chrome"
 YOUTUBE = "com.google.android.youtube"
-# A public YouTube Short. Any Short works. The guard looks at the player, not the video.
-SHORT_URL = "https://www.youtube.com/shorts/aqz-KE-bpKQ"
+# A public Short for the cold deep-link check. Replace it if YouTube removes the video.
+SHORT_URL = "https://www.youtube.com/shorts/YzOtX_BpoME"
+# View ids of the YouTube Shorts player. They match the guard's detector table.
+REEL_IDS = ("reel_recycler", "reel_player_page_container", "reel_watch_player", "reel_watch_fragment_root", "reel_player_overlay", "shorts_container")
 
 results: list[tuple[str, str, str]] = []
 shots = 0
@@ -45,6 +46,11 @@ def adb(*args: str, check: bool = True) -> str:
 
 def sh(cmd: str) -> str:
     return adb("shell", cmd, check=False)
+
+
+# Google images ship Google Contacts. Older images, such as Android 9, ship the AOSP app.
+CONTACTS = "com.google.android.contacts" if "package:com.google.android.contacts" in sh("pm list packages com.google.android.contacts") \
+    else "com.android.contacts"
 
 
 def screen() -> ET.Element:
@@ -148,11 +154,17 @@ def home():
 def fresh_install():
     adb("install", "-r", "-t", str(APK))
     adb("install", "-r", "-t", str(ROOT / "e2e-driver/build/outputs/apk/debug/e2e-driver-debug.apk"))
+    # Android 9 rebinds an updated service after a few seconds. Clearing data during that leaves it unbound.
+    end = time.time() + 15
+    while PKG in sh("settings get secure enabled_accessibility_services") and \
+            "label=Stillpoint" not in sh("dumpsys accessibility") and time.time() < end:
+        time.sleep(1)
     sh(f"pm clear {PKG}")
     sh(f"appops set {PKG} GET_USAGE_STATS allow")
     sh(f"pm grant {PKG} android.permission.POST_NOTIFICATIONS")
+    sh(f"pm grant {CONTACTS} android.permission.POST_NOTIFICATIONS")
     # pm clear kills the bound service, and Android marks it as crashed. Turning it off and on rebinds it.
-    sh("settings put secure enabled_accessibility_services ''")
+    sh("settings delete secure enabled_accessibility_services")
     time.sleep(1)
     sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
     sh("settings put secure accessibility_enabled 1")
@@ -173,14 +185,19 @@ def fresh_install():
 # Enforcement checks use dumpsys and the block log instead of changing app state.
 
 def rebind():
-    sh("settings put secure enabled_accessibility_services ''")
+    sh("settings delete secure enabled_accessibility_services")
     time.sleep(1)
     sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
     time.sleep(3)
+    # Android can keep a crashed service unbound although the setting lists it.
+    end = time.time() + 10
+    while "label=Stillpoint" not in sh("dumpsys accessibility"):
+        assert time.time() < end, "Android did not bind the guard. Reboot the emulator."
+        time.sleep(1)
 
 
 def top_activity() -> str:
-    return sh("dumpsys activity activities | grep topResumedActivity").strip()
+    return sh("dumpsys activity activities | grep -E 'topResumedActivity|mResumedActivity'").strip()
 
 
 def wait_top(fragment: str, timeout: float = 15):
@@ -253,9 +270,9 @@ def today_screen():
     return shot("home")
 
 
-def device_workflow(scenario: str):
+def device_workflow(scenario: str, extras: str = ""):
     sh(f"run-as {PKG} rm -f files/device-check.txt")
-    sh(f"am broadcast -f 0x20 -n {PKG}/.StorageCheckReceiver --es scenario {scenario}")
+    sh(f"am broadcast -f 0x20 -n {PKG}/.StorageCheckReceiver --es scenario {scenario} {extras}")
     end = time.time() + (120 if scenario == "storage" else 30)
     while time.time() < end:
         result = sh(f"run-as {PKG} cat files/device-check.txt")
@@ -310,6 +327,60 @@ def storage_workflow():
     wait_for("Progress", exact=True)
     shot("progress-after-storage-check")
     return f"storage-check.txt, {len(details)} device checks"
+
+
+def active_focus_snapshot(name: str):
+    """Read the current row through the debug receiver without stopping the session."""
+    lines = device_workflow("focus-state")
+    result = json.loads("\n".join(lines))
+    (RUN / f"{name}.json").write_text(json.dumps(result, indent=2) + "\n")
+    return result
+
+
+
+def active_focus_controls():
+    before = active_focus_snapshot("focus-before")
+    assert before.get("startedAt", 0) > 0, "Expected one active session"
+    open_stillpoint("HOME")
+    wait_for("Return to focus", exact=True)
+    assert not find("Start focus", exact=True), "Home offers a second session"
+    shot("active-focus-home")
+    tap("Return to focus", exact=True)
+    tap("Pause", exact=True)
+    open_stillpoint("HOME")
+    wait_for("Return to focus", exact=True)
+    assert not find("Start focus", exact=True), "Paused focus offers a second session"
+    tap("Return to focus", exact=True)
+    wait_for("Resume", exact=True)
+    tap("Resume", exact=True)
+    assert active_focus_snapshot("focus-after") == before, "Returning changed the active session"
+    return shot("same-focus-resumed")
+
+
+def plan_intent_from_other_app():
+    """Another app cannot start a planned focus. The plan notification still can."""
+    home()
+    plan = device_workflow("plan-intent")[0]
+    # The shell plays the other app. MainActivity is exported, so it receives this intent.
+    sh(f"am start -n {PKG}/.ui.MainActivity --es tab FOCUS --el planId {plan} >/dev/null")
+    time.sleep(3)
+    assert active_focus_snapshot("focus-after-foreign-intent") == {}, "Another app started a planned focus"
+    shot("foreign-plan-intent-ignored")
+    # Android lets an app open its own activity only from the foreground, as a notification tap does.
+    open_stillpoint("HOME")
+    device_workflow("plan-notification", f"--el planId {plan}")
+    end = time.time() + 15
+    while active_focus_snapshot("focus-after-plan-notification").get("tag") != "Plan intent check":
+        assert time.time() < end, "The plan notification did not start its focus"
+        time.sleep(1)
+    name = shot("plan-notification-started-focus")
+    open_stillpoint("FOCUS")
+    tap("GIVE UP", exact=True)
+    tap("End session", exact=True)
+    home()
+    # The plan has no days, which backups reject. Later checks export a backup.
+    device_workflow("plan-intent-cleanup")
+    return name
 
 
 def focus_survives_restart():
@@ -423,33 +494,150 @@ def start_focus_in_ui():
     return name
 
 
-def website_block():
-    sh(f"am force-stop {CHROME}")
-    sh(f"am start -a android.intent.action.VIEW -d https://example.com/some/page -p {CHROME} >/dev/null")
+def browser_recovery(pkg: str):
+    sh("logcat -c")
+    sh(f"am force-stop {pkg}")
+    # Bind the guard first, like a phone that has it on all day. It must see the page load.
+    rebind()
+    sh(f"am start -a android.intent.action.VIEW -d https://example.com/some/page -p {pkg} >/dev/null")
     if find("No thanks", exact=True):
         tap("No thanks", exact=True)
-    rebind()
     wait_block("example.com is blocked", timeout=30)
-    name = shot("site-blocked-in-chrome")
-    sh("input keyevent KEYCODE_BACK")
+    name = shot(f"site-blocked-in-{pkg}")
+    tap("Back to the browser", exact=True)
+    wait_top(pkg)
+    stays_open(pkg, 3)
+    shot(f"{pkg}-after-site-block")
+    tree = screen()
+    (RUN / f"{pkg}-recovered.xml").write_text(ET.tostring(tree, encoding="unicode"))
+    visible = " ".join((n.get("text", "") + " " + n.get("content-desc", "")) for n in tree.iter("node"))
+    assert "Example Domain" not in visible, "The blocked page is still visible"
+    assert not any(n.get("visible") == "true" and n.get("resource-id", "").endswith(
+        ("/omnibox_results_container", "/omnibox_suggestions_dropdown", "ADDRESSBAR_SEARCH_BOX"))
+        for n in tree.iter("node")), "The browser is still editing instead of showing the cleared page"
+    home()
+    open_app(pkg)
+    stays_open(pkg, 3)
     return name
+
+
+def website_block():
+    return browser_recovery(CHROME)
+
+
+def guard_reconnect():
+    """The guard turns on while a blocked page is open. It must block without another window change."""
+    home()
+    sh("settings delete secure enabled_accessibility_services")
+    sh(f"am force-stop {CHROME}")
+    sh(f"am start -a android.intent.action.VIEW -d https://example.com/reconnect -p {CHROME} >/dev/null")
+    time.sleep(4)
+    sh("logcat -c")
+    sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
+    wait_block("example.com is blocked", timeout=10)
+    name = shot("blocked-after-reconnect")
+    tap("Back to the browser", exact=True)
+    wait_top(CHROME)
+    home()
+    return name
+
+
+def browser_matrix():
+    packages = ("com.brave.browser", "com.brave.browser_beta", "org.mozilla.firefox")
+    installed = [pkg for pkg in packages if sh(f"pm path {pkg}").startswith("package:")]
+    if not installed:
+        raise Skip("Install Brave, Brave Beta, or Firefox and complete its welcome pages")
+    for pkg in installed:
+        browser_recovery(pkg)
+    return ", ".join(installed)
 
 
 class Skip(Exception):
     """The device cannot run this check. The report says why."""
 
 
+def require_shorts():
+    """YouTube added Shorts in version 16. Older builds, such as the Android 9 image's, cannot run these checks."""
+    version = re.search(r"versionName=(\d+)", sh(f"dumpsys package {YOUTUBE}"))
+    if not version or int(version.group(1)) < 16:
+        raise Skip(f"YouTube {version.group(1) if version else 'is not installed'} on this device has no Shorts")
+
+
+def youtube_state(name: str):
+    """Saves the YouTube tree. Returns the visible nodes, and whether the Shorts player or tab shows."""
+    tree = screen()
+    (RUN / f"{name}.xml").write_text(ET.tostring(tree, encoding="unicode"))
+    nodes = [n for n in tree.iter("node") if n.get("visible") == "true"]
+    player = any(n.get("resource-id", "").split("/")[-1] in REEL_IDS for n in nodes)
+    tab = any(n.get("selected") == "true" and n.get("content-desc", "").startswith("Shorts") for n in nodes)
+    return nodes, player, tab
+
+
+def leave_shorts_block(name: str):
+    """Taps the block's return button. YouTube must stay in front without the Shorts feed."""
+    tap("Back to the app", exact=True)
+    wait_top(YOUTUBE)
+    stays_open(YOUTUBE, 3)
+    shot(name)
+    nodes, player, tab = youtube_state(name)
+    assert not player, "The Shorts player is still on screen"
+    assert not tab, "The Shorts tab is still selected"
+    return nodes
+
+
 def shorts_block():
-    sh(f"am start -W -a android.intent.action.VIEW -d {SHORT_URL} -p {YOUTUBE} >/dev/null")
+    require_shorts()
+    sh("logcat -c")
+    rebind()
+    open_app(YOUTUBE)
     try:
+        tap("Shorts", exact=True)
         wait_block("YouTube Shorts is blocked", timeout=30)
     except AssertionError:
         if "NewVersionAvailable" in sh("dumpsys activity activities | grep -E 'youtube'"):
-            home()
+            sh("input keyevent KEYCODE_BACK")
             raise Skip("YouTube on this device forces an update and opens no video")
         raise
     name = shot("shorts-blocked")
-    sh("input keyevent KEYCODE_BACK")
+    leave_shorts_block("youtube-after-shorts-tab")
+    return name
+
+
+def shorts_from_search():
+    """A Short opened from search returns to the same results, without a YouTube restart."""
+    require_shorts()
+    query = "cats shorts"
+    sh("logcat -c")
+    sh(f"am force-stop {YOUTUBE}")
+    rebind()
+    open_app(YOUTUBE)
+    tap("Search", exact=True)
+    sh("input text " + shlex.quote(query.replace(" ", "%s")))
+    sh("input keyevent KEYCODE_ENTER")
+    wait_for("play Short", timeout=20)
+    shot("youtube-search-results")
+    pid = sh(f"pidof {YOUTUBE}").strip()
+    tap("play Short")
+    wait_block("YouTube Shorts is blocked", timeout=20)
+    name = shot("short-from-search-blocked")
+    nodes = leave_shorts_block("youtube-search-after-block")
+    texts = [n.get("text", "") for n in nodes]
+    assert query in texts, f"The search for {query!r} is gone: {[t for t in texts if t][:20]}"
+    assert any("play Short" in n.get("content-desc", "") for n in nodes), "The search results are gone"
+    assert sh(f"pidof {YOUTUBE}").strip() == pid, "YouTube restarted"
+    return name
+
+
+def shorts_deep_link():
+    """A Short opened from another app has no page under it. Recovery must stay in YouTube."""
+    require_shorts()
+    sh("logcat -c")
+    sh(f"am force-stop {YOUTUBE}")
+    rebind()
+    sh(f"am start -a android.intent.action.VIEW -d {SHORT_URL} -p {YOUTUBE} >/dev/null")
+    wait_block("YouTube Shorts is blocked", timeout=30)
+    name = shot("deep-link-short-blocked")
+    leave_shorts_block("youtube-after-deep-link-block")
     return name
 
 
@@ -473,6 +661,8 @@ def strict_mode_protects_settings():
     wait_block("Stillpoint settings are locked")
     name = shot("protection-blocks-app-info")
     sh("input keyevent KEYCODE_BACK")
+    # The block goes home, and the home lock then brings focus back. Wait for it, or it covers the Blocks tab.
+    wait_for("Pause", exact=True)
     open_stillpoint("BLOCKS")
     wait_for("Blocks are locked")
     shot("blocks-tab-locked")
@@ -538,14 +728,20 @@ CHECKS = [
     today_screen,
     set_up_blocks_in_ui,
     website_block,
+    guard_reconnect,
+    browser_matrix,
     shorts_block,
+    shorts_from_search,
+    shorts_deep_link,
     start_focus_in_ui,
+    active_focus_controls,
     focus_survives_restart,
     focus_blocks_app,
     home_lock_returns_to_focus,
     strict_mode_protects_settings,
     pause_resume,
     ending_focus_frees_app,
+    plan_intent_from_other_app,
     gentle_limit,
     storage_workflow,
     progression_workflow,

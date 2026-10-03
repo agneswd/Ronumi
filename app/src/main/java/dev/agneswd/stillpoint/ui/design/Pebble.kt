@@ -64,10 +64,14 @@ private val LeafDark = Color(0xFF1FA874)
 private val Tongue = Color(0xFFFF7C9C)
 private val Spark = Color(0xFFFFC53D)
 
+/** The color of Pebble's thought dots. Speech bubbles reuse it for their trail. */
+val ThoughtDot = Color(0xFF9AA6FF).copy(alpha = 0.7f)
+
 /**
  * Pebble, the Stillpoint mascot: a round stone with a sprout on top.
  * It is drawn in code, so it scales to any size and animates without image files.
  * [look] moves the pupils, from -1 to 1 on each axis.
+ * [thoughtDots] is false when a speech bubble beside Pebble draws its own thought trail.
  */
 @Composable
 fun Pebble(
@@ -76,6 +80,7 @@ fun Pebble(
     size: Dp = 160.dp,
     look: Offset = Offset.Zero,
     style: Set<String> = LocalPebbleStyle.current,
+    thoughtDots: Boolean = true,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val pet = remember { PetMotion() }
@@ -140,7 +145,7 @@ fun Pebble(
         translate(top = -pet.lift.coerceAtLeast(0f) * gentle * u) {
             rotate(pet.lean * gentle, pivot) {
                 scale(1f + pet.press * 0.065f * gentle, 1f - pet.press * 0.065f * gentle, pivot) {
-                    drawPebble(mood, breath, petBlink, hop, wave + pet.lean * 0.035f * gentle, drift, petLook, style)
+                    drawPebble(mood, breath, petBlink, hop, wave + pet.lean * 0.035f * gentle, drift, petLook, style, thoughtDots)
                 }
             }
         }
@@ -163,6 +168,7 @@ fun DrawScope.drawPebble(
     drift: Float = 0.3f,
     look: Offset = Offset.Zero,
     style: Set<String> = emptySet(),
+    thoughtDots: Boolean = true,
 ) {
     val palette = paletteFor(style)
     val closedHat = style.any { it in ClosedHats }
@@ -237,7 +243,7 @@ fun DrawScope.drawPebble(
             }
         }
     }
-    drawExtras(mood, u, drift, hop)
+    if (mood != Mood.THINK || thoughtDots) drawExtras(mood, u, drift, hop)
 }
 
 private fun bodyPath(u: Float) = Path().apply {
@@ -494,7 +500,7 @@ private fun DrawScope.drawExtras(mood: Mood, u: Float, drift: Float, hop: Float)
         }
 
         Mood.THINK -> repeat(3) { i ->
-            drawCircle(Color(0xFF9AA6FF).copy(alpha = 0.7f), (2f + i * 1.6f) * u, Offset((82f + i * 6f) * u, (24f - i * 8f) * u))
+            drawCircle(ThoughtDot, (2f + i * 1.6f) * u, Offset((82f + i * 6f) * u, (24f - i * 8f) * u))
         }
 
         else -> Unit

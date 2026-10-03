@@ -65,7 +65,8 @@ data class Rules(
             }
         }
 
-        if (settings.pauseBlocksUntil > System.currentTimeMillis()) return Verdict.Allow
+        // A pause that began before protection locked does not open a protected schedule.
+        if (settings.pauseBlocksUntil > System.currentTimeMillis() && !(settings.protection && locked(now))) return Verdict.Allow
 
         if (pkg !in essentials) {
             activeSchedules(now).firstOrNull { it.mode.blocks(pkg, it.packages) }?.let { schedule ->
