@@ -270,13 +270,6 @@ private fun Welcome(onNext: () -> Unit) {
             )
             Spacer(Modifier.weight(1f))
             ChunkyButton("Get started", onNext, Modifier.fillMaxWidth().appear(500))
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "Free and private. Focus works offline. No account needed.",
-                style = MaterialTheme.typography.bodySmall,
-                color = Sp.colors.textDim,
-                modifier = Modifier.appear(600),
-            )
         }
     }
 }
