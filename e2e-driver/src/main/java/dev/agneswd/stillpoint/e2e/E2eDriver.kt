@@ -60,6 +60,7 @@ class E2eDriver : Instrumentation() {
             xml.attribute(null, "visible", info.isVisibleToUser.toString())
             xml.attribute(null, "class", info.className?.toString().orEmpty())
             xml.attribute(null, "resource-id", info.viewIdResourceName.orEmpty())
+            xml.attribute(null, "selected", info.isSelected.toString())
             for (i in 0 until info.childCount) info.getChild(i)?.let(::node)
             xml.endTag(null, "node")
         }
