@@ -103,6 +103,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
     val settings by app.dao.settings().collectAsState(null)
     val sessions by app.dao.sessions().collectAsState(emptyList())
     var tag by remember { mutableStateOf("") }
+    var starting by remember { mutableStateOf(false) }
     val s = settings ?: return
     val update: SettingsUpdate = { change -> app.scope.launch { app.dao.updateSettings(change) } }
     val recentTags = remember(sessions) { sessions.map { it.tag }.filter { it.isNotBlank() && it != "First focus" }.distinct().take(6) }
@@ -220,13 +221,19 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             Spacer(Modifier.height(24.dp))
         }
         ChunkyButton(
-            "Start",
+            if (starting) "Starting..." else "Start",
             {
+                if (starting) return@ChunkyButton
+                starting = true
                 app.scope.launch {
-                    Focus.start(context, tag)
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        navigator.focusMinimized = false
-                        onClose()
+                    try {
+                        Focus.start(context, tag)
+                    } finally {
+                        // The user may have left setup meanwhile. Close setup only, never the screen on top.
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.NonCancellable) {
+                            navigator.focusMinimized = false
+                            navigator.closeFocusSetup()
+                        }
                     }
                 }
             },
@@ -235,6 +242,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             icon = painterResource(R.drawable.ic_play),
             height = 58.dp,
             sound = Sound.START,
+            enabled = !starting,
         )
     }
 }

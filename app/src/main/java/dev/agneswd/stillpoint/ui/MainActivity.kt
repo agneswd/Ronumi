@@ -112,10 +112,18 @@ class Navigator : androidx.lifecycle.ViewModel() {
     /** True when the user left a running session to look at the tabs. */
     var focusMinimized by mutableStateOf(false)
 
-    fun push(route: Route) = stack.add(route)
+    fun push(route: Route) {
+        if (stack.lastOrNull() != route) stack.add(route)
+    }
 
     fun pop() {
         stack.removeLastOrNull()
+    }
+
+    /** Closes focus setup and the screens opened from it. Screens under it stay. */
+    fun closeFocusSetup() {
+        val index = stack.indexOf(Route.FocusSetup)
+        if (index >= 0) stack.removeRange(index, stack.size)
     }
 }
 
@@ -233,8 +241,14 @@ private fun App(navigator: Navigator) {
     }
     val game = remember(sessions, settings, today) { settings?.let { gameState(sessions, it, today) } }
 
-    LaunchedEffect(focus == null) {
+    // A session can start from setup, a plan, or a widget. Setup must not offer a second one.
+    val setupOpen = Route.FocusSetup in navigator.stack
+    LaunchedEffect(focus == null, setupOpen) {
         if (focus == null) navigator.focusMinimized = false
+        else if (setupOpen) {
+            navigator.closeFocusSetup()
+            navigator.focusMinimized = false
+        }
     }
 
     val s = settings

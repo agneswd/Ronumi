@@ -67,10 +67,10 @@ import dev.agneswd.stillpoint.ui.design.Sp
 import dev.agneswd.stillpoint.ui.design.Tag
 import dev.agneswd.stillpoint.ui.design.XpBolt
 import dev.agneswd.stillpoint.ui.design.appear
-import dev.agneswd.stillpoint.ui.design.pulse
 import dev.agneswd.stillpoint.usage.DayUsage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -80,6 +80,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
     val context = LocalContext.current
     val app = context.app
     val access = rememberAccess()
+    val focus by app.dao.activeFocusFlow().collectAsState(null)
     val schedules by app.dao.schedules().collectAsState(emptyList())
     val use24 = rememberUse24Hour()
     var refresh by remember { mutableIntStateOf(0) }
@@ -136,9 +137,17 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
                 .padding(start = ScreenPadding, end = ScreenPadding, top = 28.dp, bottom = 12.dp),
         ) {
             ChunkyButton(
-                "Start focus",
-                { navigator.push(Route.FocusSetup) },
-                Modifier.fillMaxWidth().pulse(0.02f),
+                if (focus == null) "Start focus" else "Return to focus",
+                {
+                    // The flow starts empty. Ask the database, so a cold start cannot offer a second session.
+                    app.scope.launch {
+                        val running = focus ?: app.dao.activeFocus()
+                        withContext(Dispatchers.Main) {
+                            if (running == null) navigator.push(Route.FocusSetup) else navigator.focusMinimized = false
+                        }
+                    }
+                },
+                Modifier.fillMaxWidth(),
                 kind = ButtonKind.MINT,
                 icon = painterResource(R.drawable.ic_play),
                 height = 58.dp,
