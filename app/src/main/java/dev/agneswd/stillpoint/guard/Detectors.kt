@@ -6,12 +6,18 @@ import dev.agneswd.stillpoint.data.Settings
 /**
  * A short-video feed inside an app. The guard finds it by view ids, or by a selected
  * tab with one of [selectedTabLabels]. Apps change these ids. Update this table when one breaks.
+ * [titleIds] name the video title, so "Allow the first video" can tell videos apart.
+ * Feeds without title ids never allow a first video.
+ * [tabsAtBottom] is false for apps with a top tab bar. Elsewhere a selected tab higher up
+ * is a page tab, such as the Reels grid of a profile, not the feed.
  */
 data class ShortsFeed(
     val packageName: String,
     val name: String,
     val viewIds: List<String> = emptyList(),
     val selectedTabLabels: List<String> = emptyList(),
+    val titleIds: List<String> = emptyList(),
+    val tabsAtBottom: Boolean = true,
     val enabled: (Settings) -> Boolean,
 )
 
@@ -28,12 +34,15 @@ val shortsFeeds = listOf(
             "shorts_container",
         ),
         selectedTabLabels = listOf("Shorts"),
+        titleIds = listOf("reel_video_title", "reel_title"),
         enabled = { it.blockYoutubeShorts },
     ),
     ShortsFeed(
         "com.instagram.android",
         "Instagram Reels",
         viewIds = listOf("clips_viewer_view_pager", "clips_viewer_container", "clips_video_container"),
+        selectedTabLabels = listOf("Reels"),
+        titleIds = listOf("clips_caption_text", "clips_video_title", "caption"),
         enabled = { it.blockInstagramReels },
     ),
     ShortsFeed(
@@ -46,45 +55,25 @@ val shortsFeeds = listOf(
         "com.facebook.katana",
         "Facebook Reels",
         selectedTabLabels = listOf("Reels"),
+        tabsAtBottom = false,
         enabled = { it.blockFacebookReels },
     ),
 )
 
-/** Address bar view ids of common browsers. */
-val browserUrlBars = mapOf(
-    "com.android.chrome" to "url_bar",
-    "com.chrome.beta" to "url_bar",
-    "com.brave.browser" to "url_bar",
-    "com.microsoft.emmx" to "url_bar",
-    "com.vivaldi.browser" to "url_bar",
-    "com.kiwibrowser.browser" to "url_bar",
-    "org.mozilla.firefox" to "mozac_browser_toolbar_url_view",
-    "org.mozilla.fenix" to "mozac_browser_toolbar_url_view",
-    "org.mozilla.focus" to "mozac_browser_toolbar_url_view",
-    "com.sec.android.app.sbrowser" to "location_bar_edit_text",
-    "com.opera.browser" to "url_field",
-    "com.opera.mini.native" to "url_field",
-    "com.duckduckgo.mobile.android" to "omnibarTextInput",
-)
+fun ShortsFeed.isShowing(root: AccessibilityNodeInfo): Boolean =
+    viewIds.any { root.findAccessibilityNodeInfosByViewId("$packageName:id/$it").any { node -> node.isVisibleToUser } } ||
+        tabSelected(root)
 
-fun ShortsFeed.isShowing(root: AccessibilityNodeInfo): Boolean {
-    if (viewIds.any { root.findAccessibilityNodeInfosByViewId("$packageName:id/$it").isNotEmpty() }) return true
+/** True when the feed is the selected app tab. Recovery then clicks another tab instead of Back. */
+fun ShortsFeed.tabSelected(root: AccessibilityNodeInfo): Boolean {
     if (selectedTabLabels.isEmpty()) return false
+    val window = android.graphics.Rect().also(root::getBoundsInScreen)
+    val bounds = android.graphics.Rect()
     return root.anyNode { node ->
-        node.isSelected && selectedTabLabels.any { label ->
-            node.contentDescription?.toString()?.startsWith(label, ignoreCase = true) == true ||
-                node.text?.toString().equals(label, ignoreCase = true)
-        }
+        node.isVisibleToUser && node.isSelected &&
+            selectedTabLabels.any { labelMatches(node.contentDescription?.toString(), it) || labelMatches(node.text?.toString(), it) } &&
+            (!tabsAtBottom || bounds.also(node::getBoundsInScreen).centerY() > window.top + window.height() * 3 / 4)
     }
-}
-
-/** The host in the address bar, or null when the bar holds a search query or nothing. */
-fun AccessibilityNodeInfo.browserHost(packageName: String): String? {
-    val id = browserUrlBars[packageName] ?: return null
-    val bar = findAccessibilityNodeInfosByViewId("$packageName:id/$id").firstOrNull() ?: return null
-    // Do not judge half-typed text. Check the address after the page loads.
-    if (bar.isFocused) return null
-    return hostOf(bar.text?.toString().orEmpty())
 }
 
 /** Normalizes a host without accepting spaces, credentials, or unrelated domain suffixes. */
@@ -105,16 +94,10 @@ fun hostOf(text: String): String? {
 fun allowedSite(host: String, sites: Set<String>): Boolean = sites.any { host == it || host.endsWith(".$it") }
 
 /** Uses the visible video title rather than a timer to permit exactly the first identified video. */
-fun ShortsFeed.videoIdentity(root: AccessibilityNodeInfo): String? {
-    val ids = when (packageName) {
-        "com.google.android.youtube" -> listOf("reel_video_title", "reel_title")
-        "com.instagram.android" -> listOf("clips_caption_text", "clips_video_title", "caption")
-        else -> emptyList()
-    }
-    return ids.flatMap { root.findAccessibilityNodeInfosByViewId("$packageName:id/$it") }
+fun ShortsFeed.videoIdentity(root: AccessibilityNodeInfo): String? =
+    titleIds.flatMap { root.findAccessibilityNodeInfosByViewId("$packageName:id/$it") }
         .filter { it.isVisibleToUser }
         .mapNotNull { it.text?.toString()?.trim()?.takeIf(String::isNotEmpty) }.joinToString("|").ifEmpty { null }
-}
 
 fun AccessibilityNodeInfo.youtubeChannel(): String? = listOf("channel_name", "owner_text", "channel_title", "video_owner")
     .firstNotNullOfOrNull { id -> findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/$id")
@@ -144,25 +127,6 @@ fun AccessibilityNodeInfo.youtubeHome(): Boolean {
     if (selectedLabel("Subscriptions") || selectedLabel("Library") || selectedLabel("You")) return false
     if (visibleExact("Subscribe") || visibleExact("Subscribed")) return false
     return selectedLabel("Home")
-}
-
-enum class YoutubePlace { SEARCH, HOME, SUBSCRIPTIONS, OTHER }
-
-/** Search wins over the Home tab. YouTube leaves that tab selected while search is open. */
-fun AccessibilityNodeInfo.youtubePlace(): YoutubePlace = when {
-    youtubeSearchOpen() -> YoutubePlace.SEARCH
-    selectedLabel("Subscriptions") || selectedLabel("Library") -> YoutubePlace.SUBSCRIPTIONS
-    youtubeHome() || selectedLabel("Home") -> YoutubePlace.HOME
-    else -> YoutubePlace.OTHER
-}
-
-/** The typed query on the search results page. The hint "Search YouTube" is not a query. */
-fun AccessibilityNodeInfo.youtubeSearchQuery(): String? {
-    val text = findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/search_query")
-        .firstOrNull { it.isVisibleToUser }
-        ?.text?.toString()?.trim().orEmpty()
-    if (text.isEmpty() || text.equals("Search YouTube", true)) return null
-    return text
 }
 
 /** True while the search field or the search results are on screen. */
@@ -200,9 +164,10 @@ private fun AccessibilityNodeInfo.visibleExact(label: String): Boolean = anyNode
     it.isVisibleToUser && (it.text?.toString()?.equals(label, true) == true || it.contentDescription?.toString()?.equals(label, true) == true)
 }
 
-private fun labelMatches(value: String?, label: String): Boolean {
+/** Matches a tab label such as "Shorts", "Shorts, 3 new" or "Shorts tab". */
+fun labelMatches(value: String?, label: String): Boolean {
     val text = value?.trim().orEmpty()
-    return text.equals(label, true) || text.startsWith("$label,", true) || text.startsWith("$label ", true)
+    return text.equals(label, true) || text.startsWith("$label,", true) || text.startsWith("$label tab", true)
 }
 
 fun channelKey(value: String): String = value.trim().removePrefix("@").lowercase(java.util.Locale.ROOT)
@@ -225,10 +190,13 @@ fun blockedSiteFor(host: String, sites: Set<String>, blockAdult: Boolean): Strin
 }
 
 private fun AccessibilityNodeInfo.anyNode(predicate: (AccessibilityNodeInfo) -> Boolean): Boolean {
-    if (predicate(this)) return true
-    for (i in 0 until childCount) {
-        val child = getChild(i) ?: continue
-        if (child.anyNode(predicate)) return true
+    val pending = ArrayDeque<AccessibilityNodeInfo>()
+    pending.add(this)
+    var visited = 0
+    while (pending.isNotEmpty() && visited++ < 1000) {
+        val node = pending.removeFirst()
+        if (predicate(node)) return true
+        for (i in 0 until node.childCount) node.getChild(i)?.let(pending::addLast)
     }
     return false
 }

@@ -113,7 +113,7 @@ fun ShortVideosPage(onClose: () -> Unit) {
             }
         }
         Group(Modifier.padding(top = 12.dp).appear(60)) {
-            SwitchRow("Allow the first video", "The first video of each visit plays, like one a friend sent. The next one is blocked.", s.allowFirstShort) { on ->
+            SwitchRow("Allow the first video", "On YouTube and Instagram, the first video of each visit plays, like one a friend sent. The next one is blocked.", s.allowFirstShort) { on ->
                 update { it.copy(allowFirstShort = on) }
             }
             SwitchRow("Only during focus", "Also applies to websites and YouTube channels.", s.contentOnlyDuringFocus) { on ->
