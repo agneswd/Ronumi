@@ -383,7 +383,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                     }.padding(14.dp),
                 )
             } else {
-                Text("Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
+                Text(if (stopwatch) "Strict mode: no pauses. Finish when you are done." else "Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
             }
         }
     }
