@@ -65,6 +65,52 @@
     <string name="apps_overflow_count" translatable="false">+%1$d</string>
 
     <!-- Backups -->
+    <string name="backup_default_filename" translatable="false">stillpoint-%1$s.stillpoint</string>
+    <string name="backup_export_success">Encrypted backup saved.</string>
+    <string name="backup_restore_success">Backup restored.</string>
+    <string name="backup_failure_message">The backup could not finish. Try again.</string>
+    <string name="backup_section_title">Backup</string>
+    <string name="backup_save_a_backup">Save a backup</string>
+    <string name="backup_export_description">Encrypt settings and history with a password. You can restore them on another phone.</string>
+    <string name="backup_restore_a_backup">Restore a backup</string>
+    <string name="backup_restore_locked_description">Locked while a focus session or protected schedule runs.</string>
+    <string name="backup_restore_description">Choose an encrypted backup and enter its password. This replaces your saved data.</string>
+    <string name="backup_working_on_your_backup" tools:ignore="TypographyEllipsis">Working on your backup...</string>
+    <string name="backup_protect_your_backup">Protect your backup</string>
+    <string name="backup_unlock_your_backup">Unlock your backup</string>
+    <string name="backup_password_create_help">Use at least 12 characters. Keep this password safe. Stillpoint cannot recover it.</string>
+    <string name="backup_password_restore_help">Enter the password used when this backup was saved. Unencrypted JSON backups are not accepted.</string>
+    <string name="backup_password">Password</string>
+    <string name="backup_repeat_password">Repeat password</string>
+    <string name="backup_hide_password">Hide password</string>
+    <string name="backup_show_password">Show password</string>
+    <string name="backup_save_backup">Save backup</string>
+    <string name="backup_restore_backup">Restore backup</string>
+    <string name="backup_cancel">Cancel</string>
+    <string name="backup_error_write">Cannot write the backup file</string>
+    <string name="backup_error_read">Cannot read the backup file</string>
+    <string name="backup_error_size">Backup exceeds 16 MB</string>
+    <string name="backup_error_focus_running">End the focus session before restoring a backup</string>
+    <string name="backup_error_schedule_running">Restore is locked while a protected schedule runs</string>
+    <string name="backup_error_version">Unsupported backup version</string>
+    <string name="backup_error_record_count">Backup contains too many records</string>
+    <string name="backup_error_settings">Invalid focus or game settings</string>
+    <string name="backup_error_theme">Invalid theme mode</string>
+    <string name="backup_error_clock">Invalid clock format</string>
+    <string name="backup_error_pet_count">Invalid Pebble tap count</string>
+    <string name="backup_error_items">Invalid Pebble items</string>
+    <string name="backup_error_delivery_time">Invalid notification delivery time</string>
+    <string name="backup_error_freeze_reward">Invalid freeze reward date</string>
+    <string name="backup_error_streak_date">Invalid streak date</string>
+    <string name="backup_error_limits">Invalid app limits</string>
+    <string name="backup_error_schedules">Invalid schedules</string>
+    <string name="backup_error_sites">Invalid site list</string>
+    <string name="backup_error_focus_history">Invalid focus history</string>
+    <string name="backup_error_usage_history">Invalid usage history</string>
+    <string name="backup_error_authentication">Wrong password or damaged backup</string>
+    <string name="backup_error_format">Use an encrypted Stillpoint backup. Plaintext and other formats are not supported.</string>
+    <string name="backup_error_encrypted_version">Unsupported encrypted backup version</string>
+    <string name="backup_error_password_length">Use a password with 1 to 1024 characters</string>
 
     <!-- Badges -->
     <string name="badge_first_title">First step</string>

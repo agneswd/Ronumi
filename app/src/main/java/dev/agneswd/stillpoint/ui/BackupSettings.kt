@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.R
+import androidx.compose.ui.res.stringResource
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -56,11 +58,12 @@ private object BackupWork {
                 val result = try {
                     if (exporting) exportBackup(app, app.dao, Uri.parse(source), secret)
                     else importBackup(app, app.dao, Uri.parse(source), secret)
-                    if (exporting) "Encrypted backup saved." else "Backup restored."
+                    if (exporting) context.getString(R.string.backup_export_success) else context.getString(R.string.backup_restore_success)
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    error.message ?: "The backup could not finish. Try again."
+                    if (error is dev.agneswd.stillpoint.data.BackupTextException) context.getString(error.messageRes)
+                    else error.message ?: context.getString(R.string.backup_failure_message)
                 }
                 message.value = result
                 withContext(Dispatchers.Main) { Toast.makeText(app, result, Toast.LENGTH_LONG).show() }
@@ -75,6 +78,7 @@ private object BackupWork {
 @Composable
 fun BackupSettings(restoreLocked: Boolean) {
     val context = LocalContext.current
+    val resources = androidx.compose.ui.platform.LocalResources.current
     var pendingUri by rememberSaveable { mutableStateOf<String?>(null) }
     var saving by rememberSaveable { mutableStateOf(false) }
     val busy by BackupWork.busy.collectAsState()
@@ -86,17 +90,17 @@ fun BackupSettings(restoreLocked: Boolean) {
         if (uri != null) { saving = false; pendingUri = uri.toString() }
     }
 
-    SectionTitle("Backup")
+    SectionTitle(stringResource(R.string.backup_section_title))
     Group {
-        ListRow("Save a backup", "Encrypt settings and history with a password. You can restore them on another phone.",
-            onClick = if (busy) null else ({ create.launch("stillpoint-${LocalDate.now()}.stillpoint") })) { Chevron() }
-        ListRow("Restore a backup",
-            if (restoreLocked) "Locked while a focus session or protected schedule runs." else "Choose an encrypted backup and enter its password. This replaces your saved data.",
+        ListRow(stringResource(R.string.backup_save_a_backup), stringResource(R.string.backup_export_description),
+            onClick = if (busy) null else ({ create.launch(resources.getString(R.string.backup_default_filename, LocalDate.now())) })) { Chevron() }
+        ListRow(stringResource(R.string.backup_restore_a_backup),
+            if (restoreLocked) stringResource(R.string.backup_restore_locked_description) else stringResource(R.string.backup_restore_description),
             onClick = if (busy || restoreLocked) null else ({ open.launch(arrayOf("application/octet-stream", "*/*")) })) {
             if (!restoreLocked && !busy) Chevron()
         }
         if (busy || message != null) {
-            Text(if (busy) "Working on your backup..." else message.orEmpty(),
+            Text(if (busy) stringResource(R.string.backup_working_on_your_backup) else message.orEmpty(),
                 modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = 16.dp),
                 style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
         }
@@ -118,28 +122,28 @@ fun BackupSettings(restoreLocked: Boolean) {
         }
         AlertDialog(
             onDismissRequest = { password = ""; confirmation = ""; pendingUri = null },
-            title = { Text(if (saving) "Protect your backup" else "Unlock your backup") },
+            title = { Text(if (saving) stringResource(R.string.backup_protect_your_backup) else stringResource(R.string.backup_unlock_your_backup)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(if (saving) "Use at least 12 characters. Keep this password safe. Stillpoint cannot recover it."
-                        else "Enter the password used when this backup was saved. Unencrypted JSON backups are not accepted.")
+                    Text(if (saving) stringResource(R.string.backup_password_create_help)
+                        else stringResource(R.string.backup_password_restore_help))
                     OutlinedTextField(password, { if (it.length <= 1024) password = it },
-                        label = { Text("Password") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.backup_password)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = if (saving) ImeAction.Next else ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submit() }))
                     if (saving) {
                         OutlinedTextField(confirmation, { if (it.length <= 1024) confirmation = it },
-                            label = { Text("Repeat password") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.backup_repeat_password)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                             visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                             keyboardActions = KeyboardActions(onDone = { submit() }))
                     }
-                    TextButton(onClick = { visible = !visible }) { Text(if (visible) "Hide password" else "Show password") }
+                    TextButton(onClick = { visible = !visible }) { Text(if (visible) stringResource(R.string.backup_hide_password) else stringResource(R.string.backup_show_password)) }
                 }
             },
-            confirmButton = { TextButton(onClick = { submit() }, enabled = valid) { Text(if (saving) "Save backup" else "Restore backup") } },
-            dismissButton = { TextButton(onClick = { password = ""; confirmation = ""; pendingUri = null }) { Text("Cancel") } },
+            confirmButton = { TextButton(onClick = { submit() }, enabled = valid) { Text(if (saving) stringResource(R.string.backup_save_backup) else stringResource(R.string.backup_restore_backup)) } },
+            dismissButton = { TextButton(onClick = { password = ""; confirmation = ""; pendingUri = null }) { Text(stringResource(R.string.backup_cancel)) } },
         )
     }
 }
