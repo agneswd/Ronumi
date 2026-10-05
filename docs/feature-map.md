@@ -1,7 +1,7 @@
-# Local feature map
+# Feature map
 
 Stillpoint focus features work without an account or server. Optional app updates use GitHub.
-This map compares product behavior. It does not claim complete Regain parity.
+This map lists Stillpoint behavior, completed checks, and remaining work.
 
 | Area | Implemented | Verification or remaining work |
 |---|---|---|

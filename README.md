@@ -116,7 +116,7 @@ Nothing downloads or installs automatically.
 Leave private messages and backups out of reports.
 
 For builds and device checks, read the [development guide](docs/development.md).
-The [feature map](docs/regain-parity.md) lists completed work and known gaps.
+The [feature map](docs/feature-map.md) lists completed work and known gaps.
 
 Stillpoint code and original artwork use [GPL-3.0-only](LICENSE).
 Nunito uses the [SIL Open Font License](licenses/Nunito-OFL.txt).
