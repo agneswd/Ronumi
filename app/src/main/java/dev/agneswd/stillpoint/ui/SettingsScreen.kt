@@ -163,7 +163,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 pebbleSize = 80.dp,
             )
             Group(Modifier.padding(top = 12.dp)) {
-                ListRow(stringResource(R.string.settings_source_code), stringResource(R.string.settings_source_description), onClick = {
+                ListRow(stringResource(R.string.settings_source_code), stringResource(R.string.settings_source_description, stringResource(R.string.settings_repository_name)), onClick = {
                     context.openFirst(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/agneswd/Stillpoint")))
                 }) { Chevron() }
                 val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName

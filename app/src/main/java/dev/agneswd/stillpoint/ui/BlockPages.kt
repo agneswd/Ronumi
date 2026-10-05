@@ -178,7 +178,7 @@ fun WebsitesPage(onClose: () -> Unit) {
             if (s.siteAllowList) stringResource(R.string.blocks_allowlist_description)
             else stringResource(R.string.blocks_denylist_description),
         )
-        AddField(if (s.siteAllowList) stringResource(R.string.blocks_allowlist_input_hint) else stringResource(R.string.blocks_denylist_input_hint), KeyboardType.Uri, clean = ::hostOf) { domain ->
+        AddField(stringResource(if (s.siteAllowList) R.string.blocks_allowlist_input_hint else R.string.blocks_denylist_input_hint, stringResource(R.string.blocks_example_domain)), KeyboardType.Uri, clean = ::hostOf) { domain ->
             app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.addSite(BlockedSite(domain)) } }
         }
         ChipList(sites.map { it.domain }.toSet(), empty = if (s.siteAllowList) stringResource(R.string.blocks_allowlist_empty) else stringResource(R.string.blocks_no_sites_yet)) { domain ->
