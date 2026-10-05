@@ -81,7 +81,7 @@ This foundation does not enforce limits, gate features, or show a paywall.
 
 GitHub always reports unlocked. Its purchase and restore methods do nothing. Its dependency graph contains no billing library.
 Play uses Billing Library 9.1.0 and the non-consumable product `stillpoint_plus`.
-The Play manifest removes Internet and network-state permissions added by the library's diagnostic transport dependency.
+The Play build keeps the Internet and network-state permissions that the library's diagnostic transport dependency adds. Removing them can crash that library when it checks the network in the background. Stillpoint code makes no network requests in the Play build.
 Billing uses the Play Store service. The billing AAR supplies its own consumer R8 rules.
 Configure one permanent buy option, without rental or preorder offers, in Play Console.
 Purchases are acknowledged after `PURCHASED`, including purchases recovered at startup.
@@ -225,7 +225,7 @@ Older backups omit the field and restore as `SYSTEM`.
 
 ## Built-in updates
 
-Only the GitHub flavor declares Internet access for its optional updater. The Play flavor uses the Play Store service for billing. Focus, blocking, reports, and audio remain local.
+The GitHub flavor uses Internet access only for its optional updater. The Play flavor declares it only through the Billing library's diagnostics dependency and makes no network requests of its own. Focus, blocking, reports, and audio remain local.
 Update requests contain no focus history, held messages, or other app data.
 Android's persisted job scheduler checks roughly daily when a network is available. It does not promise an exact delivery time.
 Disabling automatic checks cancels the job. Manual checks remain available.
