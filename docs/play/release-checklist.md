@@ -34,7 +34,7 @@ See [device verification](https://support.google.com/googleplay/android-develope
 - [ ] Restrict picture-in-picture recovery to the blocked app. Verify unrelated video and system controls are unchanged.
 - [ ] Implement and record the consent flows in [disclosure-spec.md](disclosure-spec.md).
 - [ ] Keep `isAccessibilityTool` false. Validate the service's required capabilities.
-- [ ] Verify the merged Play manifest has no `INTERNET`, `ACCESS_NETWORK_STATE`, or `REQUEST_INSTALL_PACKAGES`.
+- [ ] Verify the merged Play manifest has no `REQUEST_INSTALL_PACKAGES`. `INTERNET` and `ACCESS_NETWORK_STATE` must come only from the Billing library diagnostics dependency; confirm no app code uses the network.
 - [ ] Verify Play contains no updater UI, job, provider, download, or installer path.
 - [ ] Verify the Play build includes Billing; verify GitHub contains no billing or paywall code.
 - [ ] Confirm every free and Plus feature in the brief, including the extra wardrobe and two scenes.

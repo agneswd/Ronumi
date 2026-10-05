@@ -55,8 +55,9 @@ Google handles its purchase data under the [Google Privacy Policy](https://polic
 See [Google Play order and purchase help](https://support.google.com/googleplay/answer/2850369?hl=en).
 Google controls retention of its payment records. Uninstalling the app does not erase them.
 
-The Play version has no direct Internet permission and no GitHub updater.
-Google Play can use its own connection to process purchases and deliver app updates.
+The Play version has no GitHub updater, and Stillpoint code makes no network requests.
+The Google Play Billing Library in the Play version can send purchase diagnostics to Google.
+Google Play uses its own connection to process purchases and deliver app updates.
 
 ## GitHub updates
 
