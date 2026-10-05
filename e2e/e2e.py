@@ -151,23 +151,24 @@ def home():
     time.sleep(1)
 
 
+def disable_guard():
+    # Android 9 can retain a dead binding if an APK update or data reset interrupts a bind.
+    # Wait for Android to release the connection before stopping or replacing the app.
+    sh("settings delete secure enabled_accessibility_services")
+    end = time.time() + 10
+    while "GuardService" in sh(f"dumpsys activity services {PKG}/.guard.GuardService"):
+        assert time.time() < end, "Android did not release the guard connection before reset."
+        time.sleep(0.2)
+
+
 def fresh_install():
+    disable_guard()
     adb("install", "-r", "-t", str(APK))
     adb("install", "-r", "-t", str(ROOT / "e2e-driver/build/outputs/apk/debug/e2e-driver-debug.apk"))
-    # Android 9 rebinds an updated service after a few seconds. Clearing data during that leaves it unbound.
-    end = time.time() + 15
-    while PKG in sh("settings get secure enabled_accessibility_services") and \
-            "label=Stillpoint" not in sh("dumpsys accessibility") and time.time() < end:
-        time.sleep(1)
     sh(f"pm clear {PKG}")
     sh(f"appops set {PKG} GET_USAGE_STATS allow")
     sh(f"pm grant {PKG} android.permission.POST_NOTIFICATIONS")
     sh(f"pm grant {CONTACTS} android.permission.POST_NOTIFICATIONS")
-    # pm clear kills the bound service, and Android marks it as crashed. Turning it off and on rebinds it.
-    sh("settings delete secure enabled_accessibility_services")
-    time.sleep(1)
-    sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
-    sh("settings put secure accessibility_enabled 1")
     sh(f"cmd notification allow_listener {PKG}/{PKG}.notify.HoldListener")
     # Skip the Chrome welcome pages so the address bar shows at once.
     sh(f"am set-debug-app --persistent {CHROME}")
@@ -175,7 +176,7 @@ def fresh_install():
     sh(f"am force-stop {CHROME}")
     sh(f"pm grant {CHROME} android.permission.POST_NOTIFICATIONS")
     sh("logcat -c")
-    time.sleep(2)
+    rebind()
 
 
 # Checks. Each one starts from the state the one before it left.
@@ -185,9 +186,9 @@ def fresh_install():
 # Enforcement checks use dumpsys and the block log instead of changing app state.
 
 def rebind():
-    sh("settings delete secure enabled_accessibility_services")
-    time.sleep(1)
+    disable_guard()
     sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
+    sh("settings put secure accessibility_enabled 1")
     time.sleep(3)
     # Android can keep a crashed service unbound although the setting lists it.
     end = time.time() + 10
@@ -309,6 +310,7 @@ def schema_upgrade():
         db.execute("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
         db.execute("INSERT INTO room_master_table VALUES (42, ?)", (schema["identityHash"],))
         db.execute("PRAGMA user_version=1")
+    disable_guard()
     sh(f"pm clear {PKG}")
     adb("push", str(fixture), "/data/local/tmp/stillpoint-schema-1.db")
     sh(f"run-as {PKG} mkdir -p databases")

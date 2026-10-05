@@ -124,6 +124,11 @@ The complete selected workflow also passed locally on Android 14 after these dri
 The full demo includes all five focus recordings, rewards, wardrobe, dark theme, and launcher widgets.
 A chapter file identifies sample-history sections. Partial recordings are not release evidence.
 
+The fixture waits for the guard to bind before setup completes.
+Before replacing the APK or clearing app data, it disables the guard and waits for its connection to disappear.
+Android 9 can retain an interrupted binding after either operation, even with no app crash.
+Changing the enabled-service setting cannot recover that pending connection. Onboarding still checks that the guard is bound.
+
 The completion summary fits a 1080x1920 display at density 420 without scrolling.
 Continue and Add a note also stay visible at 1080x1640 with font scale 1.2.
 Notes retain multiline input, and an outside tap dismisses the keyboard.
