@@ -16,6 +16,8 @@ UPDATER_PERMISSIONS = {
     "android.permission.ACCESS_NETWORK_STATE",
     "android.permission.REQUEST_INSTALL_PACKAGES",
 }
+# Play keeps INTERNET and ACCESS_NETWORK_STATE: the Billing library bundles a diagnostics library that needs them.
+PLAY_FORBIDDEN_PERMISSIONS = {"android.permission.REQUEST_INSTALL_PACKAGES"}
 BILLING = "com.android.vending.BILLING"
 
 
@@ -48,7 +50,7 @@ def inspect(flavor, build_type):
     (report / f"{variant}-manifest.xml").write_text(ET.tostring(manifest, encoding="unicode"))
 
     if flavor == "play":
-        assert not actual & UPDATER_PERMISSIONS, f"{variant}: updater permissions {actual & UPDATER_PERMISSIONS}"
+        assert not actual & PLAY_FORBIDDEN_PERMISSIONS, f"{variant}: updater permissions {actual & PLAY_FORBIDDEN_PERMISSIONS}"
         assert BILLING in actual, variant
         for forbidden in ("dev.agneswd.stillpoint.update", "UpdatesActivity", "UpdateSettingsKt"):
             assert forbidden not in classes, f"{variant}: updater class {forbidden}"
