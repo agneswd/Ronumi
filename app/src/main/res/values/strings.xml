@@ -7,6 +7,7 @@
     <string name="guard_description">Stillpoint sees which app is open so it can block apps, short video feeds and sites you chose. It does not read your messages. Your app activity stays on this phone. Only app updates use the internet.</string>
 
     <!-- Widgets -->
+    <string name="widget_goal_title">Focus goal</string>
     <string name="widget_usage_description">Today\'s screen time and unlocks</string>
     <string name="widget_goal_description">Pebble and your daily focus goal</string>
     <string name="widget_calendar_description">Your focus days and streak</string>
@@ -1010,4 +1011,7 @@
     <string name="pebble_pet_action">Pet Pebble</string>
     <string name="pebble_name" translatable="false">Pebble</string>
 
+    <!-- Notification channels -->
+    <string name="notification_channel_focus">Focus timer</string>
+    <string name="notification_channel_events">Focus events</string>
 </resources>
