@@ -19,7 +19,7 @@ import androidx.core.content.ContextCompat
 import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.settings
-import dev.agneswd.stillpoint.ui.MainActivity
+import dev.agneswd.stillpoint.ui.UpdatesActivity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit
 object UpdateScheduler {
     private const val JOB = 64021
     internal const val NOTIFICATION = 64022
-    const val SHOW_UPDATES = "show_updates"
 
     /** Android chooses the exact time. Persisted jobs resume after a reboot. */
     fun schedule(context: Context, enabled: Boolean): Boolean = try {
@@ -97,19 +96,18 @@ class UpdateJob : JobService() {
 
     private fun notifyUpdate(release: UpdateRelease) {
         val manager = getSystemService(NotificationManager::class.java) ?: return
-        manager.createNotificationChannel(NotificationChannel("app_updates", "App updates", NotificationManager.IMPORTANCE_DEFAULT))
+        manager.createNotificationChannel(NotificationChannel("app_updates", getString(R.string.update_title), NotificationManager.IMPORTANCE_DEFAULT))
         if (!manager.areNotificationsEnabled()) return
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         val prefs = getSharedPreferences("updates", Context.MODE_PRIVATE)
         if (prefs.getString("notifiedTag", null) == release.tag) return
-        val launch = Intent(this, MainActivity::class.java)
-            .putExtra(UpdateScheduler.SHOW_UPDATES, true)
+        val launch = Intent(this, UpdatesActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(this, UpdateScheduler.NOTIFICATION, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(this, "app_updates")
             .setSmallIcon(R.drawable.ic_stat)
-            .setContentTitle("Stillpoint ${release.tag} is available")
-            .setContentText("Tap to review the update. Nothing downloads until you choose.")
+            .setContentTitle(getString(R.string.update_notification_title, release.tag))
+            .setContentText(getString(R.string.update_notification_detail))
             .setContentIntent(pending)
             .setAutoCancel(true)
             .build()
