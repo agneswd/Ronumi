@@ -9,11 +9,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.agneswd.stillpoint.R
 
+data class ScheduleIconChoice(val id: String, @param:androidx.annotation.StringRes val labelRes: Int)
+
 /** Stable IDs match the saved schedule and backup values. */
 val scheduleIconChoices = listOf(
-    "auto" to "Automatic", "focus" to "Focus", "study" to "Study", "work" to "Work",
-    "sleep" to "Sleep", "exercise" to "Exercise", "coffee" to "Coffee", "home" to "Home",
-    "music" to "Music", "book" to "Reading",
+    ScheduleIconChoice("auto", R.string.schedule_icon_auto), ScheduleIconChoice("focus", R.string.schedule_icon_focus), ScheduleIconChoice("study", R.string.schedule_icon_study), ScheduleIconChoice("work", R.string.schedule_icon_work),
+    ScheduleIconChoice("sleep", R.string.schedule_icon_sleep), ScheduleIconChoice("exercise", R.string.schedule_icon_exercise), ScheduleIconChoice("coffee", R.string.schedule_icon_coffee), ScheduleIconChoice("home", R.string.schedule_icon_home),
+    ScheduleIconChoice("music", R.string.schedule_icon_music), ScheduleIconChoice("book", R.string.schedule_icon_book),
 )
 
 @Composable

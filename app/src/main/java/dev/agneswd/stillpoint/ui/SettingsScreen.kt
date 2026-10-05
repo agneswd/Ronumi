@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.R
+import androidx.compose.ui.res.stringResource
 import android.provider.Settings
 import android.app.NotificationManager
 import android.os.Build
@@ -26,13 +28,13 @@ import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.data.settings
 import dev.agneswd.stillpoint.data.updateSettings
 import dev.agneswd.stillpoint.guard.Rules
-import dev.agneswd.stillpoint.guard.formatMinutes
 import dev.agneswd.stillpoint.ui.design.Mood
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 @Composable
 fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val context = LocalContext.current
     val app = context.app
     val access = rememberAccess()
@@ -45,11 +47,11 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
     // Keep the stored scroll offset until the full settings content is ready.
     val s = settings ?: return
     Column(Modifier.fillMaxSize()) {
-        TopBar("Settings", onClose)
+        TopBar(stringResource(R.string.settings_settings), onClose)
         Column(Modifier.weight(1f).verticalScroll(navigator.settingsScroll)) {
-            SectionTitle("Permissions")
+            SectionTitle(stringResource(R.string.settings_permissions))
             if (access.allAllowed) {
-                ListRow("All permissions allowed", if (showPermissions) "Hide details" else "Review permissions", onClick = { navigator.showPermissions = !showPermissions })
+                ListRow(stringResource(R.string.settings_all_permissions_allowed), if (showPermissions) stringResource(R.string.settings_hide_details) else stringResource(R.string.settings_review_permissions), onClick = { navigator.showPermissions = !showPermissions })
             }
             if (!access.allAllowed || showPermissions) {
                 Column(Modifier.padding(horizontal = ScreenPadding)) {
@@ -57,42 +59,48 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 }
             }
 
-            SectionTitle("Daily goal")
+            SectionTitle(stringResource(R.string.settings_daily_goal))
             Group {
-                Stepper("Focus goal", s.focusGoalMinutes, 5..600, 5, { formatMinutes(it) }) { value ->
+                Stepper(stringResource(R.string.settings_focus_goal), s.focusGoalMinutes, 5..600, 5, { formatMinutes(it) }) { value ->
                     app.scope.launch { app.dao.updateSettings { it.copy(focusGoalMinutes = value) } }
                 }
-                ListRow("Goal days", daysText(s.goalDays).replaceFirstChar(Char::uppercase))
+                ListRow(stringResource(R.string.settings_goal_days), when (s.goalDays) {
+                    0b1111111 -> stringResource(R.string.settings_days_every_day)
+                    0b0011111 -> stringResource(R.string.settings_days_weekdays)
+                    0b1100000 -> stringResource(R.string.settings_days_weekends)
+                    0 -> stringResource(R.string.settings_days_none)
+                    else -> daysText(s.goalDays)
+                })
                 DayChoices(s.goalDays) { value -> app.scope.launch { app.dao.updateSettings { it.copy(goalDays = value) } } }
                 Spacer(Modifier.height(12.dp))
             }
             Group(Modifier.padding(top = 12.dp)) {
-                ListRow("Productive apps", if (s.productivePackages.isEmpty()) "Reports count no app as productive." else appCount(s.productivePackages.size), onClick = {
-                    navigator.push(Route.PickApps("Productive apps", s.productivePackages, single = false) { picked ->
+                ListRow(stringResource(R.string.settings_productive_apps), if (s.productivePackages.isEmpty()) stringResource(R.string.settings_productive_apps_empty) else appCount(s.productivePackages.size), onClick = {
+                    navigator.push(Route.PickApps(resources.getString(R.string.settings_productive_apps), s.productivePackages, single = false) { picked ->
                         app.scope.launch { app.dao.updateSettings { it.copy(productivePackages = picked) } }
                     })
                 }) { AppSelectionPreview(s.productivePackages) }
             }
 
-            SectionTitle("Appearance")
+            SectionTitle(stringResource(R.string.settings_appearance))
             Group {
-                ListRow("App theme", "System follows your phone's light or dark setting.")
+                ListRow(stringResource(R.string.settings_app_theme), stringResource(R.string.settings_theme_help))
                 androidx.compose.foundation.layout.Row(
                     Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(bottom = 16.dp),
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                 ) {
-                    listOf("SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark").forEach { (mode, label) ->
+                    listOf("SYSTEM" to stringResource(R.string.settings_system), "LIGHT" to stringResource(R.string.settings_light), "DARK" to stringResource(R.string.settings_dark)).forEach { (mode, label) ->
                         ChoiceButton(label, s.themeMode == mode, Modifier.weight(1f)) {
                             app.scope.launch { app.dao.updateSettings { it.copy(themeMode = mode) } }
                         }
                     }
                 }
-                ListRow("Clock", "System follows the time format on your phone.")
+                ListRow(stringResource(R.string.settings_clock), stringResource(R.string.settings_clock_help))
                 androidx.compose.foundation.layout.Row(
                     Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(bottom = 16.dp),
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                 ) {
-                    listOf("SYSTEM" to "System", "H12" to "12-hour", "H24" to "24-hour").forEach { (mode, label) ->
+                    listOf("SYSTEM" to stringResource(R.string.settings_system), "H12" to stringResource(R.string.settings_clock_12), "H24" to stringResource(R.string.settings_clock_24)).forEach { (mode, label) ->
                         ChoiceButton(label, s.clockFormat == mode, Modifier.weight(1f)) {
                             app.scope.launch { app.dao.updateSettings { it.copy(clockFormat = mode) } }
                         }
@@ -100,28 +108,28 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 }
             }
 
-            SectionTitle("Sound")
+            SectionTitle(stringResource(R.string.settings_sound))
             Group {
                 var sounds by remember { mutableStateOf(Sfx.enabled) }
-                SwitchRow("Sound effects", "Focus changes, rewards, and setup. Uses the media volume.", sounds) { on ->
+                SwitchRow(stringResource(R.string.settings_sound_effects), stringResource(R.string.settings_sound_help), sounds) { on ->
                     Sfx.enabled = on
                     sounds = on
                 }
             }
 
-            SectionTitle("Notifications")
+            SectionTitle(stringResource(R.string.settings_notifications))
             Group {
-                SwitchRow("Focus updates", "Messages when focus rounds and sessions end.", s.notifyFocusEvents) { on ->
+                SwitchRow(stringResource(R.string.settings_focus_updates), stringResource(R.string.settings_focus_events_help), s.notifyFocusEvents) { on ->
                     app.scope.launch { app.dao.updateSettings { it.copy(notifyFocusEvents = on) } }
                 }
                 if (Build.VERSION.SDK_INT >= 36) {
-                    SwitchRow("Live focus timer", "Shows the time left in the status bar while you focus.", s.liveFocusTimer) { on ->
+                    SwitchRow(stringResource(R.string.settings_live_focus_timer), stringResource(R.string.settings_live_timer_help), s.liveFocusTimer) { on ->
                         app.scope.launch { app.dao.updateSettings { it.copy(liveFocusTimer = on) } }
                     }
                     if (s.liveFocusTimer && !context.getSystemService(NotificationManager::class.java).canPostPromotedNotifications()) {
                         ListRow(
-                            "Allow live updates",
-                            "Android turned off live updates for Stillpoint. Tap to allow them.",
+                            stringResource(R.string.settings_allow_live_updates),
+                            stringResource(R.string.settings_live_timer_permission_help),
                             onClick = {
                                 context.startActivity(
                                     Intent(Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
@@ -131,13 +139,13 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                         )
                     }
                 }
-                SwitchRow("Planned focus reminders", "Reminders for scheduled focus. Automatic starts stay enabled.", s.notifyPlanReminders) { on ->
+                SwitchRow(stringResource(R.string.settings_planned_focus_reminders), stringResource(R.string.settings_plan_reminders_help), s.notifyPlanReminders) { on ->
                     app.scope.launch { app.dao.updateSettings { it.copy(notifyPlanReminders = on) } }
                 }
-                SwitchRow("Inbox summaries", "Alerts at your chosen delivery times. Held messages stay in your inbox.", s.notifyInboxSummaries) { on ->
+                SwitchRow(stringResource(R.string.settings_inbox_summaries), stringResource(R.string.settings_inbox_summary_help), s.notifyInboxSummaries) { on ->
                     app.scope.launch { app.dao.updateSettings { it.copy(notifyInboxSummaries = on) } }
                 }
-                ListRow("Android notification settings", "Control notification sound and visibility.", onClick = {
+                ListRow(stringResource(R.string.settings_android_notification_settings), stringResource(R.string.settings_system_notifications_help), onClick = {
                     context.openFirst(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                         .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
                 }) { Chevron() }
@@ -147,21 +155,21 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
 
             BackupSettings(restoreLocked = locked || focus != null)
 
-            SectionTitle("About")
+            SectionTitle(stringResource(R.string.settings_about))
             PebbleSays(
-                androidx.compose.ui.res.stringResource(dev.agneswd.stillpoint.R.string.distribution_privacy),
+                stringResource(R.string.distribution_privacy),
                 Mood.WAVE,
                 Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
                 pebbleSize = 80.dp,
             )
             Group(Modifier.padding(top = 12.dp)) {
-                ListRow("Source code", "GPLv3 at github.com/agneswd/Stillpoint", onClick = {
+                ListRow(stringResource(R.string.settings_source_code), stringResource(R.string.settings_source_description), onClick = {
                     context.openFirst(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/agneswd/Stillpoint")))
                 }) { Chevron() }
                 val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                ListRow("Version", version)
+                ListRow(stringResource(R.string.settings_version), version)
             }
-            Hint("Nunito uses the SIL Open Font License. UI sounds from the Versilian Community Sample Library and focus recordings from Freesound use CC0. License texts are included in this app.")
+            Hint(stringResource(R.string.settings_licenses_description))
             Spacer(Modifier.height(32.dp))
         }
     }

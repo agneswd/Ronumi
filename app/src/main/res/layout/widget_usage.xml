@@ -17,7 +17,7 @@
         android:fontFamily="@font/nunito_bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="Screen time"
+        android:text="@string/widget_usage_title"
         android:textColor="@color/widget_dim"
         android:textSize="12sp" />
     <TextView
@@ -27,7 +27,7 @@
         android:fontFamily="@font/nunito_bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="0m"
+        android:text="@string/widget_usage_initial_duration"
         android:textColor="@color/widget_text"
         android:textSize="26sp" />
     <TextView
@@ -37,7 +37,7 @@
         android:fontFamily="@font/nunito_bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="0 unlocks today"
+        android:text="@string/widget_usage_initial_unlocks"
         android:textColor="@color/widget_brand"
         android:textSize="12sp" />
 

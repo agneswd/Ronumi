@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sfx
 import androidx.activity.compose.BackHandler
@@ -72,7 +74,6 @@ import dev.agneswd.stillpoint.focus.Focus
 import dev.agneswd.stillpoint.focus.elapsedPhaseMillis
 import dev.agneswd.stillpoint.focus.remainingMillis
 import dev.agneswd.stillpoint.game.gameState
-import dev.agneswd.stillpoint.guard.formatMinutes
 import dev.agneswd.stillpoint.ui.design.ButtonKind
 import dev.agneswd.stillpoint.ui.design.ChunkyButton
 import dev.agneswd.stillpoint.ui.design.ChunkyCard
@@ -98,6 +99,7 @@ fun themeOf(name: String): FocusTheme = FocusTheme.entries.firstOrNull { it.name
 /** Choose how the next session runs, then start it. */
 @Composable
 fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val context = LocalContext.current
     val app = context.app
     val settings by app.dao.settings().collectAsState(null)
@@ -109,7 +111,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
     val recentTags = remember(sessions) { sessions.map { it.tag }.filter { it.isNotBlank() && it != "First focus" }.distinct().take(6) }
 
     Column(Modifier.fillMaxSize().background(Sp.colors.background).statusBarsPadding().navigationBarsPadding()) {
-        TopBar("Focus setup", onClose)
+        TopBar(stringResource(R.string.focus_setup_title), onClose)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             // Live preview of the chosen theme.
             Box(
@@ -119,7 +121,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                 FocusBackdrop(themeOf(s.focusTheme), Modifier.fillMaxSize(), center = Offset(0.5f, 0.45f))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        if (s.timerMode == TimerMode.STOPWATCH) "0:00" else "%d:00".format(s.focusMinutes),
+                        stringResource(R.string.focus_clock_minutes, if (s.timerMode == TimerMode.STOPWATCH) 0 else s.focusMinutes, 0),
                         style = NumberStyle.copy(fontSize = NumberStyle.fontSize * 0.8f),
                         color = Color.White,
                     )
@@ -139,14 +141,14 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                             Modifier.size(64.dp, 84.dp).clip(RoundedCornerShape(16.dp))
                                 .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp)),
                         ) { FocusBackdrop(theme, Modifier.fillMaxSize(), animated = false) }
-                        Text(theme.label, style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
+                        Text(stringResource(theme.labelRes), style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
                     }
                 }
             }
 
-            SectionTitle("Mode")
+            SectionTitle(stringResource(R.string.focus_mode))
             Row(Modifier.padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(TimerMode.TIMER to "Timer", TimerMode.STOPWATCH to "Stopwatch", TimerMode.POMODORO to "Pomodoro").forEach { (mode, label) ->
+                listOf(TimerMode.TIMER to stringResource(R.string.focus_timer), TimerMode.STOPWATCH to stringResource(R.string.focus_stopwatch), TimerMode.POMODORO to stringResource(R.string.focus_pomodoro)).forEach { (mode, label) ->
                     ChoiceButton(label, s.timerMode == mode, Modifier.weight(1f)) { update { it.copy(timerMode = mode) } }
                 }
             }
@@ -156,18 +158,18 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                         ChoiceButton(formatMinutes(m), s.focusMinutes == m, Modifier.width(64.dp)) { update { it.copy(focusMinutes = m) } }
                     }
                 }
-                Stepper("Focus length", s.focusMinutes, 5..240, 5, ::formatMinutes) { v -> update { it.copy(focusMinutes = v) } }
+                Stepper(stringResource(R.string.focus_focus_length), s.focusMinutes, 5..240, 5, { formatMinutes(it) }) { v -> update { it.copy(focusMinutes = v) } }
             }
             if (s.timerMode == TimerMode.POMODORO) {
-                Stepper("Short break", s.breakMinutes, 1..30, 1, ::formatMinutes) { v -> update { it.copy(breakMinutes = v) } }
-                Stepper("Long break", s.longBreakMinutes, 5..60, 5, ::formatMinutes) { v -> update { it.copy(longBreakMinutes = v) } }
-                Stepper("Rounds", s.focusRounds, 2..12, 1, Int::toString) { v -> update { it.copy(focusRounds = v) } }
+                Stepper(stringResource(R.string.focus_short_break), s.breakMinutes, 1..30, 1, { formatMinutes(it) }) { v -> update { it.copy(breakMinutes = v) } }
+                Stepper(stringResource(R.string.focus_long_break), s.longBreakMinutes, 5..60, 5, { formatMinutes(it) }) { v -> update { it.copy(longBreakMinutes = v) } }
+                Stepper(stringResource(R.string.focus_rounds), s.focusRounds, 2..12, 1, { stringResource(R.string.common_number, it) }) { v -> update { it.copy(focusRounds = v) } }
             }
 
-            SectionTitle("What are you working on?")
+            SectionTitle(stringResource(R.string.focus_task_label))
             OutlinedTextField(
                 tag, { tag = it },
-                placeholder = { Text("Maths, reading, a side project...") },
+                placeholder = { Text(stringResource(R.string.focus_task_hint)) },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
@@ -187,32 +189,32 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                 }
             }
 
-            SectionTitle("Blocking")
+            SectionTitle(stringResource(R.string.focus_blocking))
             ListRow(
-                if (s.focusMode == BlockMode.LISTED) "Blocked apps" else "Allowed apps",
-                if (s.focusPackages.isEmpty()) "None chosen" else appCount(s.focusPackages.size),
+                if (s.focusMode == BlockMode.LISTED) stringResource(R.string.focus_blocked_apps) else stringResource(R.string.focus_allowed_apps),
+                if (s.focusPackages.isEmpty()) stringResource(R.string.focus_none_chosen) else appCount(s.focusPackages.size),
                 leading = { IconTile(R.drawable.ic_tab_blocks, Sp.colors.rose) },
                 onClick = {
                     navigator.push(
-                        Route.PickApps(if (s.focusMode == BlockMode.LISTED) "Block during focus" else "Allow during focus", s.focusPackages, single = false) { picked ->
+                        Route.PickApps(if (s.focusMode == BlockMode.LISTED) resources.getString(R.string.focus_block_during_focus) else resources.getString(R.string.focus_allow_during_focus), s.focusPackages, single = false) { picked ->
                             update { it.copy(focusPackages = picked) }
                         },
                     )
                 },
             ) { AppSelectionPreview(s.focusPackages) }
-            SwitchRow("Block every other app", "Only the chosen apps work.", s.focusMode == BlockMode.ALL_EXCEPT, leading = { IconTile(R.drawable.ic_lock, Sp.colors.brand) }) { on ->
+            SwitchRow(stringResource(R.string.focus_block_every_other_app), stringResource(R.string.focus_allowlist_description), s.focusMode == BlockMode.ALL_EXCEPT, leading = { IconTile(R.drawable.ic_lock, Sp.colors.brand) }) { on ->
                 update { it.copy(focusMode = if (on) BlockMode.ALL_EXCEPT else BlockMode.LISTED) }
             }
-            SwitchRow("Strict mode", "No pausing and no quitting early.", s.focusStrict, leading = { IconTile(R.drawable.ic_lock, Sp.colors.danger) }) { on -> update { it.copy(focusStrict = on) } }
-            SwitchRow("Lock the home screen", "Home brings you back to the timer.", s.focusLockHome, leading = { IconTile(R.drawable.ic_tab_home, Sp.colors.flame) }) { on -> update { it.copy(focusLockHome = on) } }
+            SwitchRow(stringResource(R.string.focus_strict_mode), stringResource(R.string.focus_strict_description), s.focusStrict, leading = { IconTile(R.drawable.ic_lock, Sp.colors.danger) }) { on -> update { it.copy(focusStrict = on) } }
+            SwitchRow(stringResource(R.string.focus_lock_the_home_screen), stringResource(R.string.focus_home_lock_description), s.focusLockHome, leading = { IconTile(R.drawable.ic_tab_home, Sp.colors.flame) }) { on -> update { it.copy(focusLockHome = on) } }
 
-            SectionTitle("Sound")
+            SectionTitle(stringResource(R.string.focus_sound))
             // Three choices a row, so new sounds wrap instead of squeezing the labels.
             Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FocusSound.entries.chunked(3).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { sound ->
-                            ChoiceButton(sound.name.lowercase().replaceFirstChar(Char::uppercase), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
+                            ChoiceButton(stringResource(sound.labelRes), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
                         }
                         repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                     }
@@ -221,7 +223,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             Spacer(Modifier.height(24.dp))
         }
         ChunkyButton(
-            if (starting) "Starting..." else "Start",
+            if (starting) stringResource(R.string.focus_starting) else stringResource(R.string.focus_start_button),
             {
                 if (starting) return@ChunkyButton
                 starting = true
@@ -247,21 +249,22 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
     }
 }
 
+@Composable
 private fun modeLine(s: Settings) = when (s.timerMode) {
-    TimerMode.TIMER -> "Timer"
-    TimerMode.STOPWATCH -> "Stopwatch"
-    TimerMode.POMODORO -> "${s.focusRounds} rounds, ${formatMinutes(s.breakMinutes)} breaks"
+    TimerMode.TIMER -> stringResource(R.string.focus_timer)
+    TimerMode.STOPWATCH -> stringResource(R.string.focus_stopwatch)
+    TimerMode.POMODORO -> pluralStringResource(R.plurals.focus_rounds_breaks, s.focusRounds, s.focusRounds, formatMinutes(s.breakMinutes))
 }
 
 // ---------- Running session ----------
 
 private val tips = listOf(
-    "Your distracting apps are blocked. Stay with it.",
-    "Breathe in for four. Breathe out for six.",
-    "Phone face down, eyes on the task.",
-    "Stuck? Do the smallest next step.",
-    "Every minute here counts toward your streak.",
-    "Thirsty? A sip of water helps you think.",
+    R.string.focus_tip_blocking,
+    R.string.focus_tip_breathing,
+    R.string.focus_tip_phone,
+    R.string.focus_tip_stuck,
+    R.string.focus_tip_streak,
+    R.string.focus_tip_water,
 )
 
 /** The full-screen timer while a session runs. */
@@ -303,22 +306,22 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                 val pebbleSize = (maxHeight * 0.16f).coerceIn(70.dp, 110.dp)
                 Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        GlassButton(R.drawable.ic_chevron, "Minimize", rotate = 90f, onClick = onMinimize)
+                        GlassButton(R.drawable.ic_chevron, stringResource(R.string.focus_minimize), rotate = 90f, onClick = onMinimize)
                         Spacer(Modifier.weight(1f))
                         if (focus.tag.isNotBlank()) {
-                            Box(Modifier.weight(6f), contentAlignment = Alignment.Center) { GlassLabel(focus.tag) }
+                            Box(Modifier.weight(6f), contentAlignment = Alignment.Center) { GlassLabel(focus.tag.displayName()) }
                         }
                         Spacer(Modifier.weight(1f))
-                        if (focus.strict) GlassButton(R.drawable.ic_lock, "Strict mode is on") {} else Spacer(Modifier.size(44.dp))
+                        if (focus.strict) GlassButton(R.drawable.ic_lock, stringResource(R.string.focus_strict_mode_is_on)) {} else Spacer(Modifier.size(44.dp))
                     }
                     Spacer(Modifier.weight(0.6f))
                     Text(
                         when {
-                            !focus.running -> "PAUSED"
-                            focus.phase == FocusPhase.BREAK -> "BREAK TIME"
-                            focus.rounds > 1 -> "ROUND ${focus.round} OF ${focus.rounds}"
-                            stopwatch -> "STOPWATCH"
-                            else -> "FOCUS"
+                            !focus.running -> stringResource(R.string.focus_paused)
+                            focus.phase == FocusPhase.BREAK -> stringResource(R.string.focus_break_time)
+                            focus.rounds > 1 -> stringResource(R.string.focus_round_of, focus.round, focus.rounds)
+                            stopwatch -> stringResource(R.string.focus_stopwatch_status)
+                            else -> stringResource(R.string.focus_focus)
                         },
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White.copy(alpha = 0.85f),
@@ -338,7 +341,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                     Spacer(Modifier.weight(0.5f))
                     Crossfade(tip, modifier = Modifier.fillMaxWidth(), label = "tip") { i ->
                         GlassLabel(
-                            if (firstFocus && firstBlocked != null) "Try opening one of your blocked apps. I'll stop it!" else tips[i],
+                            if (firstFocus && firstBlocked != null) stringResource(R.string.focus_first_session_help) else stringResource(tips[i]),
                             big = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -356,16 +359,16 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
             }
             if (firstFocus && firstBlocked != null) {
                 ChunkyButton(
-                    "Try opening ${app.catalog.label(firstBlocked)}",
+                    stringResource(R.string.focus_try_opening, app.catalog.label(firstBlocked)),
                     { context.packageManager.getLaunchIntentForPackage(firstBlocked)?.let(context::startActivity) },
                     Modifier.fillMaxWidth(),
                     kind = ButtonKind.SECONDARY,
                 )
             } else if (stopwatch) {
-                ChunkyButton("I'm done", { app.scope.launch { Focus.stopStopwatch(context) } }, Modifier.fillMaxWidth(), kind = ButtonKind.MINT)
+                ChunkyButton(stringResource(R.string.focus_finish_button), { app.scope.launch { Focus.stopStopwatch(context) } }, Modifier.fillMaxWidth(), kind = ButtonKind.MINT)
             } else if (!focus.strict) {
                 ChunkyButton(
-                    if (focus.running) "Pause" else "Resume",
+                    if (focus.running) stringResource(R.string.focus_pause) else stringResource(R.string.focus_resume),
                     { app.scope.launch { if (focus.running) Focus.pause(context) else Focus.resume(context) } },
                     Modifier.fillMaxWidth(),
                     kind = if (focus.running) ButtonKind.SECONDARY else ButtonKind.MINT,
@@ -375,7 +378,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
             }
             if (!focus.strict) {
                 Text(
-                    "GIVE UP",
+                    stringResource(R.string.focus_give_up),
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable {
@@ -383,7 +386,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                     }.padding(14.dp),
                 )
             } else {
-                Text(if (stopwatch) "Strict mode: no pauses. Finish when you are done." else "Strict mode: this session can't end early.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
+                Text(if (stopwatch) stringResource(R.string.focus_stopwatch_strict_help) else stringResource(R.string.focus_timer_strict_help), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(14.dp))
             }
         }
     }
@@ -394,18 +397,18 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Pebble(Mood.SAD, size = 110.dp)
                     Spacer(Modifier.height(8.dp))
-                    Text("Wait, don't go!", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
+                    Text(stringResource(R.string.focus_quit_title), style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "If you stop now, you lose the bonus XP for finishing. You've got this!",
+                        stringResource(R.string.focus_quit_confirmation_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Sp.colors.textDim,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(16.dp))
-                    ChunkyButton("Keep focusing", { askGiveUp = false }, Modifier.fillMaxWidth())
+                    ChunkyButton(stringResource(R.string.focus_keep_focusing), { askGiveUp = false }, Modifier.fillMaxWidth())
                     ChunkyButton(
-                        "End session",
+                        stringResource(R.string.focus_end_session),
                         {
                             askGiveUp = false
                             app.scope.launch { Focus.giveUp(context) }
@@ -420,12 +423,13 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
     }
 }
 
+@Composable
 fun clockText(millis: Long): String {
     val totalSeconds = millis / 1000
     val h = totalSeconds / 3600
     val m = totalSeconds / 60 % 60
     val s = totalSeconds % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+    return if (h > 0) stringResource(R.string.focus_clock_hours, h, m, s) else stringResource(R.string.focus_clock_minutes, m, s)
 }
 
 @Composable
@@ -508,13 +512,13 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                     Pebble(if (session.completed) Mood.CELEBRATE else Mood.HAPPY, Modifier.popIn(), size = heroSize)
                     Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
                     Text(
-                        if (session.completed) "Session complete!" else "Nice effort!",
+                        if (session.completed) stringResource(R.string.focus_session_complete) else stringResource(R.string.focus_nice_effort),
                         style = if (compact) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineLarge,
                         color = Sp.colors.text,
                         modifier = Modifier.appear(150),
                     )
                     Text(
-                        if (session.completed) "You stayed with it to the end." else "Every minute counts. Next time, go all the way!",
+                        if (session.completed) stringResource(R.string.focus_complete_summary) else stringResource(R.string.focus_ended_summary),
                         style = MaterialTheme.typography.titleMedium,
                         color = Sp.colors.textDim,
                         textAlign = TextAlign.Center,
@@ -522,19 +526,19 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                     )
                     Spacer(Modifier.height(gap))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        RewardTile("FOCUS", Sp.colors.brand, Modifier.weight(1f).popIn(400), compact) {
-                            CountUp((session.focusedMillis / 60_000).toInt(), MaterialTheme.typography.headlineSmall, Sp.colors.brand, delayMillis = 400) { "${it}m" }
+                        RewardTile(stringResource(R.string.focus_focus), Sp.colors.brand, Modifier.weight(1f).popIn(400), compact) {
+                            CountUp((session.focusedMillis / 60_000).toInt(), MaterialTheme.typography.headlineSmall, Sp.colors.brand, delayMillis = 400) { pluralStringResource(R.plurals.focus_summary_minutes, it, it) }
                         }
-                        RewardTile("XP", Sp.colors.goldLip, Modifier.weight(1f).popIn(550), compact) {
+                        RewardTile(stringResource(R.string.focus_xp), Sp.colors.goldLip, Modifier.weight(1f).popIn(550), compact) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 XpBolt(size = 22.dp)
-                                CountUp(xpGained, MaterialTheme.typography.headlineSmall, Sp.colors.goldLip, delayMillis = 550) { "+$it" }
+                                CountUp(xpGained, MaterialTheme.typography.headlineSmall, Sp.colors.goldLip, delayMillis = 550) { stringResource(R.string.focus_xp_reward, it) }
                             }
                         }
-                        RewardTile("STREAK", Sp.colors.flame, Modifier.weight(1f).popIn(700), compact) {
+                        RewardTile(stringResource(R.string.focus_streak), Sp.colors.flame, Modifier.weight(1f).popIn(700), compact) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Flame(size = 24.dp, lit = after.streak > 0 || after.streakSafeToday)
-                                Text("${after.streak}", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.flame)
+                                Text(stringResource(R.string.focus_reward_number, after.streak), style = MaterialTheme.typography.headlineSmall, color = Sp.colors.flame)
                             }
                         }
                     }
@@ -544,7 +548,7 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (levelUp) {
                                     Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Sp.colors.brand), contentAlignment = Alignment.Center) {
-                                        Text("${after.level.number}", style = MaterialTheme.typography.titleLarge, color = Sp.colors.onFill)
+                                        Text(stringResource(R.string.focus_reward_number, after.level.number), style = MaterialTheme.typography.titleLarge, color = Sp.colors.onFill)
                                     }
                                 } else {
                                     Flame(size = 44.dp)
@@ -552,12 +556,12 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                                 Spacer(Modifier.width(14.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(
-                                        if (levelUp) "Level up!" else "Streak extended!",
+                                        if (levelUp) stringResource(R.string.focus_level_up) else stringResource(R.string.focus_streak_extended),
                                         style = MaterialTheme.typography.titleLarge,
                                         color = if (levelUp) Sp.colors.brand else Sp.colors.flame,
                                     )
                                     Text(
-                                        if (levelUp) "You reached level ${after.level.number}." else "${after.streak} day${if (after.streak == 1) "" else "s"} in a row. Come back tomorrow!",
+                                        if (levelUp) stringResource(R.string.focus_summary_level, after.level.number) else pluralStringResource(R.plurals.focus_summary_streak, after.streak, after.streak),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = Sp.colors.text,
                                     )
@@ -569,7 +573,7 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                     AnimatedVisibility(noteOpen) {
                         OutlinedTextField(
                             notes, { notes = it },
-                            placeholder = { Text("What did you get done?") },
+                            placeholder = { Text(stringResource(R.string.focus_reflection_hint)) },
                             minLines = 3,
                             shape = RoundedCornerShape(16.dp),
                             colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Sp.colors.border, focusedBorderColor = Sp.colors.brand),
@@ -577,12 +581,12 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                         )
                     }
                     if (!noteOpen) {
-                        ChunkyButton("Add a note", { noteOpen = true }, Modifier.fillMaxWidth(), kind = ButtonKind.GHOST, height = 44.dp)
+                        ChunkyButton(stringResource(R.string.focus_add_a_note), { noteOpen = true }, Modifier.fillMaxWidth(), kind = ButtonKind.GHOST, height = 44.dp)
                     }
                 }
             }
             ChunkyButton(
-                "Continue",
+                stringResource(R.string.focus_continue),
                 {
                     if (notes != session.notes) app.scope.launch { app.dao.saveSession(session.copy(notes = notes.trim())) }
                     onDone()
@@ -635,7 +639,7 @@ fun FocusChip(focus: ActiveFocus, onOpen: () -> Unit, modifier: Modifier = Modif
         Pebble(Mood.CALM, size = 28.dp)
         Spacer(Modifier.width(8.dp))
         Text(
-            "${if (focus.phase == FocusPhase.BREAK) "Break" else "Focusing"} ${clockText(shown)}",
+            stringResource(if (focus.phase == FocusPhase.BREAK) R.string.focus_minimized_break else R.string.focus_minimized_running, clockText(shown)),
             style = MaterialTheme.typography.labelLarge,
             color = Sp.colors.onFill,
         )

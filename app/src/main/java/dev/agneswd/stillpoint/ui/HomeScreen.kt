@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.animation.AnimatedVisibility
@@ -51,8 +53,6 @@ import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.game.GameState
 import dev.agneswd.stillpoint.game.Quest
-import dev.agneswd.stillpoint.guard.formatDuration
-import dev.agneswd.stillpoint.guard.formatMinutes
 import dev.agneswd.stillpoint.guard.isActive
 import dev.agneswd.stillpoint.guard.minuteText
 import dev.agneswd.stillpoint.ui.design.ButtonKind
@@ -101,28 +101,28 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
             val (mood, line) = greeting(game)
             PebbleSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60), pebbleSize = 96.dp)
             Text(
-                "Pebble wardrobe",
+                stringResource(R.string.home_pebble_wardrobe),
                 Modifier.align(Alignment.End).clip(RoundedCornerShape(12.dp)).clickable { navigator.push(Route.Wardrobe) }
                     .padding(horizontal = ScreenPadding, vertical = 12.dp),
                 style = MaterialTheme.typography.labelLarge, color = Sp.colors.brand,
             )
             GoalCard(game, Modifier.padding(horizontal = ScreenPadding).appear(120))
-            SectionTitle("Daily quests", action = { Tag("Resets at midnight", Sp.colors.textDim) })
+            SectionTitle(stringResource(R.string.home_daily_quests), action = { Tag(stringResource(R.string.home_resets_at_midnight), Sp.colors.textDim) })
             QuestCard(game?.quests.orEmpty(), Modifier.padding(horizontal = ScreenPadding).appear(180))
-            SectionTitle("Screen time")
+            SectionTitle(stringResource(R.string.home_screen_time))
             ScreenTimeCard(today, Modifier.padding(horizontal = ScreenPadding).appear(240)) { navigator.tab = Tab.PROGRESS }
-            val next = remember(schedules) { nextSchedule(schedules) }
+            val next = nextSchedule(schedules)
             if (next != null) {
-                SectionTitle("Up next")
+                SectionTitle(stringResource(R.string.home_up_next))
                 ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(300), onClick = { navigator.tab = Tab.PLANNER }, contentPadding = 12.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         ScheduleIcon(next.first.icon, next.first.startMinute, size = 48.dp)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(next.first.name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                            Text("${minuteText(next.first.startMinute, use24)} to ${minuteText(next.first.endMinute, use24)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                            Text(next.first.name.displayName(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
+                            Text(stringResource(R.string.home_schedule_time_range, minuteText(next.first.startMinute, use24), minuteText(next.first.endMinute, use24)), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                         }
-                        Tag(next.second, if (next.second == "Now") Sp.colors.mint else Sp.colors.brand)
+                        Tag(next.second, if (next.first.isActive(LocalDateTime.now())) Sp.colors.mint else Sp.colors.brand)
                     }
                 }
             }
@@ -137,7 +137,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
                 .padding(start = ScreenPadding, end = ScreenPadding, top = 28.dp, bottom = 12.dp),
         ) {
             ChunkyButton(
-                if (focus == null) "Start focus" else "Return to focus",
+                if (focus == null) stringResource(R.string.home_start_button) else stringResource(R.string.home_return_to_focus),
                 {
                     // The flow starts empty. Ask the database, so a cold start cannot offer a second session.
                     app.scope.launch {
@@ -157,20 +157,21 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
 }
 
 /** Pebble's mood and line for the home screen. It reacts to the streak, the goal and the time. */
+@Composable
 private fun greeting(game: GameState?): Pair<Mood, String> {
     val hour = LocalTime.now().hour
     val feeling = game?.disposition?.feeling
     return when {
-        game == null -> Mood.IDLE to "Hi there!"
-        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.CELEBRATE -> Mood.CELEBRATE to "You hit today's goal! I'm so proud of you."
-        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.PROUD -> Mood.PROUD to "Look at us keeping a rhythm. Nice work!"
-        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.HAPPY -> Mood.HAPPY to "Nice work so far. ${formatMinutes(game.goalMinutes - game.todayMinutes)} to go!"
-        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.DOWN -> Mood.SAD to "I've missed our focus time. One small session is a fresh start."
-        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.QUIET -> Mood.THINK to "Let's ease back in. A few focused minutes will help."
-        hour >= 22 -> Mood.SLEEPY to "It's late. Put the phone down and rest. I will too."
-        game.streak > 0 -> Mood.IDLE to "Our ${game.streak} day streak is still going. Ready for a little focus?"
-        hour < 11 -> Mood.WAVE to "Good morning! A short focus now makes the whole day easier."
-        else -> Mood.IDLE to "Ready when you are. One session at a time."
+        game == null -> Mood.IDLE to stringResource(R.string.home_greeting_initial)
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.CELEBRATE -> Mood.CELEBRATE to stringResource(R.string.home_greeting_goal)
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.PROUD -> Mood.PROUD to stringResource(R.string.home_greeting_steady)
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.HAPPY -> Mood.HAPPY to stringResource(R.string.home_greeting_progress, formatMinutes(game.goalMinutes - game.todayMinutes))
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.DOWN -> Mood.SAD to stringResource(R.string.home_greeting_absent)
+        feeling == dev.agneswd.stillpoint.game.PebbleFeeling.QUIET -> Mood.THINK to stringResource(R.string.home_greeting_return)
+        hour >= 22 -> Mood.SLEEPY to stringResource(R.string.home_greeting_late)
+        game.streak > 0 -> Mood.IDLE to pluralStringResource(R.plurals.home_greeting_streak, game.streak, game.streak)
+        hour < 11 -> Mood.WAVE to stringResource(R.string.home_greeting_morning)
+        else -> Mood.IDLE to stringResource(R.string.home_greeting_ready)
     }
 }
 
@@ -181,8 +182,8 @@ private fun SetupNudge(modifier: Modifier, onFix: () -> Unit) {
             Icon(painterResource(R.drawable.ic_warning), null, tint = Sp.colors.danger, modifier = Modifier.size(28.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Finish setup", style = MaterialTheme.typography.titleMedium, color = Sp.colors.danger)
-                Text("Stillpoint can't block anything yet. Tap to allow the permissions.", style = MaterialTheme.typography.bodySmall, color = Sp.colors.text)
+                Text(stringResource(R.string.home_finish_setup), style = MaterialTheme.typography.titleMedium, color = Sp.colors.danger)
+                Text(stringResource(R.string.home_permissions_missing), style = MaterialTheme.typography.bodySmall, color = Sp.colors.text)
             }
         }
     }
@@ -197,12 +198,12 @@ private fun GoalCard(game: GameState?, modifier: Modifier) {
             GoalRing(done.toFloat() / goal, Modifier.size(112.dp)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(formatMinutes(done), style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
-                    Text("of ${formatMinutes(goal)}", style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+                    Text(stringResource(R.string.home_goal_target, formatMinutes(goal)), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
                 }
             }
             Spacer(Modifier.width(18.dp))
             Column(Modifier.weight(1f)) {
-                Text("Today's focus", style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
+                Text(stringResource(R.string.home_goal_title), style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
                 Spacer(Modifier.height(10.dp))
                 // One dot per day this week. Full dots met the goal.
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -218,7 +219,7 @@ private fun GoalCard(game: GameState?, modifier: Modifier) {
                                 if (met) Icon(painterResource(R.drawable.ic_check), null, tint = LightPalette.text, modifier = Modifier.size(14.dp))
                             }
                             Text(
-                                date.dayOfWeek.name.take(1),
+                                date.dayOfWeek.getDisplayName(java.time.format.TextStyle.NARROW, androidx.compose.ui.platform.LocalLocale.current.platformLocale),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (date == LocalDate.now()) Sp.colors.text else Sp.colors.textDim,
                             )
@@ -256,7 +257,7 @@ fun QuestCard(quests: List<Quest>, modifier: Modifier) {
             quests.forEach { quest ->
                 Column {
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClickLabel = "Show quest details") {
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClickLabel = stringResource(R.string.home_show_quest_details)) {
                             expanded = if (expanded == quest.id) null else quest.id
                         },
                         verticalAlignment = Alignment.CenterVertically,
@@ -269,35 +270,35 @@ fun QuestCard(quests: List<Quest>, modifier: Modifier) {
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(quest.title, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+                            Text(quest.title.localized(), style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
                             Spacer(Modifier.height(6.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 ChunkyProgress(quest.fraction, Modifier.weight(1f), color = Sp.colors.gold, height = 12.dp)
                                 Spacer(Modifier.width(8.dp))
                                 // A minimum width keeps the bars the same length on every row.
-                                Text("${quest.progress} / ${quest.target}", Modifier.widthIn(min = 52.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim, textAlign = TextAlign.End)
+                                Text(stringResource(R.string.home_quest_progress, quest.progress, quest.target), Modifier.widthIn(min = 52.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim, textAlign = TextAlign.End)
                             }
                         }
                         Spacer(Modifier.width(10.dp))
-                        Text("+${quest.xp} XP", style = MaterialTheme.typography.labelMedium, color = Sp.colors.text)
+                        Text(stringResource(R.string.home_quest_xp, quest.xp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.text)
                     }
                     AnimatedVisibility(expanded == quest.id) {
                         Column(Modifier.padding(start = 52.dp, top = 10.dp)) {
-                            Text(quest.category, style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
+                            Text(stringResource(quest.categoryRes), style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
                             Text(
-                                quest.detail,
+                                quest.detail.localized(),
                                 style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
                             )
                             Text(
-                                if (quest.done) "${quest.xp} XP earned. This reward is already in your total."
-                                else "${quest.xp} XP is added automatically when you finish this quest.",
+                                if (quest.done) stringResource(R.string.home_quest_reward_earned, quest.xp)
+                                else stringResource(R.string.home_quest_reward_pending, quest.xp),
                                 Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
                             )
                         }
                     }
                 }
             }
-            Text("Tap a quest for its rules.", style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
+            Text(stringResource(R.string.home_quest_help), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
         }
     }
 }
@@ -309,7 +310,7 @@ private fun ScreenTimeCard(today: DayUsage?, modifier: Modifier, onClick: () -> 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(formatDuration(today?.totalMillis ?: 0), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.text)
-                    Text("${today?.unlocks ?: 0} unlocks today", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                    Text(pluralStringResource(R.plurals.home_unlocks_today, today?.unlocks ?: 0, today?.unlocks ?: 0), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy((-10).dp)) {
                     today?.perApp.orEmpty().take(3).forEach { (pkg, _) ->
@@ -343,16 +344,17 @@ fun dayPartAt(minute: Int): DayPart = when {
 }
 
 /** The schedule that runs now or starts next today, with a short label for when. */
+@Composable
 private fun nextSchedule(schedules: List<dev.agneswd.stillpoint.data.Schedule>): Pair<dev.agneswd.stillpoint.data.Schedule, String>? {
     val now = LocalDateTime.now()
     val minute = now.hour * 60 + now.minute
     val enabled = schedules.filter { it.enabled }
-    enabled.firstOrNull { it.isActive(now) }?.let { return it to "Now" }
+    enabled.firstOrNull { it.isActive(now) }?.let { return it to stringResource(R.string.home_schedule_now) }
     val bit = 1 shl (now.dayOfWeek.value - 1)
     return enabled.filter { it.days and bit != 0 && it.startMinute > minute }
         .minByOrNull { it.startMinute }
         ?.let { s ->
             val wait = s.startMinute - minute
-            s to if (wait < 60) "In ${wait}m" else "In ${wait / 60}h"
+            s to if (wait < 60) pluralStringResource(R.plurals.home_schedule_wait_minutes, wait, wait) else pluralStringResource(R.plurals.home_schedule_wait_hours, wait / 60, wait / 60)
         }
 }

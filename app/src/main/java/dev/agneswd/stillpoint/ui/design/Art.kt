@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui.design
 
+import dev.agneswd.stillpoint.R
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -85,11 +87,11 @@ fun XpBolt(modifier: Modifier = Modifier, size: Dp = 24.dp) {
     }
 }
 
-enum class DayPart(val label: String, val start: Int, val end: Int) {
-    MORNING("Morning", 6 * 60, 8 * 60),
-    AFTERNOON("Afternoon", 14 * 60, 16 * 60),
-    EVENING("Evening", 18 * 60, 20 * 60),
-    NIGHT("Night", 20 * 60, 22 * 60),
+enum class DayPart(@param:StringRes val labelRes: Int, val start: Int, val end: Int, val scheduleId: String, @param:StringRes val scheduleNameRes: Int) {
+    MORNING(R.string.day_part_morning, 6 * 60, 8 * 60, "Morning focus", R.string.schedule_default_morning),
+    AFTERNOON(R.string.day_part_afternoon, 14 * 60, 16 * 60, "Afternoon focus", R.string.schedule_default_afternoon),
+    EVENING(R.string.day_part_evening, 18 * 60, 20 * 60, "Evening focus", R.string.schedule_default_evening),
+    NIGHT(R.string.day_part_night, 20 * 60, 22 * 60, "Night focus", R.string.schedule_default_night),
 }
 
 /** A small round picture for a part of the day: sunrise, sun, sunset or moon. */

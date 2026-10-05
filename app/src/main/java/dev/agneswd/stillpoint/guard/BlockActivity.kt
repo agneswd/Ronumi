@@ -1,5 +1,9 @@
 package dev.agneswd.stillpoint.guard
 
+import dev.agneswd.stillpoint.ui.resolve
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sfx
 import android.content.Context
@@ -34,7 +38,6 @@ import dev.agneswd.stillpoint.data.settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -140,7 +143,7 @@ class BlockActivity : ComponentActivity() {
                                 if (granted) {
                                     packageManager.getLaunchIntentForPackage(pkg)?.let(::startActivity)
                                     finish()
-                                } else Toast.makeText(this@BlockActivity, "No extra passes are available", Toast.LENGTH_SHORT).show()
+                                } else Toast.makeText(this@BlockActivity, getString(R.string.block_no_pass_message), Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
@@ -184,8 +187,8 @@ class BlockActivity : ComponentActivity() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NO_ANIMATION or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
                 .putExtra(EXTRA_PACKAGE, pkg)
                 .putExtra(EXTRA_KIND, reason.kind.name)
-                .putExtra(EXTRA_TITLE, reason.title)
-                .putExtra(EXTRA_DETAIL, reason.detail)
+                .putExtra(EXTRA_TITLE, reason.title.resolve(context))
+                .putExtra(EXTRA_DETAIL, reason.detail.resolve(context))
                 .putExtra(EXTRA_GENTLE, reason.gentle)
     }
 
@@ -223,7 +226,7 @@ class BlockActivity : ComponentActivity() {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(Modifier.weight(0.5f))
-                PebbleSays(line, mood, Modifier.fillMaxWidth().appear(0), side = false, pebbleSize = 150.dp)
+                PebbleSays(stringResource(line), mood, Modifier.fillMaxWidth().appear(0), side = false, pebbleSize = 150.dp)
                 if (icon != null) {
                     // The blocked app sits on Pebble's shoulder with a stop badge.
                     Box(Modifier.offset(x = 70.dp, y = (-46).dp).popIn(300)) {
@@ -241,7 +244,7 @@ class BlockActivity : ComponentActivity() {
                 Spacer(Modifier.height(8.dp))
                 Text(detail, style = MaterialTheme.typography.titleMedium, color = Sp.colors.textDim, textAlign = TextAlign.Center, modifier = Modifier.appear(200))
                 Spacer(Modifier.weight(1f))
-                ChunkyButton(if (kind == BlockKind.SITE) "Back to the browser" else if (kind in contentKinds) "Back to the app" else "Close", onClose, Modifier.fillMaxWidth())
+                ChunkyButton(if (kind == BlockKind.SITE) stringResource(R.string.block_browser_button) else if (kind in contentKinds) stringResource(R.string.block_app_button) else stringResource(R.string.block_close_button), onClose, Modifier.fillMaxWidth())
                 if (gentle) {
                     Spacer(Modifier.height(14.dp))
                     MoreTime(wait, passes, onMore)
@@ -257,16 +260,16 @@ class BlockActivity : ComponentActivity() {
         if (wait > 0 && !none) {
             ChunkyProgress(1f - wait / WAIT_SECONDS.toFloat(), Modifier.fillMaxWidth().padding(horizontal = 8.dp), color = Sp.colors.flame, height = 12.dp)
             Spacer(Modifier.height(8.dp))
-            Text("Take a breath. $wait s", style = MaterialTheme.typography.titleSmall, color = Sp.colors.textDim)
+            Text(pluralStringResource(R.plurals.block_wait_seconds, wait, wait), style = MaterialTheme.typography.titleSmall, color = Sp.colors.textDim)
         } else {
-            ChunkyButton("Open for 5 more minutes", onMore, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, enabled = !none)
+            ChunkyButton(stringResource(R.string.block_pass_button), onMore, Modifier.fillMaxWidth(), kind = ButtonKind.SECONDARY, enabled = !none)
             Spacer(Modifier.height(6.dp))
             Text(
                 when (passes) {
                     null -> ""
-                    0 -> "No passes left today."
-                    1 -> "This is your last pass today."
-                    else -> "$passes passes left today."
+                    0 -> stringResource(R.string.block_no_passes)
+                    1 -> stringResource(R.string.block_last_pass)
+                    else -> pluralStringResource(R.plurals.block_passes_left, passes, passes)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = Sp.colors.textDim,
@@ -276,16 +279,16 @@ class BlockActivity : ComponentActivity() {
 }
 
 /** What Pebble says on the block screen. A few lines per kind keep it fresh. */
-private fun pebbleLine(kind: BlockKind): Pair<Mood, String> {
+private fun pebbleLine(kind: BlockKind): Pair<Mood, Int> {
     val (mood, lines) = when (kind) {
-        BlockKind.FOCUS -> Mood.GUARD to listOf("Not now. You're focusing!", "Back to it. I believe in you.", "Nice try! Your focus comes first.")
-        BlockKind.SCHEDULE -> Mood.GUARD to listOf("It's not time for this yet.", "Your plan says no. I agree.")
-        BlockKind.LIMIT -> Mood.SLEEPY to listOf("That's enough for today.", "Your time is used up. See you tomorrow!")
-        BlockKind.SHORTS -> Mood.GUARD to listOf("No endless scrolling!", "Shorts are closed. The rest is yours.")
-        BlockKind.STUDY -> Mood.THINK to listOf("Study mode is on.", "Let's find something useful.")
-        BlockKind.SITE -> Mood.THINK to listOf("Hmm, not this site.", "This site is on your list.")
-        BlockKind.PROTECTION -> Mood.STRICT to listOf("Nice try. Your blocks stay on.", "Not today. Strict mode is on.")
-        BlockKind.MULTI_WINDOW -> Mood.GUARD to listOf("One app at a time.")
+        BlockKind.FOCUS -> Mood.GUARD to listOf(R.string.block_pebble_focus_1, R.string.block_pebble_focus_2, R.string.block_pebble_focus_3)
+        BlockKind.SCHEDULE -> Mood.GUARD to listOf(R.string.block_pebble_schedule_1, R.string.block_pebble_schedule_2)
+        BlockKind.LIMIT -> Mood.SLEEPY to listOf(R.string.block_pebble_limit_1, R.string.block_pebble_limit_2)
+        BlockKind.SHORTS -> Mood.GUARD to listOf(R.string.block_pebble_shorts_1, R.string.block_pebble_shorts_2)
+        BlockKind.STUDY -> Mood.THINK to listOf(R.string.block_pebble_study_1, R.string.block_pebble_study_2)
+        BlockKind.SITE -> Mood.THINK to listOf(R.string.block_pebble_site_1, R.string.block_pebble_site_2)
+        BlockKind.PROTECTION -> Mood.STRICT to listOf(R.string.block_pebble_protection_1, R.string.block_pebble_protection_2)
+        BlockKind.MULTI_WINDOW -> Mood.GUARD to listOf(R.string.block_pebble_multi_window_1)
     }
     return mood to lines.random()
 }

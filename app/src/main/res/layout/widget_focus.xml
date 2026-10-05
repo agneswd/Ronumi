@@ -31,7 +31,7 @@
             android:fontFamily="@font/nunito_bold"
             android:maxLines="1"
             android:ellipsize="end"
-            android:text="Focus"
+            android:text="@string/widget_focus_title"
             android:textColor="@color/widget_text"
             android:textSize="18sp" />
         <TextView
@@ -41,7 +41,7 @@
             android:fontFamily="@font/nunito_bold"
             android:maxLines="1"
             android:ellipsize="end"
-            android:text="Ready when you are"
+            android:text="@string/widget_focus_initial_hint"
             android:textColor="@color/widget_dim"
             android:textSize="12sp" />
     </LinearLayout>
@@ -56,7 +56,7 @@
         android:paddingEnd="14dp"
         android:paddingTop="8dp"
         android:paddingBottom="11dp"
-        android:text="START"
+        android:text="@string/widget_start_button"
         android:textColor="#FFFFFFFF"
         android:textSize="13sp" />
 </LinearLayout>

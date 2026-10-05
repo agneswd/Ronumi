@@ -1,5 +1,8 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import dev.agneswd.stillpoint.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
@@ -22,14 +25,14 @@ fun AppSelectionPreview(packages: Set<String>, maxVisible: Int = 3) {
     val visible = remember(packages, maxVisible) { packages.sorted().take(maxVisible.coerceIn(0, 3)) }
     val names = remember(visible) { visible.map { catalog.label(it) } }
     val remaining = packages.size - visible.size
-    val description = (names + if (remaining > 0) listOf("$remaining more apps") else emptyList()).joinToString(", ")
+    val description = (names + if (remaining > 0) listOf(pluralStringResource(R.plurals.apps_more_apps, remaining, remaining)) else emptyList()).joinToString(", ")
     Row(
         modifier = Modifier.clearAndSetSemantics { if (description.isNotEmpty()) contentDescription = description },
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         visible.forEach { AppIcon(it, size = 24.dp) }
-        if (remaining > 0) Text("+$remaining", style = MaterialTheme.typography.labelSmall, color = Sp.colors.textDim)
+        if (remaining > 0) Text(stringResource(R.string.apps_overflow_count, remaining), style = MaterialTheme.typography.labelSmall, color = Sp.colors.textDim)
         Chevron()
     }
 }

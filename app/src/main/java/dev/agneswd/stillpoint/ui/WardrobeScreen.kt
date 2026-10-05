@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.size
 import dev.agneswd.stillpoint.ui.design.ChunkyProgress
 import dev.agneswd.stillpoint.R
@@ -61,6 +63,7 @@ import kotlinx.coroutines.withContext
 fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val context = LocalContext.current
     val app = context.app
     val settings by app.dao.settings().collectAsState(null)
@@ -92,7 +95,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     val fresh = app.dao.currentSettings()
                     val level = gameState(app.dao.allSessions(), fresh).level.number
                     if (!reset && requested != null && !PebbleStyles.isUnlocked(requested, level, fresh.petTapCount)) {
-                        if (requested.minimumTaps > fresh.petTapCount) "This item is still hidden." else "This item unlocks at level ${requested.level}."
+                        if (requested.minimumTaps > fresh.petTapCount) resources.getString(R.string.wardrobe_hidden_message) else resources.getString(R.string.wardrobe_locked_message, requested.level)
                     } else {
                         val current = PebbleStyles.resolve(fresh.pebbleItems, level, fresh.petTapCount)
                         val remove = PebbleStyles.items.filter { it.slot == requestedSlot }.map { it.id }.toSet()
@@ -105,14 +108,14 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
             if (result.isSuccess && result.getOrNull() == null) dev.agneswd.stillpoint.widget.Widgets.refresh(context)
             withContext(Dispatchers.Main) {
                 saving = false
-                val message = result.getOrElse { "Could not save Pebble's look. Try again." }
+                val message = result.getOrElse { resources.getString(R.string.wardrobe_save_failure) }
                 if (message != null) Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     Column(Modifier.fillMaxSize()) {
-        TopBar("Pebble's wardrobe", onClose)
+        TopBar(stringResource(R.string.wardrobe_title), onClose)
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState) {
             item(key = "preview") {
                 Row(
@@ -122,18 +125,18 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     Pebble(game.companionMood(), size = 126.dp, style = preview)
                     Spacer(Modifier.width(16.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(selected?.name ?: originalLabel(slot), style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
+                        Text(selected?.let { stringResource(it.nameRes) } ?: originalLabel(slot), style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
                         Text(
                             when {
-                                !available -> "Preview - level ${selected.level} required"
-                                equipped -> "Wearing now"
-                                else -> "Ready to wear"
+                                !available -> stringResource(R.string.wardrobe_preview_level_required, selected.level)
+                                equipped -> stringResource(R.string.wardrobe_wearing_now)
+                                else -> stringResource(R.string.wardrobe_ready_to_wear)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = Sp.colors.textDim,
                         )
                         ChunkyButton(
-                            when { saving -> "Saving..."; equipped -> "Equipped"; !available -> "Locked"; else -> "Wear" },
+                            when { saving -> stringResource(R.string.wardrobe_saving); equipped -> stringResource(R.string.wardrobe_equipped); !available -> stringResource(R.string.wardrobe_locked); else -> stringResource(R.string.wardrobe_wear) },
                             onClick = { wear() },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = available && !equipped && !saving,
@@ -146,14 +149,14 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Level ${game.level.number}", Modifier.weight(1f),
+                        Text(stringResource(R.string.wardrobe_level, game.level.number), Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                        Text("$unlocked / ${catalog.size} unlocked",
+                        Text(pluralStringResource(R.plurals.wardrobe_unlocked, unlocked, unlocked, catalog.size),
                             style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
                     }
                     if (nextLevel != null) {
                         ChunkyProgress(game.level.fraction, Modifier.fillMaxWidth(), height = 12.dp)
-                        Text("More items at level $nextLevel",
+                        Text(stringResource(R.string.wardrobe_more_items_at_level, nextLevel),
                             style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
                     }
                 }
@@ -175,19 +178,19 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                 }
             }
             item(key = "original-${slot.name}") {
-                WardrobeItemRow(originalLabel(slot), if (worn.none { it in slotIds }) "Equipped" else "Always available", previewId == null, worn - slotIds) {
+                WardrobeItemRow(originalLabel(slot), if (worn.none { it in slotIds }) stringResource(R.string.wardrobe_equipped) else stringResource(R.string.wardrobe_always_available), previewId == null, worn - slotIds) {
                     previewId = null
                     scope.launch { listState.animateScrollToItem(0) }
                 }
             }
             items(catalog.filter { it.slot == slot }, key = { it.id }) { item ->
                 WardrobeItemRow(
-                    item.name,
+                    stringResource(item.nameRes),
                     when {
-                        item.id in worn -> "Equipped"
-                        !PebbleStyles.isUnlocked(item, game.level.number, saved.petTapCount) -> "Unlocks at level ${item.level}"
-                        item.minimumTaps > 0 -> "Secret discovered"
-                        else -> "Ready to wear"
+                        item.id in worn -> stringResource(R.string.wardrobe_equipped)
+                        !PebbleStyles.isUnlocked(item, game.level.number, saved.petTapCount) -> stringResource(R.string.wardrobe_unlocks_at_level, item.level)
+                        item.minimumTaps > 0 -> stringResource(R.string.wardrobe_secret_discovered)
+                        else -> stringResource(R.string.wardrobe_ready_to_wear)
                     },
                     previewId == item.id,
                     (worn - slotIds) + item.id,
@@ -199,11 +202,11 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
             }
             item {
                 Text(
-                    "Try any item above. Focus sessions and daily quests earn XP. Unlocked items cost no XP and can be worn together.",
+                    stringResource(R.string.wardrobe_unlock_help),
                     Modifier.padding(20.dp), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim,
                 )
                 Text(
-                    "Restore original look",
+                    stringResource(R.string.wardrobe_restore_original_look),
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(16.dp)).clickable(enabled = worn.isNotEmpty() && !saving) { wear(reset = true) }.padding(12.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (worn.isNotEmpty()) Sp.colors.brand else Sp.colors.textDim,
@@ -229,22 +232,24 @@ private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, loo
             Text(detail, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
         }
         when {
-            selected -> Text("Selected", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
-            locked -> Icon(painterResource(R.drawable.ic_lock), "Locked", Modifier.size(20.dp), tint = Sp.colors.textDim)
+            selected -> Text(stringResource(R.string.wardrobe_selected), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
+            locked -> Icon(painterResource(R.drawable.ic_lock), stringResource(R.string.wardrobe_locked), Modifier.size(20.dp), tint = Sp.colors.textDim)
         }
     }
 }
 
+@Composable
 private fun slotLabel(slot: PebbleSlot) = when (slot) {
-    PebbleSlot.COLOR -> "Colors"
-    PebbleSlot.OUTFIT -> "Clothes"
-    PebbleSlot.HAT -> "Hats"
-    PebbleSlot.ACCESSORY -> "Extras"
+    PebbleSlot.COLOR -> stringResource(R.string.wardrobe_colors)
+    PebbleSlot.OUTFIT -> stringResource(R.string.wardrobe_clothes)
+    PebbleSlot.HAT -> stringResource(R.string.wardrobe_hats)
+    PebbleSlot.ACCESSORY -> stringResource(R.string.wardrobe_extras)
 }
 
+@Composable
 private fun originalLabel(slot: PebbleSlot) = when (slot) {
-    PebbleSlot.COLOR -> "Original purple"
-    PebbleSlot.OUTFIT -> "No clothes"
-    PebbleSlot.HAT -> "No hat"
-    PebbleSlot.ACCESSORY -> "No extra"
+    PebbleSlot.COLOR -> stringResource(R.string.wardrobe_original_purple)
+    PebbleSlot.OUTFIT -> stringResource(R.string.wardrobe_no_clothes)
+    PebbleSlot.HAT -> stringResource(R.string.wardrobe_no_hat)
+    PebbleSlot.ACCESSORY -> stringResource(R.string.wardrobe_no_extra)
 }

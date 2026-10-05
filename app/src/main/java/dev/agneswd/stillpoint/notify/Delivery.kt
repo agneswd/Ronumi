@@ -29,8 +29,8 @@ object Delivery {
         val count = pendingNotifications(held, delivered).size
         if (count == 0) return@withLock
         val notification = NotificationCompat.Builder(context, StillpointApp.CHANNEL_EVENTS)
-            .setSmallIcon(R.drawable.ic_stat).setContentTitle("$count held notifications")
-            .setContentText("Tap to open your notification inbox.")
+            .setSmallIcon(R.drawable.ic_stat).setContentTitle(context.resources.getQuantityString(R.plurals.inbox_notification_title, count, count))
+            .setContentText(context.getString(R.string.inbox_notification_body))
             .setContentIntent(MainActivity.pendingInbox(context)).setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).build()
         if (androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()) {

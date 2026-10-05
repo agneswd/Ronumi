@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,7 +43,6 @@ import dev.agneswd.stillpoint.data.Schedule
 import dev.agneswd.stillpoint.data.settings
 import dev.agneswd.stillpoint.game.rewardDate
 import dev.agneswd.stillpoint.guard.dayBit
-import dev.agneswd.stillpoint.guard.formatDuration
 import dev.agneswd.stillpoint.guard.minuteText
 import dev.agneswd.stillpoint.guard.time
 import dev.agneswd.stillpoint.ui.design.ButtonKind
@@ -85,18 +85,18 @@ fun PlannerScreen(navigator: Navigator) {
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 14.dp), verticalAlignment = Alignment.Bottom) {
             ScreenTitle(selected.month.getDisplayName(TextStyle.FULL, androidx.compose.ui.platform.LocalLocale.current.platformLocale))
             Spacer(Modifier.width(8.dp))
-            Text("${selected.year}", style = MaterialTheme.typography.headlineMedium, color = Sp.colors.textDim)
+            Text(stringResource(R.string.planner_day_number, selected.year), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.textDim)
         }
         WeekStrip(selected, byDay.mapValues { (_, l) -> l.sumOf { it.focusedMillis } >= goal }) { selected = it }
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryTile("Focus", formatDuration(daySessions.sumOf { it.focusedMillis }), Sp.colors.brand, Modifier.weight(1f))
-            SummaryTile("Screen time", formatDuration(usage), Sp.colors.rose, Modifier.weight(1f))
+            SummaryTile(stringResource(R.string.planner_focus), formatDuration(daySessions.sumOf { it.focusedMillis }), Sp.colors.brand, Modifier.weight(1f))
+            SummaryTile(stringResource(R.string.planner_screen_time), formatDuration(usage), Sp.colors.rose, Modifier.weight(1f))
         }
 
-        SectionTitle(if (selected == LocalDate.now()) "Today" else selected.dayOfWeek.getDisplayName(TextStyle.FULL, androidx.compose.ui.platform.LocalLocale.current.platformLocale))
+        SectionTitle(if (selected == LocalDate.now()) stringResource(R.string.planner_today) else selected.dayOfWeek.getDisplayName(TextStyle.FULL, androidx.compose.ui.platform.LocalLocale.current.platformLocale))
         if (daySchedules.isEmpty() && daySessions.isEmpty()) {
             Text(
-                "Nothing planned. Add a schedule to block distractions at the same time each day.",
+                stringResource(R.string.planner_schedules_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Sp.colors.textDim,
                 modifier = Modifier.padding(horizontal = ScreenPadding),
@@ -121,8 +121,8 @@ fun PlannerScreen(navigator: Navigator) {
                         }
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(session.tag.ifBlank { "Focus session" }, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                            Text("${time(session.startedAt, use24)} to ${time(session.endedAt, use24)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                            Text(session.tag.ifBlank { stringResource(R.string.planner_focus_session) }.displayName(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
+                            Text(stringResource(R.string.planner_session_time_range, time(session.startedAt, use24), time(session.endedAt, use24)), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                         }
                         Text(formatDuration(session.focusedMillis), style = MaterialTheme.typography.titleMedium, color = Sp.colors.brand)
                     }
@@ -131,7 +131,7 @@ fun PlannerScreen(navigator: Navigator) {
         }
 
         if (missing.isNotEmpty()) {
-            SectionTitle("Suggested")
+            SectionTitle(stringResource(R.string.planner_suggested))
             Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 missing.forEach { part ->
                     ChunkyCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
@@ -139,15 +139,15 @@ fun PlannerScreen(navigator: Navigator) {
                             DayPartIcon(part, size = 48.dp)
                             Spacer(Modifier.width(14.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("${part.label} focus", style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                                Text("${minuteText(part.start, use24)} to ${minuteText(part.end, use24)}, every day", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                                Text(stringResource(part.scheduleNameRes), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
+                                Text(stringResource(R.string.planner_schedule_time_range, minuteText(part.start, use24), minuteText(part.end, use24)), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                             }
                             ChunkyButton(
-                                "Add",
+                                stringResource(R.string.planner_add),
                                 {
                                     app.scope.launch {
                                         dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context,
-                                            Schedule(name = "${part.label} focus", startMinute = part.start, endMinute = part.end, packages = settings?.focusPackages.orEmpty()),
+                                            Schedule(name = part.scheduleId, startMinute = part.start, endMinute = part.end, packages = settings?.focusPackages.orEmpty()),
                                         )
                                     }
                                 },
@@ -160,7 +160,7 @@ fun PlannerScreen(navigator: Navigator) {
             }
         }
         ChunkyButton(
-            "Add schedule",
+            stringResource(R.string.planner_add_schedule),
             { navigator.push(Route.EditSchedule(null)) },
             Modifier.fillMaxWidth().padding(ScreenPadding),
             icon = painterResource(R.drawable.ic_plus),
@@ -192,7 +192,7 @@ private fun WeekStrip(selected: LocalDate, goalMet: Map<LocalDate, Boolean>, onS
                     color = if (on) Sp.colors.onFill else Sp.colors.textDim,
                 )
                 Text(
-                    "${date.dayOfMonth}",
+                    stringResource(R.string.planner_day_number, date.dayOfMonth),
                     style = MaterialTheme.typography.titleLarge,
                     color = if (on) Sp.colors.onFill else if (today) Sp.colors.brand else Sp.colors.text,
                 )
@@ -222,7 +222,7 @@ fun ScheduleCard(schedule: Schedule, modifier: Modifier = Modifier, onClick: () 
             ScheduleIcon(schedule.icon, schedule.startMinute, size = 48.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(schedule.name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
+                Text(schedule.name.displayName(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
                 Text(scheduleSummary(schedule, rememberUse24Hour()), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim, textAlign = TextAlign.Start)
             }
             MintSwitch(schedule.enabled, onToggle)

@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -79,30 +81,30 @@ import kotlinx.coroutines.withContext
 
 private enum class Step { WELCOME, HELLO, ASK, PURPOSE, GOAL, DISTRACTIONS, WHEN, PLAN, SHORTS, NOTIFY, STRICT, STREAK, APPS, ACCESS, FIRST }
 
-private data class Option(val icon: Int, val label: String, val value: String)
+private data class Option(val icon: Int, @param:androidx.annotation.StringRes val labelRes: Int, val value: String)
 
 private val purposes = listOf(
-    Option(R.drawable.ic_activity_study, "Study", "study"),
-    Option(R.drawable.ic_activity_work, "Work", "work"),
-    Option(R.drawable.ic_activity_phone, "Scroll less", "scroll"),
-    Option(R.drawable.ic_activity_sleep, "Sleep better", "sleep"),
-    Option(R.drawable.ic_activity_calm, "Feel calmer", "calm"),
+    Option(R.drawable.ic_activity_study, R.string.onboarding_study, "study"),
+    Option(R.drawable.ic_activity_work, R.string.onboarding_work, "work"),
+    Option(R.drawable.ic_activity_phone, R.string.onboarding_scroll_less, "scroll"),
+    Option(R.drawable.ic_activity_sleep, R.string.onboarding_sleep_better, "sleep"),
+    Option(R.drawable.ic_activity_calm, R.string.onboarding_feel_calmer, "calm"),
 )
 
 private val goals = listOf(
-    Option(R.drawable.ic_activity_coffee, "Casual, 30 min a day", "30"),
-    Option(R.drawable.ic_activity_sprout, "Regular, 1 hour a day", "60"),
-    Option(R.drawable.ic_activity_flame, "Serious, 2 hours a day", "120"),
-    Option(R.drawable.ic_activity_rocket, "Intense, 4 hours a day", "240"),
+    Option(R.drawable.ic_activity_coffee, R.string.onboarding_goal_casual, "30"),
+    Option(R.drawable.ic_activity_sprout, R.string.onboarding_goal_regular, "60"),
+    Option(R.drawable.ic_activity_flame, R.string.onboarding_goal_serious, "120"),
+    Option(R.drawable.ic_activity_rocket, R.string.onboarding_goal_intense, "240"),
 )
 
 private val distractions = listOf(
-    Option(R.drawable.ic_video, "Shorts and Reels", "shorts"),
-    Option(R.drawable.ic_video, "YouTube rabbit holes", "youtube"),
-    Option(R.drawable.ic_activity_social, "Social media feeds", "social"),
-    Option(R.drawable.ic_bell, "Notifications", "notifications"),
-    Option(R.drawable.ic_activity_game, "Games", "games"),
-    Option(R.drawable.ic_activity_steps, "I can't get started", "start"),
+    Option(R.drawable.ic_video, R.string.onboarding_shorts_and_reels, "shorts"),
+    Option(R.drawable.ic_video, R.string.onboarding_youtube_rabbit_holes, "youtube"),
+    Option(R.drawable.ic_activity_social, R.string.onboarding_social_media_feeds, "social"),
+    Option(R.drawable.ic_bell, R.string.onboarding_notifications, "notifications"),
+    Option(R.drawable.ic_activity_game, R.string.onboarding_games, "games"),
+    Option(R.drawable.ic_activity_steps, R.string.onboarding_distraction_start, "start"),
 )
 
 /** Apps that most people find distracting. Onboarding picks the installed ones first. */
@@ -182,7 +184,7 @@ fun Onboarding(onDone: () -> Unit) {
         val chosen = apps ?: installed.map { it.packageName }.filter { it in commonDistractions }.toSet()
         app.scope.launch {
             dayPart?.let { part ->
-                app.dao.saveSchedule(Schedule(name = "${part.label} focus", startMinute = part.start, endMinute = part.end, packages = chosen, mode = BlockMode.LISTED))
+                app.dao.saveSchedule(Schedule(name = part.scheduleId, startMinute = part.start, endMinute = part.end, packages = chosen, mode = BlockMode.LISTED))
             }
             app.dao.updateSettings {
                 it.copy(
@@ -208,7 +210,7 @@ fun Onboarding(onDone: () -> Unit) {
                 Box(
                     Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).clickable { go(Step.entries[step.ordinal - 1]) },
                     contentAlignment = Alignment.Center,
-                ) { Icon(painterResource(R.drawable.ic_close), "Back", tint = Sp.colors.textDim, modifier = Modifier.size(20.dp)) }
+                ) { Icon(painterResource(R.drawable.ic_close), stringResource(R.string.onboarding_back), tint = Sp.colors.textDim, modifier = Modifier.size(20.dp)) }
                 Spacer(Modifier.width(8.dp))
                 ChunkyProgress(
                     (step.ordinal - questionSteps.first + 1f) / (questionSteps.last - questionSteps.first + 1),
@@ -229,20 +231,20 @@ fun Onboarding(onDone: () -> Unit) {
         ) { current ->
             when (current) {
                 Step.WELCOME -> Welcome(::next)
-                Step.HELLO -> Chat("Hi! I'm Pebble. I help you scroll less and focus more.", Mood.WAVE, ::next)
-                Step.ASK -> Chat("First, a few quick questions. Then I'll build a plan just for you.", Mood.THINK, ::next)
-                Step.PURPOSE -> Question("What do you want help with?", purposes, setOf(purpose), multi = false, onPick = { purpose = it }, onNext = ::next)
-                Step.GOAL -> Question("Pick a daily focus goal", goals, setOf(goal), multi = false, onPick = { goal = it }, onNext = ::next)
+                Step.HELLO -> Chat(stringResource(R.string.onboarding_pebble_intro), Mood.WAVE, ::next)
+                Step.ASK -> Chat(stringResource(R.string.onboarding_questions_intro), Mood.THINK, ::next)
+                Step.PURPOSE -> Question(stringResource(R.string.onboarding_purpose_question), purposes, setOf(purpose), multi = false, onPick = { purpose = it }, onNext = ::next)
+                Step.GOAL -> Question(stringResource(R.string.onboarding_goal_question), goals, setOf(goal), multi = false, onPick = { goal = it }, onNext = ::next)
                 Step.DISTRACTIONS -> Question(
-                    "What pulls you away the most?", distractions, picked, multi = true,
+                    stringResource(R.string.onboarding_distractions_question), distractions, picked, multi = true,
                     onPick = { v -> picked = if (v in picked) picked - v else picked + v }, onNext = ::next,
                 )
                 Step.WHEN -> WhenStep(dayPart, onPick = { dayPart = it; noSchedule = false }, onLater = { dayPart = null; noSchedule = true }, onNext = ::next)
                 Step.PLAN -> PlanStep(goal, picked, dayPart, ::next)
-                Step.SHORTS -> Slide("Scrolling Shorts?", "Pebble closes the feed. The rest of the app still works.", ::next) { ShortsScene() }
-                Step.NOTIFY -> Slide("Buzz, buzz, buzz?", "Notifications wait in a box until you finish.", ::next) { NotificationScene() }
-                Step.STRICT -> Slide("Want to quit early?", "Strict mode won't let you. Future you says thanks.", ::next) { StrictScene() }
-                Step.STREAK -> Slide("Build a streak", "Focus a little every day. Keep the flame alive.", ::next) { StreakScene() }
+                Step.SHORTS -> Slide(stringResource(R.string.onboarding_shorts_title), stringResource(R.string.onboarding_shorts_description), ::next) { ShortsScene() }
+                Step.NOTIFY -> Slide(stringResource(R.string.onboarding_inbox_title), stringResource(R.string.onboarding_inbox_description), ::next) { NotificationScene() }
+                Step.STRICT -> Slide(stringResource(R.string.onboarding_strict_title), stringResource(R.string.onboarding_strict_description), ::next) { StrictScene() }
+                Step.STREAK -> Slide(stringResource(R.string.onboarding_build_a_streak), stringResource(R.string.onboarding_streak_description), ::next) { StreakScene() }
                 Step.APPS -> AppsStep(installed, apps ?: installed.map { it.packageName }.filter { it in commonDistractions }.toSet(), onChange = { apps = it }, onNext = ::next)
                 Step.ACCESS -> AccessStep(access, onNext = ::next)
                 Step.FIRST -> FirstFocus(enabled = !finishing, onStart = { finish(firstFocus = true) }, onSkip = { finish(firstFocus = false) })
@@ -259,17 +261,17 @@ private fun Welcome(onNext: () -> Unit) {
             Spacer(Modifier.weight(1f))
             Pebble(Mood.WAVE, Modifier.popIn(), size = 200.dp)
             Spacer(Modifier.height(28.dp))
-            Text("Stillpoint", style = MaterialTheme.typography.displayMedium, color = Sp.colors.brand, modifier = Modifier.appear(200))
+            Text(stringResource(R.string.onboarding_app_name), style = MaterialTheme.typography.displayMedium, color = Sp.colors.brand, modifier = Modifier.appear(200))
             Spacer(Modifier.height(8.dp))
             Text(
-                "Less scrolling. More living.",
+                stringResource(R.string.onboarding_welcome_tagline),
                 style = MaterialTheme.typography.titleLarge,
                 color = Sp.colors.textDim,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.appear(350),
             )
             Spacer(Modifier.weight(1f))
-            ChunkyButton("Get started", onNext, Modifier.fillMaxWidth().appear(500))
+            ChunkyButton(stringResource(R.string.onboarding_get_started), onNext, Modifier.fillMaxWidth().appear(500))
         }
     }
 }
@@ -280,7 +282,7 @@ private fun Chat(text: String, mood: Mood, onNext: () -> Unit) {
         Spacer(Modifier.weight(1f))
         PebbleSays(text, mood, Modifier.fillMaxWidth(), side = false, pebbleSize = 170.dp)
         Spacer(Modifier.weight(1f))
-        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth())
+        ChunkyButton(stringResource(R.string.onboarding_continue), onNext, Modifier.fillMaxWidth())
     }
 }
 
@@ -288,19 +290,19 @@ private fun Chat(text: String, mood: Mood, onNext: () -> Unit) {
 private fun Question(title: String, options: List<Option>, selected: Set<String>, multi: Boolean, onPick: (String) -> Unit, onNext: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         PebbleSays(title, Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
-        if (multi) Text("Pick all that fit.", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim, modifier = Modifier.padding(bottom = 8.dp))
+        if (multi) Text(stringResource(R.string.onboarding_pick_all_that_fit), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim, modifier = Modifier.padding(bottom = 8.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             options.forEachIndexed { i, option ->
                 ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(option.value) }, selected = option.value in selected) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(painterResource(option.icon), null, tint = Sp.colors.brand, modifier = Modifier.size(28.dp))
                         Spacer(Modifier.width(16.dp))
-                        Text(option.label, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text, modifier = Modifier.weight(1f))
+                        Text(stringResource(option.labelRes), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text, modifier = Modifier.weight(1f))
                     }
                 }
             }
         }
-        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp), enabled = selected.any { it.isNotBlank() })
+        ChunkyButton(stringResource(R.string.onboarding_continue), onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp), enabled = selected.any { it.isNotBlank() })
     }
 }
 
@@ -308,7 +310,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
 private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () -> Unit, onNext: () -> Unit) {
     val use24 = rememberUse24Hour()
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        PebbleSays("When do you want to focus each day?", Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
+        PebbleSays(stringResource(R.string.onboarding_schedule_question), Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             DayPart.entries.forEachIndexed { i, part ->
                 ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(part) }, selected = part == selected, contentPadding = 12.dp) {
@@ -316,22 +318,22 @@ private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () 
                         DayPartIcon(part)
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(part.label, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                            Text("${minuteText(part.start, use24)} to ${minuteText(part.end, use24)}", style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                            Text(stringResource(part.labelRes), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
+                            Text(stringResource(R.string.onboarding_schedule_time_range, minuteText(part.start, use24), minuteText(part.end, use24)), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                         }
                     }
                 }
             }
         }
         Text(
-            "Your apps are blocked during this time. You can change it later.",
+            stringResource(R.string.onboarding_schedule_description),
             style = MaterialTheme.typography.bodySmall,
             color = Sp.colors.textDim,
             modifier = Modifier.padding(top = 10.dp),
         )
         // Skipping stays visible on small screens instead of hiding under the list.
-        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(top = 16.dp), enabled = selected != null)
-        ChunkyButton("I'll set it later", { onLater(); onNext() }, Modifier.fillMaxWidth().padding(bottom = 8.dp), kind = ButtonKind.GHOST, height = 46.dp)
+        ChunkyButton(stringResource(R.string.onboarding_continue), onNext, Modifier.fillMaxWidth().padding(top = 16.dp), enabled = selected != null)
+        ChunkyButton(stringResource(R.string.onboarding_schedule_skip_button), { onLater(); onNext() }, Modifier.fillMaxWidth().padding(bottom = 8.dp), kind = ButtonKind.GHOST, height = 46.dp)
     }
 }
 
@@ -340,15 +342,15 @@ private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: 
     val use24 = rememberUse24Hour()
     val minutes = goal.toIntOrNull() ?: 60
     val items = buildList {
-        add(R.drawable.ic_activity_focus to "Focus ${if (minutes < 60) "$minutes minutes" else "${minutes / 60} hour${if (minutes >= 120) "s" else ""}"} a day")
-        if ("shorts" in picked) add(R.drawable.ic_video to "Close Shorts and Reels for you")
-        if ("notifications" in picked) add(R.drawable.ic_bell to "Hold notifications while you focus")
-        if ("youtube" in picked || "social" in picked || "games" in picked) add(R.drawable.ic_tab_blocks to "Block your distracting apps during focus")
-        if (part != null) add(R.drawable.ic_timer to "${part.label} focus, ${minuteText(part.start, use24)} to ${minuteText(part.end, use24)}")
-        add(R.drawable.ic_activity_flame to "A daily streak to keep you going")
+        add(R.drawable.ic_activity_focus to if (minutes < 60) pluralStringResource(R.plurals.onboarding_goal_minutes, minutes, minutes) else pluralStringResource(R.plurals.onboarding_goal_hours, minutes / 60, minutes / 60))
+        if ("shorts" in picked) add(R.drawable.ic_video to stringResource(R.string.onboarding_plan_shorts))
+        if ("notifications" in picked) add(R.drawable.ic_bell to stringResource(R.string.onboarding_plan_inbox))
+        if ("youtube" in picked || "social" in picked || "games" in picked) add(R.drawable.ic_tab_blocks to stringResource(R.string.onboarding_plan_apps))
+        if (part != null) add(R.drawable.ic_timer to stringResource(R.string.onboarding_plan_schedule_summary, stringResource(part.scheduleNameRes), minuteText(part.start, use24), minuteText(part.end, use24)))
+        add(R.drawable.ic_activity_flame to stringResource(R.string.onboarding_plan_streak))
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        PebbleSays("Here's your plan. I think you'll love it!", Mood.PROUD, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
+        PebbleSays(stringResource(R.string.onboarding_plan_intro), Mood.PROUD, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items.forEachIndexed { i, (icon, text) ->
                 Row(Modifier.fillMaxWidth().appear(200 + i * 220), verticalAlignment = Alignment.CenterVertically) {
@@ -363,7 +365,7 @@ private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: 
                 }
             }
         }
-        ChunkyButton("Sounds great", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp))
+        ChunkyButton(stringResource(R.string.onboarding_sounds_great), onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp))
     }
 }
 
@@ -377,7 +379,7 @@ private fun Slide(title: String, body: String, onNext: () -> Unit, art: @Composa
         Spacer(Modifier.height(10.dp))
         Text(body, style = MaterialTheme.typography.titleMedium, color = Sp.colors.textDim, textAlign = TextAlign.Center, modifier = Modifier.appear(220))
         Spacer(Modifier.weight(1f))
-        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp))
+        ChunkyButton(stringResource(R.string.onboarding_continue), onNext, Modifier.fillMaxWidth().padding(vertical = 16.dp))
     }
 }
 
@@ -386,9 +388,9 @@ private fun AppsStep(installed: List<InstalledApp>, chosen: Set<String>, onChang
     // Suggested apps first, then the rest by name.
     val sorted = remember(installed) { installed.sortedBy { if (it.packageName in commonDistractions) 0 else 1 } }
     Column(Modifier.fillMaxSize()) {
-        PebbleSays("Which apps steal your time?", Mood.THINK, Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), pebbleSize = 84.dp)
+        PebbleSays(stringResource(R.string.onboarding_apps_question), Mood.THINK, Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), pebbleSize = 84.dp)
         Text(
-            "I'll block these while you focus. ${appCount(chosen.size)} chosen.",
+            pluralStringResource(R.plurals.onboarding_apps_selected, chosen.size, chosen.size),
             style = MaterialTheme.typography.bodyMedium,
             color = Sp.colors.textDim,
             modifier = Modifier.padding(horizontal = 20.dp),
@@ -401,7 +403,7 @@ private fun AppsStep(installed: List<InstalledApp>, chosen: Set<String>, onChang
                 }
             }
         }
-        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(20.dp))
+        ChunkyButton(stringResource(R.string.onboarding_continue), onNext, Modifier.fillMaxWidth().padding(20.dp))
     }
 }
 
@@ -409,7 +411,7 @@ private fun AppsStep(installed: List<InstalledApp>, chosen: Set<String>, onChang
 private fun AccessStep(access: Access, onNext: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         PebbleSays(
-            if (access.ready) "All set! I can protect your focus now." else "One last step! Allow these so I can block distractions.",
+            if (access.ready) stringResource(R.string.onboarding_permissions_ready) else stringResource(R.string.onboarding_permissions_missing),
             if (access.ready) Mood.CELEBRATE else Mood.IDLE,
             Modifier.fillMaxWidth().padding(vertical = 12.dp),
             pebbleSize = 84.dp,
@@ -417,14 +419,14 @@ private fun AccessStep(access: Access, onNext: () -> Unit) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             AccessRows(access, includeOptional = true)
             Text(
-                "Your app usage stays on this phone. Only update checks and downloads use the internet.",
+                stringResource(R.string.onboarding_privacy_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = Sp.colors.textDim,
                 modifier = Modifier.padding(top = 12.dp),
             )
         }
-        ChunkyButton("Continue", onNext, Modifier.fillMaxWidth().padding(top = 12.dp), enabled = access.ready)
-        ChunkyButton("Skip for now", onNext, Modifier.fillMaxWidth().padding(bottom = 8.dp), kind = ButtonKind.GHOST)
+        ChunkyButton(stringResource(R.string.onboarding_continue), onNext, Modifier.fillMaxWidth().padding(top = 12.dp), enabled = access.ready)
+        ChunkyButton(stringResource(R.string.onboarding_skip_for_now), onNext, Modifier.fillMaxWidth().padding(bottom = 8.dp), kind = ButtonKind.GHOST)
     }
 }
 
@@ -432,9 +434,9 @@ private fun AccessStep(access: Access, onNext: () -> Unit) {
 private fun FirstFocus(enabled: Boolean, onStart: () -> Unit, onSkip: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(24.dp)) {
         Spacer(Modifier.weight(1f))
-        PebbleSays("Let's try a 2 minute focus together. You'll see how it feels!", Mood.HAPPY, Modifier.fillMaxWidth(), side = false, pebbleSize = 170.dp)
+        PebbleSays(stringResource(R.string.onboarding_first_session_intro), Mood.HAPPY, Modifier.fillMaxWidth(), side = false, pebbleSize = 170.dp)
         Spacer(Modifier.weight(1f))
-        ChunkyButton("Start 2 minute focus", onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play), enabled = enabled)
-        ChunkyButton("Maybe later", onSkip, Modifier.fillMaxWidth().padding(top = 4.dp), kind = ButtonKind.GHOST, enabled = enabled)
+        ChunkyButton(stringResource(R.string.onboarding_first_session_start_button), onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play), enabled = enabled)
+        ChunkyButton(stringResource(R.string.onboarding_maybe_later), onSkip, Modifier.fillMaxWidth().padding(top = 4.dp), kind = ButtonKind.GHOST, enabled = enabled)
     }
 }

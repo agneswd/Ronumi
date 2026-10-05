@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.schedule
 
+import dev.agneswd.stillpoint.ui.displayName
 import dev.agneswd.stillpoint.focus.remainingMillis
 import android.app.AlarmManager
 import android.app.NotificationManager
@@ -109,8 +110,8 @@ object Plans {
         val snooze = PendingIntent.getBroadcast(context, id.toInt(), Intent(context, PlanReceiver::class.java)
             .setAction(SNOOZE).setData(Uri.parse("stillpoint://snooze/$id")).putExtra("id", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val notification = NotificationCompat.Builder(context, StillpointApp.CHANNEL_EVENTS)
-            .addAction(0, "Snooze 10 minutes", snooze)
-            .setSmallIcon(R.drawable.ic_stat).setContentTitle(title).setContentText("Your planned focus time is here. Tap to start.")
+            .addAction(0, context.getString(R.string.plan_notification_snooze), snooze)
+            .setSmallIcon(R.drawable.ic_stat).setContentTitle(title.displayName(context)).setContentText(context.getString(R.string.plan_notification_body))
             .setContentIntent(MainActivity.pendingPlan(context, id)).setAutoCancel(true).build()
         runCatching { context.getSystemService(NotificationManager::class.java).notify(20, notification) }
     }

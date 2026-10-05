@@ -1,5 +1,8 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import dev.agneswd.stillpoint.R
+import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -90,12 +93,12 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
         route.onDone(selected)
         onClose()
     }
-    EditorFrame(route.title, onClose, action = if (route.single) null else "Done (${selected.size})", onAction = done) {
+    EditorFrame(route.title, onClose, action = if (route.single) null else pluralStringResource(R.plurals.editor_done, selected.size, selected.size), onAction = done) {
         Column {
             OutlinedTextField(
                 query,
                 { query = it },
-                label = { Text("Search") },
+                label = { Text(stringResource(R.string.editor_search)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).trackTextFieldFocus(),
             )
@@ -103,7 +106,7 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
                 // Chosen apps first, so the user sees the current choice at the top.
                 .sortedByDescending { it.packageName in route.selected }
             LazyColumn {
-                if (apps == null) item { ListRow("Loading apps") }
+                if (apps == null) item { ListRow(stringResource(R.string.editor_loading_apps)) }
                 items(shown, key = { it.packageName }) { item ->
                     val checked = item.packageName in selected
                     val toggle = {
@@ -125,6 +128,7 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
 
 @Composable
 fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Navigator) {
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val context = LocalContext.current
     val original = route.original
     var draft by route::draft
@@ -141,10 +145,10 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
     if (pickingIcon) {
         AlertDialog(
             onDismissRequest = { pickingIcon = false },
-            title = { Text("Choose a schedule icon") },
+            title = { Text(stringResource(R.string.editor_choose_a_schedule_icon)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Automatic follows the start time. Pick another icon for your own routine.", color = Sp.colors.textDim)
+                    Text(stringResource(R.string.editor_schedule_icon_help), color = Sp.colors.textDim)
                     scheduleIconChoices.chunked(3).forEach { choices ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             choices.forEach { (id, label) ->
@@ -159,7 +163,7 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                                 ) {
                                     ScheduleIcon(id, draft.startMinute, size = 34.dp)
                                     Spacer(Modifier.height(6.dp))
-                                    Text(label, style = MaterialTheme.typography.labelMedium, color = Sp.colors.text,
+                                    Text(stringResource(label), style = MaterialTheme.typography.labelMedium, color = Sp.colors.text,
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                                 }
                             }
@@ -168,40 +172,40 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { pickingIcon = false }) { Text("Close") } },
+            confirmButton = { TextButton(onClick = { pickingIcon = false }) { Text(stringResource(R.string.editor_close)) } },
         )
     }
     EditorFrame(
-        if (original == null) "New schedule" else "Edit schedule",
+        if (original == null) stringResource(R.string.editor_new_schedule) else stringResource(R.string.editor_edit_schedule),
         onClose,
-        action = "Save",
+        action = stringResource(R.string.editor_save),
         onAction = save,
         actionEnabled = draft.name.isNotBlank() && draft.days != 0,
     ) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             OutlinedTextField(
-                draft.name,
+                draft.name.displayName(),
                 { draft = draft.copy(name = it) },
-                label = { Text("Name") },
+                label = { Text(stringResource(R.string.editor_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).trackTextFieldFocus(),
             )
             ListRow(
-                "Schedule icon", scheduleIconChoices.firstOrNull { it.first == draft.icon }?.second ?: "Automatic",
+                stringResource(R.string.editor_schedule_icon), stringResource(scheduleIconChoices.firstOrNull { it.id == draft.icon }?.labelRes ?: R.string.schedule_icon_auto),
                 onClick = { pickingIcon = true },
             ) { ScheduleIcon(draft.icon, draft.startMinute, size = 40.dp) }
-            ListRow("Starts", minuteText(draft.startMinute, use24), onClick = { picking = true })
+            ListRow(stringResource(R.string.editor_starts), minuteText(draft.startMinute, use24), onClick = { picking = true })
             ListRow(
-                "Ends",
-                minuteText(draft.endMinute, use24) + when {
-                    draft.startMinute == draft.endMinute -> ", blocks all day"
-                    draft.endMinute < draft.startMinute -> ", next day"
-                    else -> ""
+                stringResource(R.string.editor_ends),
+                when {
+                    draft.startMinute == draft.endMinute -> stringResource(R.string.editor_end_all_day, minuteText(draft.endMinute, use24))
+                    draft.endMinute < draft.startMinute -> stringResource(R.string.editor_end_next_day, minuteText(draft.endMinute, use24))
+                    else -> minuteText(draft.endMinute, use24)
                 },
                 onClick = { picking = false },
             )
 
-            SectionTitle("Days")
+            SectionTitle(stringResource(R.string.editor_days))
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 DayOfWeek.entries.forEach { day ->
                     val bit = 1 shl (day.value - 1)
@@ -221,30 +225,30 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 }
             }
 
-            SectionTitle("Planned focus")
-            SwitchRow("Start focus at this time", "Allow alarms in Settings for automatic start. Otherwise you receive a reminder.", draft.startFocus) { on -> draft = draft.copy(startFocus = on) }
-            if (draft.startFocus) Stepper("Focus length", draft.focusMinutes, 5..240, 5, { dev.agneswd.stillpoint.guard.formatMinutes(it) }) { value -> draft = draft.copy(focusMinutes = value) }
+            SectionTitle(stringResource(R.string.editor_planned_focus))
+            SwitchRow(stringResource(R.string.editor_plan_switch), stringResource(R.string.editor_plan_alarm_help), draft.startFocus) { on -> draft = draft.copy(startFocus = on) }
+            if (draft.startFocus) Stepper(stringResource(R.string.editor_focus_length), draft.focusMinutes, 5..240, 5, { formatMinutes(it) }) { value -> draft = draft.copy(focusMinutes = value) }
 
-            SectionTitle("Apps")
+            SectionTitle(stringResource(R.string.editor_apps))
             ListRow(
-                if (draft.mode == BlockMode.LISTED) "Blocked apps" else "Allowed apps",
+                if (draft.mode == BlockMode.LISTED) stringResource(R.string.editor_blocked_apps) else stringResource(R.string.editor_allowed_apps),
                 appCount(draft.packages.size),
                 onClick = {
                     navigator.push(
-                        Route.PickApps(if (draft.mode == BlockMode.LISTED) "Block during ${draft.name}" else "Allow during ${draft.name}", draft.packages, single = false) {
+                        Route.PickApps(if (draft.mode == BlockMode.LISTED) resources.getString(R.string.editor_block_during, draft.name.displayName(context)) else resources.getString(R.string.editor_allow_during, draft.name.displayName(context)), draft.packages, single = false) {
                             draft = draft.copy(packages = it)
                         },
                     )
                 },
             ) { AppSelectionPreview(draft.packages) }
-            SwitchRow("Block every other app", "Only the chosen apps work during this schedule.", draft.mode == BlockMode.ALL_EXCEPT) { on ->
+            SwitchRow(stringResource(R.string.editor_block_every_other_app), stringResource(R.string.editor_allowlist_description), draft.mode == BlockMode.ALL_EXCEPT) { on ->
                 draft = draft.copy(mode = if (on) BlockMode.ALL_EXCEPT else BlockMode.LISTED)
             }
 
             if (original != null) {
                 Spacer(Modifier.height(24.dp))
                 ChunkyButton(
-                    "Delete schedule",
+                    stringResource(R.string.editor_delete_schedule),
                     {
                         context.app.scope.launch {
                             if (dev.agneswd.stillpoint.guard.PolicyActions.saveSchedule(context, original, delete = true)) {
@@ -276,8 +280,8 @@ fun TimeDialog(minute: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         text = { TimePicker(state) },
-        confirmButton = { TextButton(onClick = { onPick(state.hour * 60 + state.minute) }) { Text("OK") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onPick(state.hour * 60 + state.minute) }) { Text(stringResource(R.string.editor_ok)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.editor_cancel)) } },
     )
 }
 
@@ -287,16 +291,16 @@ fun HeldScreen(onClose: () -> Unit) {
     val dao = context.app.dao
     val held by dao.held().collectAsState(emptyList())
     val use24 = rememberUse24Hour()
-    EditorFrame("Held notifications", onClose, action = "Clear all", onAction = { context.app.scope.launch {
+    EditorFrame(stringResource(R.string.editor_held_notifications), onClose, action = stringResource(R.string.editor_clear_all), onAction = { context.app.scope.launch {
         dao.clearHeld()
         context.getSharedPreferences("delivery", android.content.Context.MODE_PRIVATE).edit().remove("lastDelivered").apply()
     } }, actionEnabled = held.isNotEmpty()) {
         LazyColumn {
-            if (held.isEmpty()) item { ListRow("Nothing held", "Notifications from your chosen apps show here.") }
+            if (held.isEmpty()) item { ListRow(stringResource(R.string.editor_nothing_held), stringResource(R.string.editor_inbox_empty_description)) }
             items(held, key = { it.id }) { item ->
                 ListRow(
                     title = item.title.ifBlank { context.app.catalog.label(item.packageName) },
-                    subtitle = listOf(item.text, "${context.app.catalog.label(item.packageName)}, ${time(item.postedAt, use24)}")
+                    subtitle = listOf(item.text, stringResource(R.string.editor_notification_source_time, context.app.catalog.label(item.packageName), time(item.postedAt, use24)))
                         .filter { it.isNotBlank() }.joinToString("\n"),
                     leading = { AppIcon(item.packageName, 32.dp) },
                     onClick = {

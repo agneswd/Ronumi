@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.stringResource
 import dev.agneswd.stillpoint.ui.design.Sound
 import dev.agneswd.stillpoint.ui.design.Sfx
 import android.app.PendingIntent
@@ -67,11 +68,11 @@ import dev.agneswd.stillpoint.ui.design.Sp
 import dev.agneswd.stillpoint.ui.design.StillpointTheme
 import kotlinx.coroutines.launch
 
-enum class Tab(val label: String, val icon: Int) {
-    HOME("Home", R.drawable.ic_tab_home),
-    PLANNER("Planner", R.drawable.ic_tab_planner),
-    BLOCKS("Blocks", R.drawable.ic_tab_blocks),
-    PROGRESS("Progress", R.drawable.ic_tab_progress),
+enum class Tab(@param:androidx.annotation.StringRes val labelRes: Int, val icon: Int) {
+    HOME(R.string.navigation_home, R.drawable.ic_tab_home),
+    PLANNER(R.string.navigation_planner, R.drawable.ic_tab_planner),
+    BLOCKS(R.string.navigation_blocks, R.drawable.ic_tab_blocks),
+    PROGRESS(R.string.navigation_progress, R.drawable.ic_tab_progress),
 }
 
 /** A screen on top of the tabs. The back button removes it. */
@@ -85,7 +86,7 @@ sealed interface Route {
 
     /** The draft lives in the route, so it survives a trip to the app picker. */
     class EditSchedule(val original: Schedule?) : Route {
-        var draft by mutableStateOf(original ?: Schedule(name = "Evening focus", startMinute = 18 * 60, endMinute = 20 * 60))
+        var draft by mutableStateOf(original ?: Schedule(name = dev.agneswd.stillpoint.ui.design.DayPart.EVENING.scheduleId, startMinute = 18 * 60, endMinute = 20 * 60))
     }
 
     data object Wardrobe : Route
@@ -377,9 +378,9 @@ private fun TabBar(navigator: Navigator) {
                             .border(2.dp, if (on) Sp.colors.brand else Sp.colors.background, RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(painterResource(tab.icon), tab.label, tint = if (on) Sp.colors.brand else Sp.colors.textDim, modifier = Modifier.size(26.dp))
+                        Icon(painterResource(tab.icon), stringResource(tab.labelRes), tint = if (on) Sp.colors.brand else Sp.colors.textDim, modifier = Modifier.size(26.dp))
                     }
-                    Text(tab.label, style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
+                    Text(stringResource(tab.labelRes), style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
                 }
             }
         }

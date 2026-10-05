@@ -123,7 +123,7 @@ fun ChunkyButton(
             if (text.isNotEmpty()) {
                 val style = MaterialTheme.typography.labelLarge
                 BasicText(
-                    text.uppercase(),
+                    text.uppercase(androidx.compose.ui.platform.LocalLocale.current.platformLocale),
                     style = style.copy(color = colors.content, textAlign = TextAlign.Center),
                     maxLines = 1,
                     autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
