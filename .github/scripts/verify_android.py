@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run device checks and print failure diagnostics from the disposable CI device."""
+"""Run githubDebug checks by default; use --flavor play for the playDebug fake store."""
 import pathlib
 import sys
 
