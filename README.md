@@ -15,6 +15,14 @@ Free and open source. No account, ads, or analytics. Focus works offline.
 
 ## Get Stillpoint
 
+The GitHub APK includes every feature for free. The Google Play version is free with a one-time Plus unlock that supports development.
+
+<!--
+### Get it on Google Play
+
+[Get it on Google Play](https://play.google.com/store/apps/details?id=dev.agneswd.stillpoint)
+-->
+
 Stillpoint supports **Android 9 and later**. Download the APK from the [latest release](https://github.com/agneswd/Stillpoint/releases/latest).
 
 Open the APK. Android may ask you to allow installation from your browser or file manager.
