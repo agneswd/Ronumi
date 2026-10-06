@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.room.Room
 import androidx.room.withTransaction
 import dev.agneswd.ronumi.data.*
 import dev.agneswd.ronumi.game.gameState
@@ -14,6 +15,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonArray
 import dev.agneswd.ronumi.game.RonumiStyles
@@ -46,6 +49,26 @@ class StorageCheckReceiver : BroadcastReceiver() {
                     "demo-rewards" -> prepareDemoRewards(context)
                     "progression-workflow" -> checkProgression(context)
                     "demo-wardrobe" -> prepareDemoWardrobe(context)
+                    "reward-snapshot" -> rewardSnapshot(context.app.dao)
+                    "reward-file" -> {
+                        val name = intent.getStringExtra("db") ?: error("db")
+                        val opened = Room.databaseBuilder(context, RonumiDatabase::class.java, name).build()
+                        try {
+                            rewardSnapshot(opened.dao())
+                        } finally {
+                            opened.close()
+                        }
+                    }
+                    "import-file" -> {
+                        val name = intent.getStringExtra("file") ?: error("file")
+                        val password = (intent.getStringExtra("password") ?: error("password")).toCharArray()
+                        try {
+                            importBackup(context, context.app.dao, Uri.fromFile(File(context.filesDir, name)), password)
+                        } finally {
+                            password.fill('\u0000')
+                        }
+                        "imported"
+                    }
                     "plan-start" -> preparePlan(context)
                     // A plan that never runs by itself. Only an intent can start it.
                     "plan-intent" -> {
@@ -411,6 +434,26 @@ private suspend fun checkProgression(context: Context): String {
             "Progression check did not restore the original data"
         }
     }
+}
+
+/** XP, level, quests, badges, and worn items. Rewards are derived from sessions and settings. */
+private suspend fun rewardSnapshot(dao: RonumiDao): String {
+    val settings = dao.currentSettings()
+    val sessions = dao.allSessions()
+    val state = gameState(sessions, settings, LocalDate.now())
+    return buildJsonObject {
+        put("xp", state.xp)
+        put("level", state.level.number)
+        put("sessions", sessions.size)
+        put("goal", settings.focusGoalMinutes)
+        put("onboarded", settings.onboarded)
+        put("items", JsonArray(settings.pebbleItems.sorted().map { JsonPrimitive(it) }))
+        put("limits", JsonArray(dao.allLimits().sortedBy { it.packageName }.map { JsonPrimitive("${it.packageName}:${it.minutesPerDay}:${it.mode.name}") }))
+        put("schedules", JsonArray(dao.allSchedules().sortedBy { it.name }.map { JsonPrimitive("${it.name}:${it.startMinute}:${it.endMinute}:${it.icon}") }))
+        put("sites", JsonArray(dao.allSites().map { it.domain }.sorted().map { JsonPrimitive(it) }))
+        put("quests", JsonArray(state.quests.map { JsonPrimitive("${it.id}:${it.progress}/${it.target}:${it.done}") }))
+        put("badges", JsonArray(state.badges.map { JsonPrimitive("${it.id}:${it.unlocked}") }))
+    }.toString()
 }
 
 /** Replaces history with sample data for an explicitly requested demo. */

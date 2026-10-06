@@ -9,10 +9,12 @@ Usage: ./gradlew assembleGithubDebug && python3 e2e/e2e.py [--only name,name]
 """
 import argparse
 import datetime
+import hashlib
 import pathlib
 import re
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -275,14 +277,16 @@ def today_screen():
     return shot("home")
 
 
-def device_workflow(scenario: str, extras: str = "", receiver: str = ".StorageCheckReceiver"):
-    sh(f"run-as {PKG} rm -f files/device-check.txt")
-    sh(f"am broadcast -f 0x20 -n {PKG}/{receiver} --es scenario {scenario} {extras}")
-    end = time.time() + (120 if scenario in ("storage", "backup") else 30)
+def device_workflow(scenario: str, extras: str = "", receiver: str = ".StorageCheckReceiver", timeout: float | None = None, package: str = PKG):
+    sh(f"run-as {package} rm -f files/device-check.txt")
+    sh(f"am broadcast -f 0x20 -n {package}/{receiver} --es scenario {scenario} {extras}")
+    limit = 120 if scenario in ("storage", "backup") else 30
+    end = time.time() + (timeout if timeout is not None else limit)
     while time.time() < end:
-        result = sh(f"run-as {PKG} cat files/device-check.txt")
+        result = sh(f"run-as {package} cat files/device-check.txt")
         if result.startswith(("PASS", "FAIL")):
-            (RUN / f"{scenario}-check.txt").write_text(result)
+            label = scenario if package == PKG else f"{package.split('.')[-1]}-{scenario}"
+            (RUN / f"{label}-check.txt").write_text(result)
             if not result.startswith("PASS"):
                 raise AssertionError(result)
             return result.splitlines()[1:]
@@ -771,6 +775,259 @@ def plus_workflow():
     (RUN / "plus-states.json").write_text(json.dumps(evidence, indent=2) + "\n")
     return "plus-states.json; " + shot("plus-workflow")
 
+
+OLD_PKG = "dev.agneswd.stillpoint"
+# The 0.1.3 debug fixture password. Ronumi's own fixture uses a different password.
+OLD_FIXTURE_PASSWORD = "Stillpoint debug backup fixture"
+
+
+def pull_private(package: str, remote: str, local: pathlib.Path) -> None:
+    proc = subprocess.run(["adb", "-s", SERIAL, "exec-out", "run-as", package, "cat", remote], capture_output=True)
+    if proc.returncode != 0 or not proc.stdout:
+        raise AssertionError(f"Cannot read {package}:{remote}: {proc.stderr.decode()[-400:]}")
+    local.write_bytes(proc.stdout)
+
+
+def push_private(package: str, local: pathlib.Path, remote: str) -> None:
+    tmp = "/data/local/tmp/" + local.name
+    adb("push", str(local), tmp)
+    sh(f"run-as {package} mkdir -p files databases")
+    parent = remote.rsplit("/", 1)[0]
+    sh(f"run-as {package} mkdir -p {parent}")
+    sh(f"run-as {package} sh -c 'cat {tmp} > {remote}'")
+    copied = sh(f"run-as {package} wc -c {remote}").split()
+    if not copied or int(copied[0]) != local.stat().st_size:
+        raise AssertionError(f"Copied {remote} is {copied[:1]}, expected {local.stat().st_size} bytes")
+
+
+def load_database(package: str, name: str, dest: pathlib.Path) -> None:
+    pull_private(package, f"databases/{name}", dest)
+    for suffix in ("-wal", "-shm"):
+        proc = subprocess.run(
+            ["adb", "-s", SERIAL, "exec-out", "run-as", package, "cat", f"databases/{name}{suffix}"],
+            capture_output=True,
+        )
+        side = dest.with_name(dest.name + suffix)
+        if proc.returncode == 0 and proc.stdout:
+            side.write_bytes(proc.stdout)
+        elif side.exists():
+            side.unlink()
+    connection = sqlite3.connect(dest)
+    connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    connection.commit()
+    connection.close()
+    for suffix in ("-wal", "-shm"):
+        side = dest.with_name(dest.name + suffix)
+        if side.exists():
+            side.unlink()
+
+
+def content_digest(path: pathlib.Path) -> str:
+    connection = sqlite3.connect(path)
+    parts = []
+    tables = [row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
+    for table in tables:
+        parts.append(table)
+        for row in connection.execute(f"SELECT * FROM {table}"):
+            parts.append(repr(row))
+    connection.close()
+    return hashlib.sha256("\n".join(parts).encode()).hexdigest()
+
+
+def query_rows(path: pathlib.Path, sql: str):
+    connection = sqlite3.connect(path)
+    try:
+        return connection.execute(sql).fetchall()
+    finally:
+        connection.close()
+
+
+def install_apk(path: pathlib.Path) -> None:
+    adb("install", "-r", "-t", str(path))
+
+
+def other_signed_apk(source: pathlib.Path) -> pathlib.Path:
+    out = RUN / "old-other.apk"
+    shutil.copyfile(source, out)
+    keystore = RUN / "other.keystore"
+    java_home = os.environ.get("JAVA_HOME", "")
+    keytool = str(pathlib.Path(java_home) / "bin" / "keytool") if java_home else "keytool"
+    subprocess.check_call([
+        keytool, "-genkeypair", "-keystore", str(keystore), "-storepass", "otherpass",
+        "-keypass", "otherpass", "-alias", "other", "-dname", "CN=Other",
+        "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
+    ])
+    sdk = pathlib.Path(os.environ.get("ANDROID_HOME") or os.environ["ANDROID_SDK_ROOT"])
+    signers = sorted(sdk.glob("build-tools/*/apksigner"))
+    if not signers:
+        raise AssertionError("apksigner is not installed")
+    subprocess.check_call([
+        str(signers[-1]), "sign", "--ks", str(keystore), "--ks-pass", "pass:otherpass",
+        "--key-pass", "pass:otherpass", "--ks-key-alias", "other", str(out),
+    ])
+    return out
+
+
+def seed_previous_app(source_db: pathlib.Path) -> None:
+    """Adds one limit, one schedule, and one site to the sample history."""
+    load_database(OLD_PKG, "stillpoint.db", source_db)
+    connection = sqlite3.connect(source_db)
+    connection.execute(
+        "INSERT INTO AppLimit(packageName, minutesPerDay, mode, enabled, reminderMinutes) VALUES (?, ?, ?, ?, ?)",
+        ("com.android.chrome", 45, "GENTLE", 1, 5),
+    )
+    connection.execute(
+        "INSERT INTO Schedule(id, name, startMinute, endMinute, days, packages, mode, enabled, startFocus, focusMinutes, icon) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (1, "Evening", 18 * 60, 21 * 60, 127, "", "LISTED", 1, 0, 25, "study"),
+    )
+    connection.execute("INSERT INTO BlockedSite(domain) VALUES (?)", ("example.com",))
+    connection.commit()
+    connection.close()
+    sh(f"am force-stop {OLD_PKG}")
+    push_private(OLD_PKG, source_db, "databases/stillpoint.db")
+    sh(f"run-as {OLD_PKG} rm -f databases/stillpoint.db-wal databases/stillpoint.db-shm")
+
+
+def import_workflow():
+    """Install the previous app, bring its progress across, then check the other paths."""
+    old_apk = os.environ.get("OLD_APK")
+    if not old_apk:
+        raise AssertionError("Set OLD_APK to a debug build of dev.agneswd.stillpoint signed with the debug key")
+    old_path = pathlib.Path(old_apk)
+    if not old_path.is_file():
+        raise AssertionError(f"OLD_APK is missing: {old_path}")
+    disable_guard()
+    sh(f"pm uninstall {PKG}")
+    sh(f"pm uninstall {OLD_PKG}")
+    install_apk(old_path)
+    print("Running the previous app storage check", flush=True)
+    device_workflow("storage", timeout=900, package=OLD_PKG)
+    pull_private(OLD_PKG, "files/check-export.stillpoint", RUN / "old-export.bin")
+    sh(f"pm clear {OLD_PKG}")
+    device_workflow("demo-wardrobe", timeout=60, package=OLD_PKG)
+    sh(f"am force-stop {OLD_PKG}")
+    source_db = RUN / "previous.db"
+    seed_previous_app(source_db)
+    before = content_digest(source_db)
+    sh(f"pm uninstall {PKG}")
+    install_apk(APK)
+    install_apk(ROOT / "e2e-driver/build/outputs/apk/debug/e2e-driver-debug.apk")
+    push_private(PKG, source_db, "databases/legacy.db")
+    open_ronumi("HOME")
+    wait_for("Welcome back", timeout=25)
+    if not find("Bring my progress") or not find("Start fresh"):
+        raise AssertionError("The import screen is missing an action")
+    ask = shot("import-ask")
+    tap("Bring my progress")
+    wait_for("All set", timeout=40)
+    if not find("Uninstall Stillpoint") or not find("Later"):
+        raise AssertionError("The success screen is missing an action")
+    done = shot("import-success")
+    tap("Later")
+    wait_for("Daily quests", timeout=20)
+    home_shot = shot("import-home")
+    source_score = json.loads("".join(device_workflow("reward-file", "--es db legacy.db", timeout=30)))
+    live_score = json.loads("".join(device_workflow("reward-snapshot", timeout=30)))
+    if source_score != live_score:
+        raise AssertionError(f"Imported rewards differ: {source_score} != {live_score}")
+    restored = RUN / "imported.db"
+    load_database(PKG, "ronumi.db", restored)
+    for sql in (
+        "SELECT focusGoalMinutes, onboarded, pebbleItems FROM Settings",
+        "SELECT packageName, minutesPerDay, mode FROM AppLimit ORDER BY packageName",
+        "SELECT name, startMinute, endMinute, icon FROM Schedule ORDER BY name",
+        "SELECT domain FROM BlockedSite ORDER BY domain",
+        "SELECT count(*), sum(focusedMillis) FROM FocusSession",
+    ):
+        if query_rows(source_db, sql) != query_rows(restored, sql):
+            raise AssertionError(f"Imported rows differ for {sql}")
+    sh(f"pm clear {PKG}")
+    open_ronumi("HOME")
+    wait_for("Welcome back", timeout=25)
+    fresh_ask = shot("import-ask-again")
+    tap("Start fresh")
+    wait_for("Hi! I'm Ronumi", timeout=20)
+    fresh = shot("import-fresh")
+    untouched = RUN / "previous-after-fresh.db"
+    load_database(OLD_PKG, "stillpoint.db", untouched)
+    if content_digest(untouched) != before:
+        raise AssertionError("Start fresh changed the previous app database")
+    push_private(PKG, RUN / "old-export.bin", "files/old-export.bin")
+    device_workflow(
+        "import-file",
+        f"--es file old-export.bin --es password {shlex.quote(OLD_FIXTURE_PASSWORD)}",
+        timeout=180,
+    )
+    encrypted = RUN / "encrypted-restored.db"
+    load_database(PKG, "ronumi.db", encrypted)
+    settings = query_rows(encrypted, "SELECT focusGoalMinutes, petTapCount, themeMode, onboarded FROM Settings")
+    if settings != [(25, 1000, "DARK", 1)]:
+        raise AssertionError(f"Encrypted backup restored unexpected settings: {settings}")
+    if query_rows(encrypted, "SELECT domain FROM BlockedSite") != [("example.com",)]:
+        raise AssertionError("Encrypted backup did not restore the blocked site")
+    if query_rows(encrypted, "SELECT tag FROM FocusSession") != [("Reading",)]:
+        raise AssertionError("Encrypted backup did not restore the focus session")
+    sh(f"pm uninstall {PKG}")
+    sh(f"pm uninstall {OLD_PKG}")
+    install_apk(other_signed_apk(old_path))
+    install_apk(APK)
+    open_ronumi("HOME")
+    wait_for("Get started", timeout=25)
+    time.sleep(2)
+    if find("Welcome back") or find("Bring my progress"):
+        raise AssertionError("A different signing key still showed the import screen")
+    other = shot("import-different-signer")
+    summary = {
+        "previousDigest": before,
+        "rewards": live_score,
+        "screenshots": [ask, done, home_shot, fresh_ask, fresh, other],
+    }
+    (RUN / "import-result.json").write_text(json.dumps(summary, indent=2) + "\n")
+    return "import-result.json; " + ", ".join(summary["screenshots"])
+
+
+def update_workflow():
+    """The daily job is scheduled, and a missing public release is the current release."""
+    open_ronumi("HOME")
+    if find("Get started") or find("Hi! I'm Ronumi"):
+        device_workflow("demo-wardrobe")
+        sh(f"am force-stop {PKG}")
+    open_ronumi("PROGRESS")
+    tap("Settings", exact=True)
+    scroll_to("Check for updates")
+    scroll_to("agneswd/Ronumi")
+    jobs = sh("dumpsys jobscheduler")
+    if "64021" not in jobs and "UpdateJob" not in jobs:
+        raise AssertionError("The daily update job is not scheduled")
+    settings_shot = shot("update-settings")
+    tap("Check for updates")
+    success = "You have the latest release"
+    offline = "Could not check for updates"
+    failures = (
+        "GitHub is limiting",
+        "GitHub could not provide",
+        "The update could not finish",
+        "No public release is available yet",
+        "This release is for Stillpoint",
+    )
+    end = time.time() + 45
+    scrolled = False
+    while time.time() < end:
+        if find(success):
+            return settings_shot + ", " + shot("update-current") + "; job 64021"
+        if find(offline):
+            return settings_shot + ", " + shot("update-offline") + "; job 64021; live check did not run"
+        for text in failures:
+            if find(text):
+                raise AssertionError(text)
+        if not scrolled and time.time() + 40 < end:
+            scroll_up()
+            scrolled = True
+        time.sleep(0.7)
+    raise AssertionError("The update check did not finish")
+
+
 CHECKS = [
     schema_upgrade,
     onboarding,
@@ -796,6 +1053,7 @@ CHECKS = [
     progression_workflow,
     notification_workflow,
     planned_focus_workflow,
+    update_workflow,
 ]
 
 
@@ -809,8 +1067,10 @@ def main():
     APK = ROOT / f"app/build/outputs/apk/{args.flavor}/debug/app-{args.flavor}-debug.apk"
     if args.apk:
         APK = args.apk.resolve()
-    available = CHECKS if args.flavor == "github" else [plus_workflow]
-    requested = set(args.only.split(",")) if args.only else {c.__name__ for c in available}
+    opt_in = [import_workflow] if args.flavor == "github" else []
+    suite = CHECKS if args.flavor == "github" else [plus_workflow]
+    available = suite + opt_in
+    requested = set(args.only.split(",")) if args.only else {c.__name__ for c in suite}
     unknown = requested - {c.__name__ for c in available}
     if unknown:
         parser.error("Unknown checks for this flavor: " + ", ".join(sorted(unknown)))
