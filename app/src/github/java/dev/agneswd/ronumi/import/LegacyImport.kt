@@ -32,18 +32,27 @@ internal object LegacyImport {
     }
 
     /** True only when the old app is installed, same-signed, and exports the provider. */
-    @Suppress("DEPRECATION")
     fun offerAvailable(context: Context): Boolean {
         if (decided(context)) return false
-        val manager = context.packageManager
-        val installed = runCatching { manager.getPackageInfo(PACKAGE, 0) }.isSuccess
-        if (!installed) return false
         if (context.checkSelfPermission(PERMISSION) != PackageManager.PERMISSION_GRANTED) return false
-        return manager.resolveContentProvider(AUTHORITY, 0) != null
+        return trusted(context)
+    }
+
+    /**
+     * The permission alone is not proof: an app with another key could define it at a weaker level.
+     * The provider must belong to the old package, and that package must share Ronumi's signer.
+     */
+    @Suppress("DEPRECATION")
+    private fun trusted(context: Context): Boolean {
+        val manager = context.packageManager
+        val provider = manager.resolveContentProvider(AUTHORITY, 0) ?: return false
+        return provider.packageName == PACKAGE &&
+            manager.checkSignatures(context.packageName, PACKAGE) == PackageManager.SIGNATURE_MATCH
     }
 
     /** Reads the provider to the end. The stream is a pipe, so this does not seek. */
     suspend fun importNow(context: Context) = withContext(Dispatchers.IO) {
+        if (!trusted(context)) throw SecurityException("Stillpoint is not signed with the Ronumi key")
         val bytes = read(context)
         restorePlainDocument(context, context.app.dao, bytes)
     }
