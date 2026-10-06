@@ -57,7 +57,7 @@ def run(e):
     after_shot = e.shot("bridge-after")
     e.tap("GET RONUMI", exact=True)
     activities = e.sh("dumpsys activity activities")
-    assert "https://github.com/agneswd/Stillpoint/releases/latest" in activities, "Wrong download destination"
+    assert "https://github.com/agneswd/Stillpoint/releases/tag/v1.0.0" in activities, "Wrong download destination"
     (e.RUN / "bridge-download-intent.txt").write_text(activities)
     e.open_stillpoint("HOME")
     e.tap("Dismiss", exact=True)

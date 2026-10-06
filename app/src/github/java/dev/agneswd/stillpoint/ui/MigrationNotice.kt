@@ -26,6 +26,13 @@ import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.ui.design.ChunkyCard
 import dev.agneswd.stillpoint.ui.design.Sp
 
+/**
+ * Ronumi 1.0.0 stays at this tag and is not the latest release.
+ * This bridge release must stay latest so older apps can update to it.
+ * After the repository is renamed to Ronumi, GitHub redirects this URL in the browser.
+ */
+const val RONUMI_RELEASE_URL = "https://github.com/agneswd/Stillpoint/releases/tag/v1.0.0"
+
 /** Remains dismissed across launches. This preference does not belong in the migrated backup. */
 @Composable
 fun MigrationNotice() {
@@ -44,7 +51,7 @@ fun MigrationNotice() {
                 }) { Text(stringResource(R.string.bridge_dismiss)) }
                 TextButton(onClick = {
                     try {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/agneswd/Stillpoint/releases/latest")))
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(RONUMI_RELEASE_URL)))
                     } catch (_: ActivityNotFoundException) {
                         Toast.makeText(context, R.string.bridge_no_browser, Toast.LENGTH_SHORT).show()
                     }

@@ -85,4 +85,12 @@ Run `python3 e2e/bridge/verify_apks.py` after assembling all four normal variant
 It checks the packaged permission and provider, plus the absence of bridge code and text in Play.
 Set `STILLPOINT_BRIDGE_BASELINE_APK` to an APK built from the target commit.
 The workflow then captures matching before and after Home screenshots.
-The workflow also checks the download URL and persistent dismissal.
+
+## Notice link
+
+The Home button opens `https://github.com/agneswd/Stillpoint/releases/tag/v1.0.0`.
+This bridge release stays the latest GitHub release, so older apps can still update to it.
+Ronumi 1.0.0 is published at the same time and is not the latest release.
+After the repository is renamed to Ronumi, GitHub redirects that URL in the browser.
+
+The workflow also checks the v1.0.0 release URL and persistent dismissal.
