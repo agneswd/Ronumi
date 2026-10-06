@@ -1,6 +1,6 @@
 # Ronumi
 
-A focus app for Android. Ronumi is the mascot.
+A focus app for Android, with a small stone mascot of the same name.
 
 Pick a task, block the apps that interrupt it, and start a session. Your focus time earns new clothes for Ronumi,
 daily quest rewards, and a record of the work you put in.
