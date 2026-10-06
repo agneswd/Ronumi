@@ -74,14 +74,14 @@ def main():
     root = Path(__file__).resolve().parents[1]
     target = root / "app/src/main/assets/focus"
     target.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="stillpoint-focus-audio-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="ronumi-focus-audio-") as temporary:
         cache = args.cache or Path(temporary)
         cache.mkdir(parents=True, exist_ok=True)
         levels = {}
         for name, (url, expected_hash) in SOURCES.items():
             source = cache / f"{name}.mp3"
             if not source.exists():
-                request = urllib.request.Request(url, headers={"User-Agent": "Stillpoint audio importer"})
+                request = urllib.request.Request(url, headers={"User-Agent": "Ronumi audio importer"})
                 with urllib.request.urlopen(request, timeout=60) as response:
                     source.write_bytes(response.read())
             if hashlib.sha256(source.read_bytes()).hexdigest() != expected_hash:

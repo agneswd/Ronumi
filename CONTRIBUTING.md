@@ -15,4 +15,4 @@ Do not add tests that only repeat the implementation.
 
 Keep data offline. Preserve Room data with explicit migrations.
 Keep signing keys, passwords, phone backups, and test artifacts out of Git.
-Reuse the existing Pebble artwork and Compose components for interface changes.
+Reuse the existing Ronumi artwork and Compose components for interface changes.

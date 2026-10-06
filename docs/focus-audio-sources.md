@@ -1,6 +1,6 @@
 # Focus audio sources
 
-Stillpoint plays bundled recordings from Freesound. It does not synthesize focus audio in the app.
+Ronumi plays bundled recordings from Freesound. It does not synthesize focus audio in the app.
 Playback works offline. The app does not download audio or need Internet access.
 
 All five source pages list **CC0 1.0 Universal**, checked on 2026-10-02.

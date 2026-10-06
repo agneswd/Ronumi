@@ -1,8 +1,8 @@
 # Feature map
 
-Stillpoint is a focus app for Android. The mascot is Pebble.
-Focus, blocking, reports, and rewards run on the phone. There is no account and no Stillpoint server.
-Stillpoint has no cloud sync, social focus rooms, leaderboards, friends, subscriptions, ads, or analytics.
+Ronumi is a focus app for Android. The mascot uses the same name.
+Focus, blocking, reports, and rewards run on the phone. There is no account and no app server.
+Ronumi has no cloud sync, social focus rooms, leaderboards, friends, subscriptions, ads, or analytics.
 
 ## Focus modes
 
@@ -20,18 +20,18 @@ A later change to the wall clock cannot add focus minutes.
 
 A new session keeps the reward date and the start hour from when it began.
 An older session still takes those values from its timestamps and the current time zone.
-An overnight session counts toward one reward date. Stillpoint does not split that session across calendar days.
+An overnight session counts toward one reward date. Ronumi does not split that session across calendar days.
 
 ## Planned focus
 
-You can plan a session. Stillpoint starts it with a local alarm when Android allows exact alarms.
+You can plan a session. Ronumi starts it with a local alarm when Android allows exact alarms.
 You can set a reminder. Snooze stores a deadline 10 minutes ahead.
-Stillpoint turns each local time into an instant before it compares times.
+Ronumi turns each local time into an instant before it compares times.
 A time that falls in a missing hour moves forward by that clock-change gap.
 A local time that occurs twice runs once, at the first occurrence.
 Notification delivery uses the same rule.
 A reboot or a time change rebuilds the next alarm.
-When Stillpoint refreshes alarms, it reads the next deadline first, then replaces each pending alarm.
+When Ronumi refreshes alarms, it reads the next deadline first, then replaces each pending alarm.
 
 A planned session can start again after the process stops. It can also finish while the screen is off.
 
@@ -60,7 +60,7 @@ Study days, focus minutes, and finished sessions earn XP and levels.
 Home shows four daily quests, chosen from 24 templates. Open a quest to read its rules.
 A new day gets four quests. A day that already has an older session keeps that day's original three quests.
 Each new session stores the quest-rule version. Older history keeps its old rules and its original XP.
-Stillpoint adds the quest XP when the quest is complete.
+Ronumi adds the quest XP when the quest is complete.
 
 There are 33 badges for focus time, sessions, and habits.
 Progress can filter them by category, or by whether you have earned them.
@@ -71,13 +71,13 @@ Rest days and streak freezes do not count as missed study days.
 ## Mascot wardrobe
 
 Levels 1 to 20 unlock 36 colors, clothes, hats, and accessories.
-One more outfit stays hidden until you pet Pebble enough times. The pet count is saved on the phone.
+One more outfit stays hidden until you pet Ronumi enough times. The pet count is saved on the phone.
 You can preview a locked item. You can wear one unlocked item in each slot. Wearing an item does not spend XP.
-Stillpoint stores the worn item IDs in settings.
+Ronumi stores the worn item IDs in settings.
 Before it equips an item, it checks the current level inside the same database transaction.
-A closed hat covers Pebble's sprout. Open headwear leaves the sprout visible.
+A closed hat covers Ronumi's sprout. Open headwear leaves the sprout visible.
 
-Pebble reacts when you tap.
+Ronumi reacts when you tap.
 The poses are idle, happy, proud, thoughtful, sad, sleeping, and waving. Each pose moves in its own way.
 Recent focus habits set the mood on Home.
 
@@ -85,13 +85,13 @@ Recent focus habits set the mood on Home.
 
 ### Apps
 
-During focus, Stillpoint blocks the apps you chose.
+During focus, Ronumi blocks the apps you chose.
 You can instead allow only those apps and block the others.
 Essential apps stay available in that mode.
 
 The Blocks screen can pause schedules and app limits for 10 minutes.
 Focus blocks stay in place during that pause.
-Stillpoint refuses the pause during a strict focus session.
+Ronumi refuses the pause during a strict focus session.
 It also refuses the pause while protection is on during focus or a schedule.
 A pause that started earlier does not open a schedule while protection is on.
 
@@ -103,27 +103,27 @@ A backward clock change cannot suppress enforcement until the old wall time retu
 A schedule blocks a list of apps, or every app except a list, on the days you choose.
 A schedule can cross midnight.
 You can pick an icon, or let the icon follow the start time.
-When you change a schedule, Stillpoint checks the active protection again.
+When you change a schedule, Ronumi checks the active protection again.
 
 ### Limits
 
 A limit can be gentle or strict.
 A gentle limit can grant a counted pass of five minutes.
 A strict limit ignores a pass, including a pass saved while the limit was gentle.
-You can set a reminder. Stillpoint tracks a streak of days inside the limit.
-If you raise the limit, or switch it from strict to gentle, Stillpoint asks you to confirm.
+You can set a reminder. Ronumi tracks a streak of days inside the limit.
+If you raise the limit, or switch it from strict to gentle, Ronumi asks you to confirm.
 
 ### Websites
 
 You can block domains and their subdomains, block a built-in list of adult domains, or allow only the domains you list.
-When you leave a blocked site, Stillpoint opens a blank page in the same tab.
-Stillpoint reads the address bar in Chrome, Brave, Firefox, Edge, Samsung Internet, Opera, Vivaldi, DuckDuckGo, and other browsers that open web links.
+When you leave a blocked site, Ronumi opens a blank page in the same tab.
+Ronumi reads the address bar in Chrome, Brave, Firefox, Edge, Samsung Internet, Opera, Vivaldi, DuckDuckGo, and other browsers that open web links.
 Detection uses the text and controls those apps expose to the accessibility service. An app update can change that.
 
 ### Short videos
 
-Stillpoint can close YouTube Shorts, Instagram Reels, Snapchat Spotlight, and Facebook Reels without leaving the app.
-If the feed is a tab, or it is the first screen of this visit, Stillpoint selects another tab.
+Ronumi can close YouTube Shorts, Instagram Reels, Snapchat Spotlight, and Facebook Reels without leaving the app.
+If the feed is a tab, or it is the first screen of this visit, Ronumi selects another tab.
 Otherwise it goes back to the page that opened the feed, such as YouTube search results.
 
 You can allow one identified video on each visit to an app.
@@ -132,7 +132,7 @@ Any feed without a title id does the same.
 A video that still has no title after 1.5 seconds is blocked.
 
 YouTube study mode lets you choose channels and can block the home feed.
-An unknown channel stays blocked in a player Stillpoint recognizes.
+An unknown channel stays blocked in a player Ronumi recognizes.
 
 ### Strict mode
 
@@ -144,7 +144,7 @@ Strict mode cannot stop force-stop, safe mode, or every way to uninstall the app
 ### Notification inbox
 
 You choose which apps to hold.
-Stillpoint can hold their notifications during focus and schedules, or all day.
+Ronumi can hold their notifications during focus and schedules, or all day.
 You can schedule a private summary.
 Focus notifications, planned reminders, and inbox summaries each have their own switch.
 A held-message count increases only for a new inbox key.
@@ -172,18 +172,18 @@ You can tap a day in the last week to see which apps you used.
 
 ## Widgets
 
-Stillpoint has screen-time, focus, goal, and calendar widgets.
+Ronumi has screen-time, focus, goal, and calendar widgets.
 A widget refreshes after a database commit.
 On Android 16 and later, the focus timer also shows in the status bar.
 
 ## Backups
 
 You can export a portable backup protected by a password.
-The export asks for at least 12 characters. Stillpoint does not save the password, and it cannot recover it.
+The export asks for at least 12 characters. Ronumi does not save the password, and it cannot recover it.
 Restore checks the file authentication and the records before it changes stored data.
 A restore keeps the pass counts already on that phone, expires active passes, and does not refill the daily pass budget.
 A person who knows the password can still edit the records. Encryption does not make an offline clock trustworthy.
-Stillpoint accepts only its encrypted backup format. It does not import older plaintext JSON files.
+Ronumi accepts only its encrypted backup format. It does not import older plaintext JSON files.
 The backup omits held message text, the active session, and temporary passes.
 
 Validation accepts a local day longer than 24 hours, up to 48 hours.
@@ -202,7 +202,7 @@ Settings keeps its scroll position.
 
 ## Privacy and network use
 
-Stillpoint keeps settings, focus history, screen time, and held messages on the phone.
+Ronumi keeps settings, focus history, screen time, and held messages on the phone.
 It does not upload them. Automatic Android backup is off.
 
 The GitHub version can check GitHub for an update. The check is optional.

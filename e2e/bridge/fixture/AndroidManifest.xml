@@ -1,9 +1,0 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
-        <receiver android:name="dev.agneswd.stillpoint.BridgeFixture" android:exported="true" android:permission="android.permission.DUMP" />
-        <provider
-            android:name="dev.agneswd.stillpoint.UpdateJobPlant"
-            android:authorities="dev.agneswd.stillpoint.e2e.updatejob"
-            android:exported="false" />
-    </application>
-</manifest>

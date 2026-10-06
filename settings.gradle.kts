@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Stillpoint"
+rootProject.name = "Ronumi"
 include(":app", ":e2e-driver")

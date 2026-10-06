@@ -6,17 +6,17 @@ plugins {
 }
 
 android {
-    namespace = "dev.agneswd.stillpoint"
+    namespace = "dev.agneswd.ronumi"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
 
     defaultConfig {
-        applicationId = "dev.agneswd.stillpoint"
+        applicationId = "dev.agneswd.ronumi"
         // API 28 is the first release that reports unlock events through UsageStatsManager.
         minSdk = 28
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.1.3"
+        versionCode = 100
+        versionName = "1.0.0"
     }
 
     flavorDimensions += "distribution"
@@ -35,13 +35,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    val releaseKeystore = providers.environmentVariable("STILLPOINT_KEYSTORE").orNull
+    val releaseKeystore = providers.environmentVariable("RONUMI_KEYSTORE").orNull
     signingConfigs {
         if (releaseKeystore != null) create("release") {
             storeFile = file(releaseKeystore)
-            storePassword = providers.environmentVariable("STILLPOINT_STORE_PASSWORD").get()
-            keyAlias = providers.environmentVariable("STILLPOINT_KEY_ALIAS").orElse("stillpoint").get()
-            keyPassword = providers.environmentVariable("STILLPOINT_KEY_PASSWORD").get()
+            storePassword = providers.environmentVariable("RONUMI_STORE_PASSWORD").get()
+            keyAlias = providers.environmentVariable("RONUMI_KEY_ALIAS").orElse("ronumi").get()
+            keyPassword = providers.environmentVariable("RONUMI_KEY_PASSWORD").get()
         }
     }
     buildTypes {
