@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import dev.agneswd.stillpoint.data.FocusPhase
 import dev.agneswd.stillpoint.data.StillpointDatabase
 import dev.agneswd.stillpoint.usage.AppCatalog
 import dev.agneswd.stillpoint.usage.UsageReader
@@ -49,7 +50,12 @@ class StillpointApp : Application() {
         )
         plus
         scope.launch {
-            combine(dao.settings().map { it.notificationDeliveryTimes }.distinctUntilChanged(), dao.schedules(), dao.activeFocusFlow()) { _, _, _ -> Unit }.collect {
+            // A checkpoint rewrites elapsed time only. Plans care about the session, phase, deadline, and pause.
+            val focusKey = dao.activeFocusFlow().map { focus ->
+                // Whole seconds. A checkpoint rewrites the deadline by a few milliseconds.
+                focus?.let { FocusScheduleKey(it.startedAt, it.phase, it.phaseEndsAt / 1000, paused = !it.running) }
+            }.distinctUntilChanged()
+            combine(dao.settings().map { it.notificationDeliveryTimes }.distinctUntilChanged(), dao.schedules(), focusKey) { _, _, _ -> Unit }.collect {
                 Plans.refresh(this@StillpointApp)
             }
         }
@@ -69,6 +75,14 @@ class StillpointApp : Application() {
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(receiver, filter, RECEIVER_NOT_EXPORTED)
         else registerReceiver(receiver, filter)
     }
+
+    /** Identity of the running session for alarm scheduling. Elapsed time is not part of it. */
+    private data class FocusScheduleKey(
+        val startedAt: Long,
+        val phase: FocusPhase,
+        val phaseEndsAtSeconds: Long,
+        val paused: Boolean,
+    )
 
     companion object {
         const val CHANNEL_FOCUS = "focus"
