@@ -34,11 +34,22 @@ object Sfx {
 
     private var pool: SoundPool? = null
     private val ids = mutableMapOf<Sound, Int>()
-    private lateinit var prefs: android.content.SharedPreferences
+    private val prefsLock = Any()
+    private var prefs: android.content.SharedPreferences? = null
+    private var pendingEnabled: Boolean? = null
 
     fun init(context: Context) {
         if (pool != null) return
-        prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val appContext = context.applicationContext
+        // The preference file is read off the main thread. Until it loads, sound stays on.
+        Thread({
+            val loaded = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val pending = synchronized(prefsLock) {
+                prefs = loaded
+                pendingEnabled.also { pendingEnabled = null }
+            }
+            if (pending != null) loaded.edit().putBoolean(KEY, pending).apply()
+        }, "sfx-prefs").start()
         val attributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_GAME)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -50,8 +61,17 @@ object Sfx {
     }
 
     var enabled: Boolean
-        get() = !::prefs.isInitialized || prefs.getBoolean(KEY, true)
-        set(value) = prefs.edit().putBoolean(KEY, value).apply()
+        get() = synchronized(prefsLock) { pendingEnabled ?: prefs?.getBoolean(KEY, true) ?: true }
+        set(value) {
+            val current = synchronized(prefsLock) {
+                val loaded = prefs
+                if (loaded == null) {
+                    pendingEnabled = value
+                    null
+                } else loaded
+            }
+            current?.edit()?.putBoolean(KEY, value)?.apply()
+        }
 
     fun play(sound: Sound) {
         if (!enabled) return
