@@ -1,4 +1,4 @@
-# Build and test Stillpoint
+# Build and test Ronumi
 
 ## Build
 
@@ -6,7 +6,7 @@ Use JDK 17, Android SDK 37, and Build Tools 37.0.0. Set `JAVA_HOME` for your ins
 Set `sdk.dir` in an untracked `local.properties`, or set `ANDROID_HOME`.
 
 ```sh
-# GitHub APKs. Version 0.1.3 does not check for updates. Plus features stay available.
+# GitHub APKs. This build checks GitHub for updates. Plus features stay available.
 ./gradlew assembleGithubDebug assembleGithubRelease lintGithubDebug lintGithubRelease
 # Play APKs for checks, and the Play release bundle for upload.
 ./gradlew assemblePlayDebug assemblePlayRelease bundlePlayRelease lintPlayDebug lintPlayRelease
@@ -19,10 +19,10 @@ The Play bundle is `app/build/outputs/bundle/playRelease/app-play-release.aab`.
 Debug APKs use the Android debug key. Release builds are unsigned unless these environment variables are set:
 
 ```text
-STILLPOINT_KEYSTORE
-STILLPOINT_STORE_PASSWORD
-STILLPOINT_KEY_ALIAS
-STILLPOINT_KEY_PASSWORD
+RONUMI_KEYSTORE
+RONUMI_STORE_PASSWORD
+RONUMI_KEY_ALIAS
+RONUMI_KEY_PASSWORD
 ```
 
 Keep the release keystore and passwords outside the repository. Keep a private backup of both.
@@ -36,7 +36,7 @@ A backup never transfers or changes Plus ownership. Restore purchases from Googl
 
 ## Device checks
 
-Use a disposable emulator. The test resets Stillpoint's app data and configures emulator permissions.
+Use a disposable emulator. The test resets Ronumi's app data and configures emulator permissions.
 A complete blocking run needs Chrome, Clock, Contacts, and a compatible YouTube installation.
 The browser matrix also runs Brave, Brave Beta, and Firefox when they are installed. Finish their welcome pages first.
 
@@ -80,8 +80,8 @@ A successful billing-flow launch stays busy until a purchase callback or a foreg
 This foundation does not enforce limits, gate features, or show a paywall.
 
 GitHub always reports unlocked. Its purchase and restore methods do nothing. Its dependency graph contains no billing library.
-Play uses Billing Library 9.1.0 and the non-consumable product `stillpoint_plus`.
-The Play build keeps the Internet and network-state permissions that the library's diagnostic transport dependency adds. Removing them can crash that library when it checks the network in the background. Stillpoint code makes no network requests in the Play build.
+Play uses Billing Library 9.1.0 and the non-consumable product `ronumi_plus`.
+The Play build keeps the Internet and network-state permissions that the library's diagnostic transport dependency adds. Removing them can crash that library when it checks the network in the background. Ronumi code makes no network requests in the Play build.
 Billing uses the Play Store service. The billing AAR supplies its own consumer R8 rules.
 Configure one permanent buy option, without rental or preorder offers, in Play Console.
 Purchases are acknowledged after `PURCHASED`, including purchases recovered at startup.
@@ -124,7 +124,7 @@ This checks wardrobe fields in Room and backups, old backup defaults, quest comp
 and rejection of locked, unknown, or duplicate-slot items.
 The outer test command resets app data even when you select one workflow.
 
-Database version 4 adds `Settings.pebbleItems` and `FocusSession.questVersion` with defaults.
+Database version 4 adds `Settings.pebbleItems` and `FocusSession.questVersion` with defaults. The column name `pebbleItems` stays so older backups restore.
 Old sessions retain their original quest rules and XP. New session days use four quests.
 If a day already contains an old session, that day keeps the original three quests.
 
@@ -196,7 +196,7 @@ These checks do not make a user-controlled, offline device a trusted source of t
 
 ## Encrypted backups
 
-The file picker creates `.stillpoint` files. The export dialog requires a password of at least 12 characters.
+The file picker creates `.ronumi` files. The export dialog requires a password of at least 12 characters.
 Passwords stay in memory and are not saved in preferences or UI restoration state. There is no password recovery.
 A password can restore the file on another device. Plaintext JSON imports are deliberately unsupported.
 
@@ -204,7 +204,7 @@ The version-1 envelope uses AES-256-GCM with a 128-bit authentication tag, a ran
 PBKDF2-HMAC-SHA256 derives the key with 600,000 iterations, following [OWASP guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
 The version fixes the derivation cost. An input file cannot request more iterations.
 
-The authenticated header contains the eight-byte `STLPBAK!` marker, one-byte version, four-byte big-endian plaintext length, salt, and nonce.
+The authenticated header contains the eight-byte `STLPBAK!` marker, one-byte version, four-byte big-endian plaintext length, salt, and nonce. Ronumi still accepts that marker, including a file saved by the previous app.
 Plaintext is limited to 16 MiB. The envelope adds 57 bytes, including the authentication tag.
 Authentication and record validation finish before the restore transaction changes any rows.
 Wrong passwords and authentication failures share one error. Unsupported formats receive a separate explanation.
@@ -224,9 +224,23 @@ Older backups omit the field and restore as `SYSTEM`.
 
 ## Built-in updates
 
-Version 0.1.3 retires the GitHub updater. It is the last release of package `dev.agneswd.ronumi`.
-The github build no longer schedules the daily update job, and it cancels the job (id 64021) that older builds scheduled.
-Settings shows the Ronumi notice instead of update controls. The app makes no network requests.
-The download and install code stays in the github source set, but nothing calls it.
+The GitHub build checks `https://api.github.com/repos/agneswd/Ronumi/releases/latest`.
+The user agent is `Ronumi-Updater`.
+A daily job, id 64021, runs when automatic checks are on. Settings shows Check for updates and the source `agneswd/Ronumi`.
+A missing public release counts as the current release. Settings then says that you have the latest release.
+An APK for package `dev.agneswd.stillpoint` is not installed.
 The Play flavor declares Internet access only through the Billing library and makes no network requests of its own.
 Focus, blocking, reports, and audio remain local.
+
+## Progress import
+
+The GitHub build can read progress from package `dev.agneswd.stillpoint` when that app is installed and signed with the same key.
+The Play build has no import screen.
+Run the check only when you have a debug APK of that package from the 0.1.3 release, signed with the same debug key:
+
+```sh
+OLD_APK=/path/to/previous-github-debug.apk ANDROID_SERIAL=emulator-5554 python3 e2e/e2e.py --only import_workflow
+```
+
+The check installs that APK, brings the progress across, tries Start fresh, tries a different signing key, and restores an encrypted backup from that app.
+It is not part of the default device run, because it reinstalls both apps.

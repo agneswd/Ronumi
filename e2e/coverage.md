@@ -79,7 +79,7 @@ It checks capture, content updates, process restart, and duplicate delivery.
 The fixture waits until Android posts the notification.
 
 The focus layout scales its timer and mascot to the available height. Small screens and large fonts can scroll.
-Theme labels sit outside image clipping. Paused Pebble has closed eyes. Strict Pebble uses curved, overlapping arms.
+Theme labels sit outside image clipping. Paused Ronumi has closed eyes. Strict Ronumi uses curved, overlapping arms.
 
 Use this command to capture the screen and app audio:
 
@@ -133,7 +133,7 @@ Also cover these failures:
 - Notification switches change enforcement, stop automatic planned sessions, or erase held messages.
 - A schedule icon changes after an edit, a restart, or a restore. Automatic icons stop following the start time.
 - Pet progress resets after a restart, or grants the hidden reward before its requirement is met.
-- Rest days or frozen days lower Pebble's mood. Partial focus fails to acknowledge a return.
+- Rest days or frozen days lower Ronumi's mood. Partial focus fails to acknowledge a return.
 - New animation loops snap at their boundary, or move clothing separately from the body.
 - Automatic update checks continue after being disabled, or download an APK without a user action.
 - Network failure prevents local focus, or leaves the update screen stuck.
@@ -142,6 +142,8 @@ Also cover these failures:
 
 The GitHub flavor has Internet access for updates. Test local focus and blocking with the network off.
 A GitHub metadata response does not prove that a signed update installs.
+A same-signed previous app can bring its progress into Ronumi. A different signature skips that screen.
+An encrypted backup from that app restores. Start fresh leaves the previous app unchanged.
 
 ## Encrypted backups and schema 6
 
