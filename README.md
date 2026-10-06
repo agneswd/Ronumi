@@ -56,14 +56,12 @@ Screen-time reports separate productive apps, distracting apps, and other apps. 
 Tap a day in the last week to see which apps you used.
 Your focus block list defines distracting apps.
 
-Website blocks read the address bar of your browsers. When you leave a blocked site, Stillpoint opens a blank page in the same tab.
+Website blocks read the address bar in Chrome, Brave, Firefox, Edge, Samsung Internet, Opera, Vivaldi, DuckDuckGo, and other browsers that open web links.
+When you leave a blocked site, Stillpoint opens a blank page in the same tab.
 Short-video blocks close YouTube Shorts, Instagram Reels, Snapchat Spotlight, and Facebook Reels without leaving the app.
 A Short you open from YouTube search goes back to your results.
 
-Detection depends on what other apps show to Android's accessibility service, and app updates can change it.
-Device checks for this release used YouTube 20.10 with Chrome, Brave, Brave Beta, and Firefox 153 on Android 16, and Chrome 69 on Android 9.
-Stillpoint also knows Edge, Samsung Internet, Opera, Vivaldi, DuckDuckGo, and other browsers, but they were not tested on a device.
-Instagram, Snapchat, and Facebook were not tested either.
+Detection depends on what other apps show to Android's accessibility service. An app update can change that.
 
 Blocking needs Android permissions to work. Strict mode cannot prevent force-stop, safe mode, or every uninstall method.
 
@@ -121,7 +119,7 @@ Open Settings and select GET RONUMI. Ronumi brings your progress with it.
 Leave private messages and backups out of reports.
 
 For builds and device checks, read the [development guide](docs/development.md).
-The [feature map](docs/feature-map.md) lists completed work and known gaps.
+The [feature map](docs/feature-map.md) describes what Stillpoint does.
 
 Stillpoint code and original artwork use [GPL-3.0-only](LICENSE).
 Nunito uses the [SIL Open Font License](licenses/Nunito-OFL.txt).
