@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.guard
 
+import dev.agneswd.stillpoint.ui.textResource
 import android.accessibilityservice.AccessibilityService
 import android.content.BroadcastReceiver
 import androidx.core.content.ContextCompat
@@ -398,8 +399,8 @@ class GuardService : AccessibilityService() {
         if (now - visitStarted < interval || lastReminder > 0 && now - lastReminder < interval) return
         lastReminder = now
         val notification = NotificationCompat.Builder(this, StillpointApp.CHANNEL_EVENTS)
-            .setSmallIcon(R.drawable.ic_stat).setContentTitle("Time to take a break?")
-            .setContentText("You have used ${app.catalog.label(pkg)} for ${(now - visitStarted) / 60_000} minutes.")
+            .setSmallIcon(R.drawable.ic_stat).setContentTitle(getString(R.string.limit_reminder_title))
+            .setContentText(resources.getQuantityString(R.plurals.limit_reminder_body, ((now - visitStarted) / 60_000).toInt(), app.catalog.label(pkg), (now - visitStarted) / 60_000))
             .setContentIntent(MainActivity.pendingHome(this)).setAutoCancel(true).build()
         runCatching { getSystemService(NotificationManager::class.java).notify(30, notification) }
     }
@@ -433,7 +434,7 @@ class GuardService : AccessibilityService() {
         if (current.settings.blockMultiWindow && current.locked(LocalDateTime.now()) && pkg !in essentials &&
             (windows.any { it.isInPictureInPictureMode } || windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
                 .mapNotNull { it.root?.packageName?.toString() }.filter { it !in essentials }.distinct().size > 1)) {
-            block(pkg, BlockReason(BlockKind.MULTI_WINDOW, "Multiple app windows are blocked", "Use one app during this block."))
+            block(pkg, BlockReason(BlockKind.MULTI_WINDOW, textResource(R.string.block_windows_title), textResource(R.string.block_windows_detail)))
             return
         }
         if (contentEnabled) shortsFeeds.firstOrNull { it.packageName == pkg && it.enabled(current.settings) }?.let { feed ->
@@ -462,20 +463,20 @@ class GuardService : AccessibilityService() {
                     }
                 }
                 silence(roots)
-                block(pkg, BlockReason(BlockKind.SHORTS, "${feed.name} is blocked", "The rest of the app still works."))
+                block(pkg, BlockReason(BlockKind.SHORTS, textResource(R.string.block_short_title, textResource(feed.nameRes)), textResource(R.string.block_short_detail)))
                 return
             }
         }
         if (contentEnabled && pkg == "com.google.android.youtube") {
             if (current.settings.blockYoutubeHome && roots.any { it.youtubeHome() }) {
-                block(pkg, BlockReason(BlockKind.STUDY, "YouTube home is blocked", "Search for a video or use your subscriptions."))
+                block(pkg, BlockReason(BlockKind.STUDY, textResource(R.string.block_youtube_home_title), textResource(R.string.block_youtube_home_detail)))
                 return
             }
             if (current.settings.youtubeStudyMode && roots.any { it.youtubePlayer() }) {
                 val channel = roots.firstNotNullOfOrNull { it.youtubeChannel() }
                 if (channel == null || current.settings.allowedYoutubeChannels.none { channelKey(it) == channelKey(channel) }) {
                     silence(roots)
-                    block(pkg, BlockReason(BlockKind.STUDY, "This YouTube channel is blocked", "Only your chosen channels work in study mode."))
+                    block(pkg, BlockReason(BlockKind.STUDY, textResource(R.string.block_channel_title), textResource(R.string.block_channel_detail)))
                     return
                 }
             }
@@ -484,14 +485,14 @@ class GuardService : AccessibilityService() {
         roots.takeIf { pkg in browsers }?.firstNotNullOfOrNull { it.browserHost() }?.let { host ->
             if (!contentEnabled) return@let
             val site = blockedSite(host, current) ?: return@let
-            block(pkg, BlockReason(BlockKind.SITE, "$site is blocked", "Going back opens a blank page in this tab."))
+            block(pkg, BlockReason(BlockKind.SITE, textResource(R.string.block_site_title, site), textResource(R.string.block_site_detail)))
             return
         }
 
         if (current.settings.protection && pkg in protectedScreens && current.locked(LocalDateTime.now()) &&
             roots.any { it.containsText(app.catalog.label(packageName)) }
         ) {
-            block(pkg, BlockReason(BlockKind.PROTECTION, "Stillpoint settings are locked", "You can change them when the focus round or schedule ends."))
+            block(pkg, BlockReason(BlockKind.PROTECTION, textResource(R.string.block_settings_title), textResource(R.string.block_settings_detail)))
         }
     }
 

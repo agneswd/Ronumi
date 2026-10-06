@@ -21,7 +21,7 @@
             android:fontFamily="@font/nunito_bold"
             android:maxLines="1"
             android:ellipsize="end"
-            android:text="Focus calendar"
+            android:text="@string/widget_calendar_title"
             android:textColor="@color/widget_text"
             android:textSize="14sp"
             android:layout_weight="1" />
@@ -32,7 +32,7 @@
             android:fontFamily="@font/nunito_bold"
             android:maxLines="1"
             android:ellipsize="end"
-            android:text="0 day streak"
+            android:text="@string/widget_calendar_initial_streak"
             android:textColor="@color/widget_flame"
             android:textSize="12sp" />
     </LinearLayout>

@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.data
 
+import dev.agneswd.stillpoint.R
+import androidx.annotation.StringRes
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
@@ -22,7 +24,14 @@ enum class LimitMode {
     STRICT,
 }
 
-enum class FocusSound { OFF, WHITE, PINK, BROWN, RAIN, WAVES }
+enum class FocusSound(@param:StringRes val labelRes: Int) {
+    OFF(R.string.focus_sound_off),
+    WHITE(R.string.focus_sound_white),
+    PINK(R.string.focus_sound_pink),
+    BROWN(R.string.focus_sound_brown),
+    RAIN(R.string.focus_sound_rain),
+    WAVES(R.string.focus_sound_waves),
+}
 
 enum class FocusPhase { FOCUS, BREAK }
 

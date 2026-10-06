@@ -36,8 +36,8 @@ class StillpointApp : Application() {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannels(
             listOf(
-                NotificationChannel(CHANNEL_FOCUS, "Focus timer", NotificationManager.IMPORTANCE_LOW),
-                NotificationChannel(CHANNEL_EVENTS, "Focus events", NotificationManager.IMPORTANCE_DEFAULT),
+                NotificationChannel(CHANNEL_FOCUS, getString(R.string.notification_channel_focus), NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(CHANNEL_EVENTS, getString(R.string.notification_channel_events), NotificationManager.IMPORTANCE_DEFAULT),
             ),
         )
         plus

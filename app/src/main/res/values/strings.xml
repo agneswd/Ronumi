@@ -1,8 +1,1018 @@
-<resources>
-    <string name="app_name">Stillpoint</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Preserve existing English punctuation. Level numbers and clock values are not plural counts. -->
+    <!-- Application -->
+    <string name="app_name" translatable="false">Stillpoint</string>
+
+    <!-- Accessibility service -->
     <string name="guard_description">Stillpoint sees which app is open so it can block apps, short video feeds and sites you chose. It does not read your messages. Your app activity stays on this phone. Only app updates use the internet.</string>
+
+    <!-- Widgets -->
+    <string name="widget_goal_title">Focus goal</string>
     <string name="widget_usage_description">Today\'s screen time and unlocks</string>
     <string name="widget_goal_description">Pebble and your daily focus goal</string>
     <string name="widget_calendar_description">Your focus days and streak</string>
     <string name="widget_focus_description">Start a focus session with one tap</string>
+    <string name="widget_focus_title">Focus</string>
+    <string name="widget_start_button">START</string>
+    <string name="widget_open_button">OPEN</string>
+    <string name="widget_paused_title">Paused</string>
+    <string name="widget_running_title">Focusing</string>
+    <string name="widget_break_title">On a break</string>
+    <string name="widget_resume_hint">Tap to resume</string>
+    <string name="widget_streak_empty">Start a streak today</string>
+    <plurals name="widget_unlock_count">
+        <item quantity="one">%1$d unlock today</item>
+        <item quantity="other">%1$d unlocks today</item>
+    </plurals>
+    <string name="widget_goal_progress">%1$s of %2$s</string>
+    <string name="widget_session_length">%1$s session</string>
+    <string name="widget_end_time">Until %1$s</string>
+    <plurals name="widget_streak_safe">
+        <item quantity="one">%1$d day streak</item>
+        <item quantity="other">%1$d day streak</item>
+    </plurals>
+    <plurals name="widget_streak_pending">
+        <item quantity="one">%1$d day streak, keep it today</item>
+        <item quantity="other">%1$d day streak, keep it today</item>
+    </plurals>
+    <string name="widget_usage_title">Screen time</string>
+    <string name="widget_usage_initial_duration">0m</string>
+    <string name="widget_usage_initial_unlocks">0 unlocks today</string>
+    <string name="widget_goal_initial_progress">0m of 2h</string>
+    <string name="widget_goal_initial_streak">Start a streak</string>
+    <string name="widget_focus_initial_hint">Ready when you are</string>
+    <string name="widget_calendar_title">Focus calendar</string>
+    <string name="widget_calendar_initial_streak">0 day streak</string>
+
+    <!-- Permissions -->
+    <string name="permissions_usage_access">Usage access</string>
+    <string name="permissions_usage_description">Shows screen time and checks app limits.</string>
+    <string name="permissions_accessibility">Accessibility</string>
+    <string name="permissions_accessibility_description">Sees which app is open so Stillpoint can block it. If the switch is grey, open App info, tap the menu, then allow restricted settings.</string>
+    <string name="permissions_alarms_and_reminders">Alarms and reminders</string>
+    <string name="permissions_alarms_description">Starts planned focus and ends timer rounds while the phone sleeps.</string>
+    <string name="permissions_notifications">Notifications</string>
+    <string name="permissions_notifications_description">Shows the focus timer and tells you when a round ends.</string>
+    <string name="permissions_notification_access">Notification access</string>
+    <string name="permissions_listener_description">Holds notifications from the apps you choose.</string>
+    <string name="permissions_allowed">Allowed</string>
+    <string name="permissions_allow">Allow</string>
+
+    <!-- App selection -->
+    <plurals name="apps_more_apps">
+        <item quantity="one">%1$d more apps</item>
+        <item quantity="other">%1$d more apps</item>
+    </plurals>
+    <string name="apps_overflow_count" translatable="false">+%1$d</string>
+
+    <!-- Backups -->
+    <string name="backup_default_filename" translatable="false">stillpoint-%1$s.stillpoint</string>
+    <string name="backup_export_success">Encrypted backup saved.</string>
+    <string name="backup_restore_success">Backup restored.</string>
+    <string name="backup_failure_message">The backup could not finish. Try again.</string>
+    <string name="backup_section_title">Backup</string>
+    <string name="backup_save_a_backup">Save a backup</string>
+    <string name="backup_export_description">Encrypt settings and history with a password. You can restore them on another phone.</string>
+    <string name="backup_restore_a_backup">Restore a backup</string>
+    <string name="backup_restore_locked_description">Locked while a focus session or protected schedule runs.</string>
+    <string name="backup_restore_description">Choose an encrypted backup and enter its password. This replaces your saved data.</string>
+    <string name="backup_working_on_your_backup" tools:ignore="TypographyEllipsis">Working on your backup...</string>
+    <string name="backup_protect_your_backup">Protect your backup</string>
+    <string name="backup_unlock_your_backup">Unlock your backup</string>
+    <string name="backup_password_create_help">Use at least 12 characters. Keep this password safe. Stillpoint cannot recover it.</string>
+    <string name="backup_password_restore_help">Enter the password used when this backup was saved. Unencrypted JSON backups are not accepted.</string>
+    <string name="backup_password">Password</string>
+    <string name="backup_repeat_password">Repeat password</string>
+    <string name="backup_hide_password">Hide password</string>
+    <string name="backup_show_password">Show password</string>
+    <string name="backup_save_backup">Save backup</string>
+    <string name="backup_restore_backup">Restore backup</string>
+    <string name="backup_cancel">Cancel</string>
+    <string name="backup_error_write">Cannot write the backup file</string>
+    <string name="backup_error_read">Cannot read the backup file</string>
+    <string name="backup_error_size">Backup exceeds 16 MB</string>
+    <string name="backup_error_focus_running">End the focus session before restoring a backup</string>
+    <string name="backup_error_schedule_running">Restore is locked while a protected schedule runs</string>
+    <string name="backup_error_version">Unsupported backup version</string>
+    <string name="backup_error_record_count">Backup contains too many records</string>
+    <string name="backup_error_settings">Invalid focus or game settings</string>
+    <string name="backup_error_theme">Invalid theme mode</string>
+    <string name="backup_error_clock">Invalid clock format</string>
+    <string name="backup_error_pet_count">Invalid Pebble tap count</string>
+    <string name="backup_error_items">Invalid Pebble items</string>
+    <string name="backup_error_delivery_time">Invalid notification delivery time</string>
+    <string name="backup_error_freeze_reward">Invalid freeze reward date</string>
+    <string name="backup_error_streak_date">Invalid streak date</string>
+    <string name="backup_error_limits">Invalid app limits</string>
+    <string name="backup_error_schedules">Invalid schedules</string>
+    <string name="backup_error_sites">Invalid site list</string>
+    <string name="backup_error_focus_history">Invalid focus history</string>
+    <string name="backup_error_usage_history">Invalid usage history</string>
+    <string name="backup_error_authentication">Wrong password or damaged backup</string>
+    <string name="backup_error_format">Use an encrypted Stillpoint backup. Plaintext and other formats are not supported.</string>
+    <string name="backup_error_encrypted_version">Unsupported encrypted backup version</string>
+    <string name="backup_error_password_length">Use a password with 1 to 1024 characters</string>
+
+    <!-- Badges -->
+    <string name="badge_first_title">First step</string>
+    <string name="badge_first_detail">Finish your first focus session</string>
+    <string name="badge_streak3_title">Warming up</string>
+    <string name="badge_streak3_detail">Keep a 3 day streak</string>
+    <string name="badge_streak7_title">On fire</string>
+    <string name="badge_streak7_detail">Keep a 7 day streak</string>
+    <string name="badge_streak30_title">Unshakable</string>
+    <string name="badge_streak30_detail">Keep a 30 day streak</string>
+    <string name="badge_hours10_title">Deep diver</string>
+    <string name="badge_hours10_detail">Focus for 10 hours in total</string>
+    <string name="badge_hours50_title">Mountain mover</string>
+    <string name="badge_hours50_detail">Focus for 50 hours in total</string>
+    <string name="badge_marathon_title">Marathon</string>
+    <string name="badge_marathon_detail">Stay in one session for 2 hours</string>
+    <string name="badge_early_title">Early bird</string>
+    <string name="badge_early_detail">Start a session before 7 in the morning</string>
+    <string name="badge_night_title">Night owl</string>
+    <string name="badge_night_detail">Start a session after 10 at night</string>
+    <string name="badge_sessions50_title">Habit builder</string>
+    <string name="badge_sessions50_detail">Finish 50 sessions</string>
+    <string name="badge_sessions5_title">Finding a rhythm</string>
+    <string name="badge_sessions5_detail">Finish 5 sessions</string>
+    <string name="badge_sessions10_title">A steady start</string>
+    <string name="badge_sessions10_detail">Finish 10 sessions</string>
+    <string name="badge_sessions25_title">Practice makes progress</string>
+    <string name="badge_sessions25_detail">Finish 25 sessions</string>
+    <string name="badge_sessions100_title">Here to stay</string>
+    <string name="badge_sessions100_detail">Finish 100 sessions</string>
+    <string name="badge_hours1_title">Time well spent</string>
+    <string name="badge_hours1_detail">Focus for 1 hour in total</string>
+    <string name="badge_hours5_title">Room to grow</string>
+    <string name="badge_hours5_detail">Focus for 5 hours in total</string>
+    <string name="badge_hours25_title">Making room</string>
+    <string name="badge_hours25_detail">Focus for 25 hours in total</string>
+    <string name="badge_hours100_title">A lasting practice</string>
+    <string name="badge_hours100_detail">Focus for 100 hours in total</string>
+    <string name="badge_streak14_title">Two weeks together</string>
+    <string name="badge_streak14_detail">Keep a 14 day streak</string>
+    <string name="badge_days7_title">Seven small steps</string>
+    <string name="badge_days7_detail">Focus for at least 10 minutes on 7 days</string>
+    <string name="badge_days30_title">Time after time</string>
+    <string name="badge_days30_detail">Focus for at least 10 minutes on 30 days</string>
+    <string name="badge_days100_title">Always welcome back</string>
+    <string name="badge_days100_detail">Focus for at least 10 minutes on 100 days</string>
+    <string name="badge_goals1_title">Your own pace</string>
+    <string name="badge_goals1_detail">Reach your daily goal once</string>
+    <string name="badge_goals7_title">Making space</string>
+    <string name="badge_goals7_detail">Reach your daily goal on 7 days</string>
+    <string name="badge_goals30_title">A plan that works</string>
+    <string name="badge_goals30_detail">Reach your daily goal on 30 days</string>
+    <string name="badge_named1_title">With purpose</string>
+    <string name="badge_named1_detail">Finish a named session</string>
+    <string name="badge_named10_title">Clear intentions</string>
+    <string name="badge_named10_detail">Finish 10 named sessions</string>
+    <string name="badge_notes1_title">A moment to reflect</string>
+    <string name="badge_notes1_detail">Add a note to a completed session</string>
+    <string name="badge_notes10_title">Learning as you go</string>
+    <string name="badge_notes10_detail">Add notes to 10 completed sessions</string>
+    <string name="badge_quests10_title">Curious Pebble</string>
+    <string name="badge_quests10_detail">Complete 10 daily quests</string>
+    <string name="badge_quests50_title">Quest companion</string>
+    <string name="badge_quests50_detail">Complete 50 daily quests</string>
+    <string name="badge_questday1_title">A full little day</string>
+    <string name="badge_questday1_detail">Complete every quest on one day</string>
+    <string name="badge_questday7_title">Seven good days</string>
+    <string name="badge_questday7_detail">Complete every quest on 7 days</string>
+
+    <!-- Blocks -->
+    <string name="blocks_youtube_shorts" translatable="false">YouTube Shorts</string>
+    <string name="blocks_instagram_reels" translatable="false">Instagram Reels</string>
+    <string name="blocks_snapchat_spotlight" translatable="false">Snapchat Spotlight</string>
+    <string name="blocks_facebook_reels" translatable="false">Facebook Reels</string>
+    <string name="blocks_short_videos">Short videos</string>
+    <string name="blocks_shorts_description">I close the endless feed. The rest of the app keeps working.</string>
+    <string name="blocks_allow_the_first_video">Allow the first video</string>
+    <string name="blocks_first_video_description">On YouTube and Instagram, the first video of each visit plays, like one a friend sent. The next one is blocked.</string>
+    <string name="blocks_only_during_focus">Only during focus</string>
+    <string name="blocks_shorts_focus_scope">Also applies to websites and YouTube channels.</string>
+    <string name="blocks_youtube" translatable="false">YouTube</string>
+    <string name="blocks_hide_the_home_feed">Hide the home feed</string>
+    <string name="blocks_youtube_home_description">Search and subscriptions still work.</string>
+    <string name="blocks_study_mode">Study mode</string>
+    <string name="blocks_study_description">Only videos from the channels below can play.</string>
+    <string name="blocks_allowed_channels">Allowed channels</string>
+    <string name="blocks_channels_empty">No channels yet. Every video is blocked.</string>
+    <string name="blocks_channel_name_or_handle">Channel name or @handle</string>
+    <string name="blocks_channel_input_help">Type the name exactly as YouTube shows it under the video.</string>
+    <string name="blocks_websites">Websites</string>
+    <string name="blocks_websites_description">I watch the address bar in your browsers.</string>
+    <string name="blocks_block_adult_sites">Block adult sites</string>
+    <string name="blocks_adult_filter_description">A built-in list of adult domains and words.</string>
+    <string name="blocks_websites_focus_scope">Also applies to short videos and YouTube channels.</string>
+    <string name="blocks_your_list">Your list</string>
+    <string name="blocks_block_these">Block these</string>
+    <string name="blocks_allow_only_these">Allow only these</string>
+    <string name="blocks_allowlist_description">Every other website is blocked. Subdomains of a listed site work too.</string>
+    <string name="blocks_denylist_description">These sites and their subdomains are blocked.</string>
+    <string name="blocks_example_domain" translatable="false">example.com</string>
+    <string name="blocks_allowlist_input_hint">Allow a site, like %1$s</string>
+    <string name="blocks_denylist_input_hint">Block a site, like %1$s</string>
+    <string name="blocks_allowlist_empty">No sites yet. Every website is blocked.</string>
+    <string name="blocks_no_sites_yet">No sites yet.</string>
+    <string name="blocks_notifications">Notifications</string>
+    <string name="blocks_inbox_description">I keep them in a box until you finish.</string>
+    <string name="blocks_allow_notification_access">Allow notification access</string>
+    <string name="blocks_listener_description">Stillpoint needs it to hold notifications.</string>
+    <string name="blocks_hold_notifications_from">Hold notifications from</string>
+    <string name="blocks_no_apps">No apps</string>
+    <string name="blocks_hold_all_day">Hold all day</string>
+    <string name="blocks_held_at_all_times">Held at all times.</string>
+    <string name="blocks_hold_focus_description">Held only during focus and schedules.</string>
+    <string name="blocks_inbox">Inbox</string>
+    <string name="blocks_nothing_waiting">Nothing waiting</string>
+    <plurals name="blocks_waiting">
+        <item quantity="one">%1$d waiting</item>
+        <item quantity="other">%1$d waiting</item>
+    </plurals>
+    <string name="blocks_delivery_times">Delivery times</string>
+    <string name="blocks_add_time">Add time</string>
+    <string name="blocks_delivery_empty_description">Held notifications wait in the inbox until you open it.</string>
+    <string name="blocks_delivery_times_description">At these times you get one quiet summary of what waited.</string>
+    <string name="blocks_strict_mode">Strict mode</string>
+    <string name="blocks_protection_description">When strict mode is on, nobody can switch me off in a weak moment. Not even you.</string>
+    <string name="blocks_protection_switch">Lock Stillpoint while blocks run</string>
+    <string name="blocks_protection_switch_description">Locks the Blocks tab and supported settings pages during focus and schedules.</string>
+    <string name="blocks_block_split_screen">Block split screen</string>
+    <string name="blocks_windows_description">Closes split screen and floating windows during focus and schedules.</string>
+    <string name="blocks_extra_time">Extra time</string>
+    <string name="blocks_passes_each_day">Passes each day</string>
+    <string name="blocks_none">None</string>
+    <string name="blocks_pass_count" translatable="false">%1$d</string>
+    <string name="blocks_pass_help">A pass opens an app with a gentle limit for 5 more minutes. Strict limits never take passes.</string>
+    <string name="blocks_remove">Remove %1$s</string>
+    <string name="blocks_add">Add</string>
+    <string name="blocks_blocks">Blocks</string>
+    <string name="blocks_permissions_missing">Blocks need usage access and accessibility. Tap to allow them.</string>
+    <string name="blocks_app_limits">App limits</string>
+    <string name="blocks_add_app_limit">Add app limit</string>
+    <string name="blocks_limit_app_picker_title">Choose an app to limit</string>
+    <string name="blocks_limits_empty">Give your most-used apps a daily budget.</string>
+    <string name="blocks_schedules">Schedules</string>
+    <string name="blocks_add_schedule">Add schedule</string>
+    <string name="blocks_schedules_empty">Block apps at set times, like study hours or bedtime.</string>
+    <string name="blocks_more_blocks">More blocks</string>
+    <string name="blocks_off">Off</string>
+    <plurals name="blocks_shorts_summary">
+        <item quantity="one">%1$d of %2$d feeds closed</item>
+        <item quantity="other">%1$d of %2$d feeds closed</item>
+    </plurals>
+    <string name="blocks_on">On</string>
+    <string name="blocks_pause_button">Pause blocks for 10 minutes</string>
+    <string name="blocks_pause_description">Limits, schedules and content blocks wait. Focus sessions stay blocked.</string>
+    <string name="blocks_pause_locked_message">Blocks cannot pause during a strict block.</string>
+    <string name="blocks_pause_title">Blocks are paused</string>
+    <string name="blocks_resume">Resume</string>
+    <string name="blocks_locked_title">Blocks are locked</string>
+    <string name="blocks_locked_description">Strict mode is on and a focus session or schedule is running. You can change your blocks when it ends.</string>
+    <string name="blocks_daily_limit_for">Daily limit for %1$s</string>
+    <string name="blocks_decrease_daily_limit">Decrease daily limit</string>
+    <string name="blocks_increase_daily_limit">Increase daily limit</string>
+    <string name="blocks_gentle">Gentle</string>
+    <string name="blocks_strict">Strict</string>
+    <string name="blocks_strict_limit_description">No extra time until midnight.</string>
+    <string name="blocks_gentle_limit_description">Wait 10 seconds, then use a pass for 5 more minutes.</string>
+    <string name="blocks_remind_me_after">Remind me after</string>
+    <plurals name="blocks_reminder_minutes">
+        <item quantity="one">%1$dm</item>
+        <item quantity="other">%1$dm</item>
+    </plurals>
+    <string name="blocks_limit_weaken_confirmation">This weakens your limit. Tap again to confirm.</string>
+    <string name="blocks_save">Save</string>
+    <string name="blocks_cancel">Cancel</string>
+    <string name="blocks_delete_limit">Delete limit</string>
+    <string name="blocks_all_day">All day</string>
+    <string name="blocks_schedule_time_range">%1$s to %2$s</string>
+    <string name="blocks_schedule_summary">%1$s, %2$s, %3$s</string>
+    <string name="blocks_every_day">every day</string>
+    <string name="blocks_no_days">no days</string>
+    <string name="blocks_schedule_locked_message">Schedules are locked until the current block ends.</string>
+    <string name="blocks_locked_message">Blocks are locked until the current block ends.</string>
+    <string name="blocks_limit_strict_summary">%1$s a day, strict</string>
+    <string name="blocks_limit_gentle_summary">%1$s a day, gentle</string>
+    <string name="blocks_pause_remaining" tools:ignore="PluralsCandidate">%1$d:%2$02d left</string>
+    <string name="blocks_weekdays">weekdays</string>
+    <string name="blocks_weekends">weekends</string>
+    <plurals name="blocks_held_apps">
+        <item quantity="one">Holding from %1$d app</item>
+        <item quantity="other">Holding from %1$d apps</item>
+    </plurals>
+    <string name="blocks_shorts_disabled_study">Off, study mode</string>
+    <plurals name="blocks_shorts_enabled_study">
+        <item quantity="one">%1$d of %2$d feeds closed, study mode</item>
+        <item quantity="other">%1$d of %2$d feeds closed, study mode</item>
+    </plurals>
+    <string name="blocks_sites_adult">Adult sites</string>
+    <plurals name="blocks_sites_allowed">
+        <item quantity="one">Only %1$d allowed</item>
+        <item quantity="other">Only %1$d allowed</item>
+    </plurals>
+    <plurals name="blocks_sites_blocked">
+        <item quantity="one">%1$d blocked</item>
+        <item quantity="other">%1$d blocked</item>
+    </plurals>
+    <plurals name="blocks_sites_adult_allowed">
+        <item quantity="one">Adult sites, only %1$d allowed</item>
+        <item quantity="other">Adult sites, only %1$d allowed</item>
+    </plurals>
+    <plurals name="blocks_sites_adult_blocked">
+        <item quantity="one">Adult sites, %1$d blocked</item>
+        <item quantity="other">Adult sites, %1$d blocked</item>
+    </plurals>
+
+    <!-- Shared controls -->
+    <string name="common_decrease">Decrease %1$s</string>
+    <string name="common_increase">Increase %1$s</string>
+    <string name="common_level">Level</string>
+    <string name="common_number" translatable="false">%1$d</string>
+    <string name="common_close">Close</string>
+    <plurals name="common_app_count">
+        <item quantity="one">%1$d app</item>
+        <item quantity="other">%1$d apps</item>
+    </plurals>
+
+    <!-- Day parts -->
+    <string name="day_part_morning">Morning</string>
+    <string name="day_part_afternoon">Afternoon</string>
+    <string name="day_part_evening">Evening</string>
+    <string name="day_part_night">Night</string>
+
+    <!-- Editors -->
+    <plurals name="editor_done">
+        <item quantity="one">Done (%1$d)</item>
+        <item quantity="other">Done (%1$d)</item>
+    </plurals>
+    <string name="editor_search">Search</string>
+    <string name="editor_loading_apps">Loading apps</string>
+    <string name="editor_choose_a_schedule_icon">Choose a schedule icon</string>
+    <string name="editor_schedule_icon_help">Automatic follows the start time. Pick another icon for your own routine.</string>
+    <string name="editor_close">Close</string>
+    <string name="editor_new_schedule">New schedule</string>
+    <string name="editor_edit_schedule">Edit schedule</string>
+    <string name="editor_save">Save</string>
+    <string name="editor_name">Name</string>
+    <string name="editor_schedule_icon">Schedule icon</string>
+    <string name="editor_starts">Starts</string>
+    <string name="editor_ends">Ends</string>
+    <string name="editor_days">Days</string>
+    <string name="editor_planned_focus">Planned focus</string>
+    <string name="editor_plan_switch">Start focus at this time</string>
+    <string name="editor_plan_alarm_help">Allow alarms in Settings for automatic start. Otherwise you receive a reminder.</string>
+    <string name="editor_focus_length">Focus length</string>
+    <string name="editor_apps">Apps</string>
+    <string name="editor_blocked_apps">Blocked apps</string>
+    <string name="editor_allowed_apps">Allowed apps</string>
+    <string name="editor_block_during">Block during %1$s</string>
+    <string name="editor_allow_during">Allow during %1$s</string>
+    <string name="editor_block_every_other_app">Block every other app</string>
+    <string name="editor_allowlist_description">Only the chosen apps work during this schedule.</string>
+    <string name="editor_delete_schedule">Delete schedule</string>
+    <string name="editor_ok">OK</string>
+    <string name="editor_cancel">Cancel</string>
+    <string name="editor_held_notifications">Held notifications</string>
+    <string name="editor_clear_all">Clear all</string>
+    <string name="editor_nothing_held">Nothing held</string>
+    <string name="editor_inbox_empty_description">Notifications from your chosen apps show here.</string>
+    <string name="editor_notification_source_time">%1$s, %2$s</string>
+    <string name="editor_end_all_day">%1$s, blocks all day</string>
+    <string name="editor_end_next_day">%1$s, next day</string>
+
+    <!-- Focus -->
+    <string name="focus_scene_lake">Still lake</string>
+    <string name="focus_scene_dawn">Dawn</string>
+    <string name="focus_scene_forest">Firefly forest</string>
+    <string name="focus_scene_space">Deep space</string>
+    <string name="focus_scene_rain">Rain</string>
+    <string name="focus_sound_off">Off</string>
+    <string name="focus_sound_white">White</string>
+    <string name="focus_sound_pink">Pink</string>
+    <string name="focus_sound_brown">Brown</string>
+    <string name="focus_sound_rain">Rain</string>
+    <string name="focus_sound_waves">Waves</string>
+    <string name="focus_setup_title">Focus setup</string>
+    <string name="focus_mode">Mode</string>
+    <string name="focus_timer">Timer</string>
+    <string name="focus_stopwatch">Stopwatch</string>
+    <string name="focus_pomodoro">Pomodoro</string>
+    <string name="focus_focus_length">Focus length</string>
+    <string name="focus_short_break">Short break</string>
+    <string name="focus_long_break">Long break</string>
+    <string name="focus_rounds">Rounds</string>
+    <string name="focus_task_label">What are you working on?</string>
+    <string name="focus_task_hint" tools:ignore="TypographyEllipsis">Maths, reading, a side project...</string>
+    <string name="focus_blocking">Blocking</string>
+    <string name="focus_blocked_apps">Blocked apps</string>
+    <string name="focus_allowed_apps">Allowed apps</string>
+    <string name="focus_none_chosen">None chosen</string>
+    <string name="focus_block_during_focus">Block during focus</string>
+    <string name="focus_allow_during_focus">Allow during focus</string>
+    <string name="focus_block_every_other_app">Block every other app</string>
+    <string name="focus_allowlist_description">Only the chosen apps work.</string>
+    <string name="focus_strict_mode">Strict mode</string>
+    <string name="focus_strict_description">No pausing and no quitting early.</string>
+    <string name="focus_lock_the_home_screen">Lock the home screen</string>
+    <string name="focus_home_lock_description">Home brings you back to the timer.</string>
+    <string name="focus_sound">Sound</string>
+    <string name="focus_starting" tools:ignore="TypographyEllipsis">Starting...</string>
+    <string name="focus_start_button">Start</string>
+    <plurals name="focus_rounds_breaks">
+        <item quantity="one">%1$d rounds, %2$s breaks</item>
+        <item quantity="other">%1$d rounds, %2$s breaks</item>
+    </plurals>
+    <string name="focus_tip_blocking">Your distracting apps are blocked. Stay with it.</string>
+    <string name="focus_tip_breathing">Breathe in for four. Breathe out for six.</string>
+    <string name="focus_tip_phone">Phone face down, eyes on the task.</string>
+    <string name="focus_tip_stuck">Stuck? Do the smallest next step.</string>
+    <string name="focus_tip_streak">Every minute here counts toward your streak.</string>
+    <string name="focus_tip_water">Thirsty? A sip of water helps you think.</string>
+    <string name="focus_minimize">Minimize</string>
+    <string name="focus_strict_mode_is_on">Strict mode is on</string>
+    <string name="focus_paused">PAUSED</string>
+    <string name="focus_break_time">BREAK TIME</string>
+    <string name="focus_round_of">ROUND %1$d OF %2$d</string>
+    <string name="focus_stopwatch_status">STOPWATCH</string>
+    <string name="focus_focus">FOCUS</string>
+    <string name="focus_first_session_help">Try opening one of your blocked apps. I\'ll stop it!</string>
+    <string name="focus_try_opening">Try opening %1$s</string>
+    <string name="focus_finish_button">I\'m done</string>
+    <string name="focus_pause">Pause</string>
+    <string name="focus_resume">Resume</string>
+    <string name="focus_give_up">GIVE UP</string>
+    <string name="focus_stopwatch_strict_help">Strict mode: no pauses. Finish when you are done.</string>
+    <string name="focus_timer_strict_help">Strict mode: this session can\'t end early.</string>
+    <string name="focus_quit_title">Wait, don\'t go!</string>
+    <string name="focus_quit_confirmation_body">If you stop now, you lose the bonus XP for finishing. You\'ve got this!</string>
+    <string name="focus_keep_focusing">Keep focusing</string>
+    <string name="focus_end_session">End session</string>
+    <string name="focus_session_complete">Session complete!</string>
+    <string name="focus_nice_effort">Nice effort!</string>
+    <string name="focus_complete_summary">You stayed with it to the end.</string>
+    <string name="focus_ended_summary">Every minute counts. Next time, go all the way!</string>
+    <plurals name="focus_summary_minutes">
+        <item quantity="one">%1$dm</item>
+        <item quantity="other">%1$dm</item>
+    </plurals>
+    <string name="focus_xp" translatable="false">XP</string>
+    <string name="focus_xp_reward" translatable="false">+%1$d</string>
+    <string name="focus_streak">STREAK</string>
+    <string name="focus_reward_number" translatable="false">%1$d</string>
+    <string name="focus_level_up">Level up!</string>
+    <string name="focus_streak_extended">Streak extended!</string>
+    <string name="focus_summary_level">You reached level %1$d.</string>
+    <string name="focus_reflection_hint">What did you get done?</string>
+    <string name="focus_add_a_note">Add a note</string>
+    <string name="focus_continue">Continue</string>
+    <string name="focus_round_continue">Keep going.</string>
+    <string name="focus_break_advice">Stand up and look at something far away.</string>
+    <string name="focus_round_resume">Back to focus.</string>
+    <string name="focus_completed_title">Session done</string>
+    <string name="focus_ended_title">Session ended</string>
+    <string name="focus_round_notification">Round %1$d of %2$d</string>
+    <plurals name="focus_break_notification">
+        <item quantity="one">Break for %1$d minutes</item>
+        <item quantity="other">Break for %1$d minutes</item>
+    </plurals>
+    <string name="focus_completed_body">You focused for %1$s.</string>
+    <plurals name="focus_completed_inbox_body">
+        <item quantity="one">You focused for %1$s. %2$d notifications are waiting.</item>
+        <item quantity="other">You focused for %1$s. %2$d notifications are waiting.</item>
+    </plurals>
+    <string name="focus_notification_title">Focus</string>
+    <string name="focus_notification_paused">Paused</string>
+    <string name="focus_notification_break">Break</string>
+    <string name="focus_notification_finish">Finish</string>
+    <string name="focus_notification_end">End session</string>
+    <string name="focus_notification_round">Focus, round %1$d of %2$d</string>
+    <string name="focus_first_session_tag">First focus</string>
+    <plurals name="focus_summary_streak">
+        <item quantity="one">%1$d day in a row. Come back tomorrow!</item>
+        <item quantity="other">%1$d days in a row. Come back tomorrow!</item>
+    </plurals>
+    <string name="focus_minimized_break">Break %1$s</string>
+    <string name="focus_minimized_running">Focusing %1$s</string>
+    <string name="focus_clock_minutes" translatable="false">%1$d:%2$02d</string>
+    <string name="focus_clock_hours" translatable="false">%1$d:%2$02d:%3$02d</string>
+
+    <!-- Home -->
+    <string name="home_pebble_wardrobe">Pebble wardrobe</string>
+    <string name="home_daily_quests">Daily quests</string>
+    <string name="home_resets_at_midnight">Resets at midnight</string>
+    <string name="home_screen_time">Screen time</string>
+    <string name="home_up_next">Up next</string>
+    <string name="home_schedule_time_range">%1$s to %2$s</string>
+    <string name="home_start_button">Start focus</string>
+    <string name="home_return_to_focus">Return to focus</string>
+    <string name="home_greeting_initial">Hi there!</string>
+    <string name="home_greeting_goal">You hit today\'s goal! I\'m so proud of you.</string>
+    <string name="home_greeting_steady">Look at us keeping a rhythm. Nice work!</string>
+    <string name="home_greeting_progress">Nice work so far. %1$s to go!</string>
+    <string name="home_greeting_absent">I\'ve missed our focus time. One small session is a fresh start.</string>
+    <string name="home_greeting_return">Let\'s ease back in. A few focused minutes will help.</string>
+    <string name="home_greeting_late">It\'s late. Put the phone down and rest. I will too.</string>
+    <plurals name="home_greeting_streak">
+        <item quantity="one">Our %1$d day streak is still going. Ready for a little focus?</item>
+        <item quantity="other">Our %1$d day streak is still going. Ready for a little focus?</item>
+    </plurals>
+    <string name="home_greeting_morning">Good morning! A short focus now makes the whole day easier.</string>
+    <string name="home_greeting_ready">Ready when you are. One session at a time.</string>
+    <string name="home_finish_setup">Finish setup</string>
+    <string name="home_permissions_missing">Stillpoint can\'t block anything yet. Tap to allow the permissions.</string>
+    <string name="home_goal_target">of %1$s</string>
+    <string name="home_goal_title">Today\'s focus</string>
+    <string name="home_show_quest_details">Show quest details</string>
+    <string name="home_quest_progress" translatable="false">%1$d / %2$d</string>
+    <string name="home_quest_xp">+%1$d XP</string>
+    <string name="home_quest_reward_earned">%1$d XP earned. This reward is already in your total.</string>
+    <string name="home_quest_reward_pending">%1$d XP is added automatically when you finish this quest.</string>
+    <string name="home_quest_help">Tap a quest for its rules.</string>
+    <plurals name="home_unlocks_today">
+        <item quantity="one">%1$d unlocks today</item>
+        <item quantity="other">%1$d unlocks today</item>
+    </plurals>
+    <plurals name="home_schedule_wait_minutes">
+        <item quantity="one">In %1$dm</item>
+        <item quantity="other">In %1$dm</item>
+    </plurals>
+    <plurals name="home_schedule_wait_hours">
+        <item quantity="one">In %1$dh</item>
+        <item quantity="other">In %1$dh</item>
+    </plurals>
+    <string name="home_schedule_now">Now</string>
+
+    <!-- Navigation -->
+    <string name="navigation_home">Home</string>
+    <string name="navigation_planner">Planner</string>
+    <string name="navigation_blocks">Blocks</string>
+    <string name="navigation_progress">Progress</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_study">Study</string>
+    <string name="onboarding_work">Work</string>
+    <string name="onboarding_scroll_less">Scroll less</string>
+    <string name="onboarding_sleep_better">Sleep better</string>
+    <string name="onboarding_feel_calmer">Feel calmer</string>
+    <string name="onboarding_goal_casual">Casual, 30 min a day</string>
+    <string name="onboarding_goal_regular">Regular, 1 hour a day</string>
+    <string name="onboarding_goal_serious">Serious, 2 hours a day</string>
+    <string name="onboarding_goal_intense">Intense, 4 hours a day</string>
+    <string name="onboarding_shorts_and_reels">Shorts and Reels</string>
+    <string name="onboarding_youtube_rabbit_holes">YouTube rabbit holes</string>
+    <string name="onboarding_social_media_feeds">Social media feeds</string>
+    <string name="onboarding_notifications">Notifications</string>
+    <string name="onboarding_games">Games</string>
+    <string name="onboarding_distraction_start">I can\'t get started</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_pebble_intro">Hi! I\'m Pebble. I help you scroll less and focus more.</string>
+    <string name="onboarding_questions_intro">First, a few quick questions. Then I\'ll build a plan just for you.</string>
+    <string name="onboarding_purpose_question">What do you want help with?</string>
+    <string name="onboarding_goal_question">Pick a daily focus goal</string>
+    <string name="onboarding_distractions_question">What pulls you away the most?</string>
+    <string name="onboarding_shorts_title">Scrolling Shorts?</string>
+    <string name="onboarding_shorts_description">Pebble closes the feed. The rest of the app still works.</string>
+    <string name="onboarding_inbox_title">Buzz, buzz, buzz?</string>
+    <string name="onboarding_inbox_description">Notifications wait in a box until you finish.</string>
+    <string name="onboarding_strict_title">Want to quit early?</string>
+    <string name="onboarding_strict_description">Strict mode won\'t let you. Future you says thanks.</string>
+    <string name="onboarding_build_a_streak">Build a streak</string>
+    <string name="onboarding_streak_description">Focus a little every day. Keep the flame alive.</string>
+    <string name="onboarding_app_name" translatable="false">Stillpoint</string>
+    <string name="onboarding_welcome_tagline">Less scrolling. More living.</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_pick_all_that_fit">Pick all that fit.</string>
+    <string name="onboarding_schedule_question">When do you want to focus each day?</string>
+    <string name="onboarding_schedule_time_range">%1$s to %2$s</string>
+    <string name="onboarding_schedule_description">Your apps are blocked during this time. You can change it later.</string>
+    <string name="onboarding_schedule_skip_button">I\'ll set it later</string>
+    <string name="onboarding_plan_shorts">Close Shorts and Reels for you</string>
+    <string name="onboarding_plan_inbox">Hold notifications while you focus</string>
+    <string name="onboarding_plan_apps">Block your distracting apps during focus</string>
+    <string name="onboarding_plan_schedule_summary">%1$s, %2$s to %3$s</string>
+    <string name="onboarding_plan_streak">A daily streak to keep you going</string>
+    <string name="onboarding_plan_intro">Here\'s your plan. I think you\'ll love it!</string>
+    <string name="onboarding_sounds_great">Sounds great</string>
+    <string name="onboarding_apps_question">Which apps steal your time?</string>
+    <plurals name="onboarding_apps_selected">
+        <item quantity="one">I\'ll block these while you focus. %1$d app chosen.</item>
+        <item quantity="other">I\'ll block these while you focus. %1$d apps chosen.</item>
+    </plurals>
+    <string name="onboarding_permissions_ready">All set! I can protect your focus now.</string>
+    <string name="onboarding_permissions_missing">One last step! Allow these so I can block distractions.</string>
+    <string name="onboarding_privacy_description">Your app usage stays on this phone. Only update checks and downloads use the internet.</string>
+    <string name="onboarding_skip_for_now">Skip for now</string>
+    <string name="onboarding_first_session_intro">Let\'s try a 2 minute focus together. You\'ll see how it feels!</string>
+    <string name="onboarding_first_session_start_button">Start 2 minute focus</string>
+    <string name="onboarding_maybe_later">Maybe later</string>
+    <plurals name="onboarding_goal_minutes">
+        <item quantity="one">Focus %1$d minutes a day</item>
+        <item quantity="other">Focus %1$d minutes a day</item>
+    </plurals>
+    <plurals name="onboarding_goal_hours">
+        <item quantity="one">Focus %1$d hour a day</item>
+        <item quantity="other">Focus %1$d hours a day</item>
+    </plurals>
+
+    <!-- Planner -->
+    <string name="planner_day_number" translatable="false">%1$d</string>
+    <string name="planner_focus">Focus</string>
+    <string name="planner_screen_time">Screen time</string>
+    <string name="planner_today">Today</string>
+    <string name="planner_schedules_empty">Nothing planned. Add a schedule to block distractions at the same time each day.</string>
+    <string name="planner_focus_session">Focus session</string>
+    <string name="planner_session_time_range">%1$s to %2$s</string>
+    <string name="planner_suggested">Suggested</string>
+    <string name="planner_schedule_time_range">%1$s to %2$s, every day</string>
+    <string name="planner_add">Add</string>
+    <string name="planner_add_schedule">Add schedule</string>
+
+    <!-- Progress -->
+    <string name="progress_progress">Progress</string>
+    <string name="progress_settings">Settings</string>
+    <string name="progress_level">Level %1$d</string>
+    <string name="progress_xp_to_level">%1$d / %2$d XP to level %3$d</string>
+    <string name="progress_pebble_wardrobe">Pebble wardrobe</string>
+    <string name="progress_wardrobe_description">Clothes, colors, hats, and accessories. Unlock more as you level up.</string>
+    <string name="progress_streak_complete">Today\'s streak step is complete.</string>
+    <string name="progress_rest_streak_active">Rest day. Your streak stays active.</string>
+    <string name="progress_rest_streak_empty">Rest day. Start a streak on your next focus day.</string>
+    <string name="progress_streak_frozen">A freeze protects today\'s streak.</string>
+    <plurals name="progress_streak_start">
+        <item quantity="one">Focus %1$d minutes today to start a streak.</item>
+        <item quantity="other">Focus %1$d minutes today to start a streak.</item>
+    </plurals>
+    <plurals name="progress_day_streak">
+        <item quantity="one">%1$d day streak</item>
+        <item quantity="other">%1$d day streak</item>
+    </plurals>
+    <string name="progress_total_focus">Total focus</string>
+    <string name="progress_count" translatable="false">%1$d</string>
+    <string name="progress_total_xp">Total XP</string>
+    <string name="progress_focus_this_week">Focus this week</string>
+    <string name="progress_focus_reports">Focus reports</string>
+    <string name="progress_today">Today</string>
+    <string name="progress_week">Week</string>
+    <string name="progress_month">Month</string>
+    <string name="progress_screen_time">Screen time</string>
+    <string name="progress_usage_chart_help">Total screen time. Tap a day to see its apps.</string>
+    <string name="progress_usage_empty">No screen time recorded on this day.</string>
+    <string name="progress_productive">Productive</string>
+    <string name="progress_distracting">Distracting</string>
+    <string name="progress_other_apps">Other apps</string>
+    <string name="progress_badges">Badges</string>
+    <string name="progress_badges_earned_count" translatable="false">%1$d / %2$d</string>
+    <string name="progress_badges_earned_empty">Your first badge starts with one completed session.</string>
+    <string name="progress_badges_next_empty">You have earned every badge in this group.</string>
+    <string name="progress_unlocked">Unlocked!</string>
+    <string name="progress_badge_percent" translatable="false">%1$d%%</string>
+    <string name="progress_nice">Nice</string>
+    <string name="progress_average_focus">focus, %1$s a day on average</string>
+    <string name="progress_period_usage">%1$s screen time in this period</string>
+    <string name="progress_usage_categories_help">Productive apps are your choices. Distracting apps follow your focus block list. Other apps are the rest.</string>
+    <string name="progress_by_tag">By tag</string>
+    <string name="progress_notifications_held">notifications held</string>
+    <string name="progress_soon">Soon</string>
+    <string name="progress_saved_time_help">time saved, after 7 days of data</string>
+    <string name="progress_time_saved">time saved</string>
+    <string name="progress_legend_label">"%1$s "</string>
+    <string name="progress_most">Most: %1$s</string>
+    <string name="progress_goal">Goal: %1$s</string>
+    <string name="progress_chart_description">%1$s, %2$s</string>
+    <string name="progress_locked">Locked</string>
+    <string name="progress_average_less">%1$s less than your daily average</string>
+    <string name="progress_average_more">%1$s more than your daily average</string>
+    <string name="progress_usage_today">%1$s today</string>
+    <string name="progress_usage_day">%1$s on %2$s</string>
+    <string name="progress_untagged">Untagged</string>
+    <plurals name="progress_streak_remaining">
+        <item quantity="one">Focus %1$d more minute today to extend it.</item>
+        <item quantity="other">Focus %1$d more minutes today to extend it.</item>
+    </plurals>
+    <plurals name="progress_freeze_count">
+        <item quantity="one">%1$d streak freeze. A freeze saves your streak on a missed day. Earn one every 7 days.</item>
+        <item quantity="other">%1$d streak freezes. A freeze saves your streak on a missed day. Earn one every 7 days.</item>
+    </plurals>
+    <string name="progress_filter_all">All</string>
+    <string name="progress_filter_next">Next</string>
+    <string name="progress_filter_earned">Earned</string>
+    <string name="progress_filter_sessions">Sessions</string>
+    <string name="progress_filter_time">Time</string>
+    <string name="progress_filter_rhythm">Rhythm</string>
+    <string name="progress_filter_purpose">Purpose</string>
+    <string name="progress_filter_quests">Quests</string>
+
+    <!-- Quests -->
+    <string name="quest_empty_detail"></string>
+    <string name="quest_legacy_focus25_title">Focus for 25 minutes</string>
+    <string name="quest_legacy_focus25_detail">Collect 25 focus minutes across saved sessions started today. Time from sessions you end early also counts.</string>
+    <string name="quest_legacy_complete1_title">Finish a session without giving up</string>
+    <string name="quest_legacy_complete1_detail">Complete one saved session started today. Let the timer finish, or select I\'m done in stopwatch mode. Giving up does not count.</string>
+    <string name="quest_legacy_sessions2_title">Do 2 focus sessions</string>
+    <string name="quest_legacy_sessions2_detail">Save two sessions started today, each with at least one focus minute. Sessions you end early count for this task.</string>
+    <string name="quest_legacy_goal_title">Reach your daily goal</string>
+    <plurals name="quest_legacy_goal_detail">
+        <item quantity="one">Collect %1$d focus minutes across sessions started today. The first saved session fixes this goal. Later goal changes do not change it.</item>
+        <item quantity="other">Collect %1$d focus minutes across sessions started today. The first saved session fixes this goal. Later goal changes do not change it.</item>
+    </plurals>
+    <string name="quest_legacy_morning_title">Focus 20 minutes before noon</string>
+    <string name="quest_legacy_morning_detail">Collect 20 focus minutes in sessions started before noon today. Their full focus time counts, including time after noon and sessions ended early.</string>
+    <string name="quest_legacy_long45_title">Stay in one session for 45 minutes</string>
+    <string name="quest_legacy_long45_detail">Save one session started today with at least 45 focus minutes. Breaks do not count. Ending the session early does not remove its progress.</string>
+    <string name="quest_legacy_focus60_title">Focus for 1 hour in total</string>
+    <string name="quest_legacy_focus60_detail">Collect 60 focus minutes across saved sessions started today. Split the time into shorter sessions. Time from sessions ended early also counts.</string>
+    <string name="quest_v1_name1_title">Finish a named session</string>
+    <string name="quest_v1_name1_detail">Name a task before you start, then complete that session today. A saved session with any nonempty name counts.</string>
+    <string name="quest_v1_note1_title">Write a session reflection</string>
+    <string name="quest_v1_note1_detail">Complete a session started today. Add a note on its completion screen, then select Continue to save it. Notes on abandoned sessions do not count.</string>
+    <string name="quest_v1_steady10_title">Finish 10 minutes in one session</string>
+    <string name="quest_v1_steady10_detail">Complete one session started today with at least 10 focus minutes. Break time does not count. Giving up does not complete this task.</string>
+    <string name="quest_v1_name2_title">Finish two named sessions</string>
+    <string name="quest_v1_name2_detail">Complete two sessions started today with a task name. You can use the same name for both. Giving up does not count.</string>
+    <string name="quest_v1_note2_title">Reflect on two sessions</string>
+    <string name="quest_v1_note2_detail">Complete two sessions started today. Add a note after each session and select Continue to save it. Each saved note counts once.</string>
+    <string name="quest_v1_steady20_title">Finish 20 minutes in one session</string>
+    <string name="quest_v1_steady20_detail">Complete one session started today with at least 20 focus minutes. Break time does not count. Giving up does not complete this task.</string>
+    <string name="quest_category_focus">Focus</string>
+    <string name="quest_category_finish">Finish</string>
+    <string name="quest_category_practice">Practice</string>
+    <string name="quest_category_your_pace">Your pace</string>
+    <string name="quest_category_morning">Morning</string>
+    <string name="quest_category_steady_focus">Steady focus</string>
+    <string name="quest_category_intention">Intention</string>
+    <plurals name="quest_focus_title">
+        <item quantity="one">Focus for %1$d minute</item>
+        <item quantity="other">Focus for %1$d minutes</item>
+    </plurals>
+    <plurals name="quest_focus_detail">
+        <item quantity="one">Collect %1$d focus minute across saved sessions started today. Sessions you end early count too. Break time does not count.</item>
+        <item quantity="other">Collect %1$d focus minutes across saved sessions started today. Sessions you end early count too. Break time does not count.</item>
+    </plurals>
+    <plurals name="quest_finish_title">
+        <item quantity="one">Finish %1$d session</item>
+        <item quantity="other">Finish %1$d sessions</item>
+    </plurals>
+    <plurals name="quest_finish_length_title">
+        <item quantity="one">Finish %1$d session of %2$d minutes</item>
+        <item quantity="other">Finish %1$d sessions of %2$d minutes</item>
+    </plurals>
+    <plurals name="quest_finish_detail">
+        <item quantity="one">Complete %1$d session started today. Each needs at least one saved focus minute. Let the timer finish, or select I\'m done in stopwatch mode. Giving up does not count.</item>
+        <item quantity="other">Complete %1$d sessions started today. Each needs at least one saved focus minute. Let the timer finish, or select I\'m done in stopwatch mode. Giving up does not count.</item>
+    </plurals>
+    <plurals name="quest_finish_length_detail">
+        <item quantity="one">Complete %1$d session started today. Each needs at least %2$d focus minutes. Let the timer finish, or select I\'m done in stopwatch mode. Giving up does not count.</item>
+        <item quantity="other">Complete %1$d sessions started today. Each needs at least %2$d focus minutes. Let the timer finish, or select I\'m done in stopwatch mode. Giving up does not count.</item>
+    </plurals>
+    <plurals name="quest_goal_title">
+        <item quantity="one">Put %1$d minute toward your goal</item>
+        <item quantity="other">Put %1$d minutes toward your goal</item>
+    </plurals>
+    <plurals name="quest_goal_detail" tools:ignore="TypographyDashes">
+        <item quantity="one">Collect %1$d focus minute across sessions started today. This task uses %2$d%% of your %3$d-minute goal, limited to 5-90 minutes. The first saved session fixes the target; later goal changes do not change it.</item>
+        <item quantity="other">Collect %1$d focus minutes across sessions started today. This task uses %2$d%% of your %3$d-minute goal, limited to 5-90 minutes. The first saved session fixes the target; later goal changes do not change it.</item>
+    </plurals>
+
+    <!-- Schedules -->
+    <string name="schedule_icon_auto">Automatic</string>
+    <string name="schedule_icon_focus">Focus</string>
+    <string name="schedule_icon_study">Study</string>
+    <string name="schedule_icon_work">Work</string>
+    <string name="schedule_icon_sleep">Sleep</string>
+    <string name="schedule_icon_exercise">Exercise</string>
+    <string name="schedule_icon_coffee">Coffee</string>
+    <string name="schedule_icon_home">Home</string>
+    <string name="schedule_icon_music">Music</string>
+    <string name="schedule_icon_book">Reading</string>
+    <string name="schedule_default_morning">Morning focus</string>
+    <string name="schedule_default_afternoon">Afternoon focus</string>
+    <string name="schedule_default_evening">Evening focus</string>
+    <string name="schedule_default_night">Night focus</string>
+    <plurals name="schedule_apps_blocked">
+        <item quantity="one">%1$d app blocked</item>
+        <item quantity="other">%1$d apps blocked</item>
+    </plurals>
+    <plurals name="schedule_apps_except">
+        <item quantity="one">all but %1$d app blocked</item>
+        <item quantity="other">all but %1$d apps blocked</item>
+    </plurals>
+
+    <!-- Wardrobe -->
+    <string name="wardrobe_secret_secret_found">Secret found!</string>
+    <string name="wardrobe_secret_star_guardian">Star guardian</string>
+    <string name="wardrobe_secret_description">A thousand pats! Pebble has never felt so loved. This outfit is yours to keep.</string>
+    <string name="wardrobe_secret_wear_it_now">Wear it now</string>
+    <string name="wardrobe_secret_later">Later</string>
+    <string name="wardrobe_item_color_mint">Mint</string>
+    <string name="wardrobe_item_color_peach">Peach</string>
+    <string name="wardrobe_item_color_sky">Sky</string>
+    <string name="wardrobe_item_color_rose">Rose quartz</string>
+    <string name="wardrobe_item_color_sand">Sandstone</string>
+    <string name="wardrobe_item_color_slate">Slate</string>
+    <string name="wardrobe_item_color_lilac">Lilac</string>
+    <string name="wardrobe_item_color_moon">Moonstone</string>
+    <string name="wardrobe_item_outfit_tee">Everyday tee</string>
+    <string name="wardrobe_item_outfit_stripes">Sailor stripes</string>
+    <string name="wardrobe_item_outfit_overalls">Garden overalls</string>
+    <string name="wardrobe_item_outfit_sweater">Cozy sweater</string>
+    <string name="wardrobe_item_outfit_raincoat">Raincoat</string>
+    <string name="wardrobe_item_outfit_vest">Explorer vest</string>
+    <string name="wardrobe_item_outfit_apron">Art apron</string>
+    <string name="wardrobe_item_outfit_stars">Star pajamas</string>
+    <string name="wardrobe_item_outfit_suit">Little waistcoat</string>
+    <string name="wardrobe_item_outfit_cape">Focus cape</string>
+    <string name="wardrobe_item_outfit_star_guardian">Star guardian</string>
+    <string name="wardrobe_item_hat_beanie">Soft beanie</string>
+    <string name="wardrobe_item_hat_bucket">Bucket hat</string>
+    <string name="wardrobe_item_hat_flower">Daisy</string>
+    <string name="wardrobe_item_hat_beret">Artist beret</string>
+    <string name="wardrobe_item_hat_sun">Sun hat</string>
+    <string name="wardrobe_item_hat_sleep">Sleep cap</string>
+    <string name="wardrobe_item_hat_bow">Big bow</string>
+    <string name="wardrobe_item_hat_captain">Captain\'s cap</string>
+    <string name="wardrobe_item_hat_wizard">Stargazer hat</string>
+    <string name="wardrobe_item_hat_crown">Little crown</string>
+    <string name="wardrobe_item_accessory_scarf">Warm scarf</string>
+    <string name="wardrobe_item_accessory_glasses">Round glasses</string>
+    <string name="wardrobe_item_accessory_bowtie">Bow tie</string>
+    <string name="wardrobe_item_accessory_satchel">Field satchel</string>
+    <string name="wardrobe_item_accessory_headphones">Quiet headphones</string>
+    <string name="wardrobe_item_accessory_neckerchief">Trail neckerchief</string>
+    <string name="wardrobe_item_accessory_medal">Focus medal</string>
+    <string name="wardrobe_item_accessory_star">Pocket star</string>
+    <string name="wardrobe_hidden_message">This item is still hidden.</string>
+    <string name="wardrobe_locked_message">This item unlocks at level %1$d.</string>
+    <string name="wardrobe_save_failure">Could not save Pebble\'s look. Try again.</string>
+    <string name="wardrobe_title">Pebble\'s wardrobe</string>
+    <string name="wardrobe_preview_level_required" tools:ignore="PluralsCandidate">Preview - level %1$d required</string>
+    <string name="wardrobe_wearing_now">Wearing now</string>
+    <string name="wardrobe_ready_to_wear">Ready to wear</string>
+    <string name="wardrobe_saving" tools:ignore="TypographyEllipsis">Saving...</string>
+    <string name="wardrobe_equipped">Equipped</string>
+    <string name="wardrobe_locked">Locked</string>
+    <string name="wardrobe_wear">Wear</string>
+    <string name="wardrobe_level">Level %1$d</string>
+    <plurals name="wardrobe_unlocked">
+        <item quantity="one">%1$d / %2$d unlocked</item>
+        <item quantity="other">%1$d / %2$d unlocked</item>
+    </plurals>
+    <string name="wardrobe_more_items_at_level">More items at level %1$d</string>
+    <string name="wardrobe_always_available">Always available</string>
+    <string name="wardrobe_unlocks_at_level">Unlocks at level %1$d</string>
+    <string name="wardrobe_secret_discovered">Secret discovered</string>
+    <string name="wardrobe_unlock_help">Try any item above. Focus sessions and daily quests earn XP. Unlocked items cost no XP and can be worn together.</string>
+    <string name="wardrobe_restore_original_look">Restore original look</string>
+    <string name="wardrobe_selected">Selected</string>
+    <string name="wardrobe_colors">Colors</string>
+    <string name="wardrobe_clothes">Clothes</string>
+    <string name="wardrobe_hats">Hats</string>
+    <string name="wardrobe_extras">Extras</string>
+    <string name="wardrobe_original_purple">Original purple</string>
+    <string name="wardrobe_no_clothes">No clothes</string>
+    <string name="wardrobe_no_hat">No hat</string>
+    <string name="wardrobe_no_extra">No extra</string>
+
+    <!-- Settings -->
+    <string name="settings_settings">Settings</string>
+    <string name="settings_permissions">Permissions</string>
+    <string name="settings_all_permissions_allowed">All permissions allowed</string>
+    <string name="settings_hide_details">Hide details</string>
+    <string name="settings_review_permissions">Review permissions</string>
+    <string name="settings_daily_goal">Daily goal</string>
+    <string name="settings_focus_goal">Focus goal</string>
+    <string name="settings_goal_days">Goal days</string>
+    <string name="settings_productive_apps">Productive apps</string>
+    <string name="settings_productive_apps_empty">Reports count no app as productive.</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_app_theme">App theme</string>
+    <string name="settings_theme_help">System follows your phone\'s light or dark setting.</string>
+    <string name="settings_system">System</string>
+    <string name="settings_light">Light</string>
+    <string name="settings_dark">Dark</string>
+    <string name="settings_clock">Clock</string>
+    <string name="settings_clock_help">System follows the time format on your phone.</string>
+    <string name="settings_sound">Sound</string>
+    <string name="settings_sound_effects">Sound effects</string>
+    <string name="settings_sound_help">Focus changes, rewards, and setup. Uses the media volume.</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_focus_updates">Focus updates</string>
+    <string name="settings_focus_events_help">Messages when focus rounds and sessions end.</string>
+    <string name="settings_live_focus_timer">Live focus timer</string>
+    <string name="settings_live_timer_help">Shows the time left in the status bar while you focus.</string>
+    <string name="settings_allow_live_updates">Allow live updates</string>
+    <string name="settings_live_timer_permission_help">Android turned off live updates for Stillpoint. Tap to allow them.</string>
+    <string name="settings_planned_focus_reminders">Planned focus reminders</string>
+    <string name="settings_plan_reminders_help">Reminders for scheduled focus. Automatic starts stay enabled.</string>
+    <string name="settings_inbox_summaries">Inbox summaries</string>
+    <string name="settings_inbox_summary_help">Alerts at your chosen delivery times. Held messages stay in your inbox.</string>
+    <string name="settings_android_notification_settings">Android notification settings</string>
+    <string name="settings_system_notifications_help">Control notification sound and visibility.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_source_code">Source code</string>
+    <string name="settings_repository_name" translatable="false">github.com/agneswd/Stillpoint</string>
+    <string name="settings_source_description">GPLv3 at %1$s</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_licenses_description">Nunito uses the SIL Open Font License. UI sounds from the Versilian Community Sample Library and focus recordings from Freesound use CC0. License texts are included in this app.</string>
+    <string name="settings_clock_12">12-hour</string>
+    <string name="settings_clock_24">24-hour</string>
+    <string name="settings_days_every_day">Every day</string>
+    <string name="settings_days_weekdays">Weekdays</string>
+    <string name="settings_days_weekends">Weekends</string>
+    <string name="settings_days_none">No days</string>
+
+    <!-- Inbox notifications -->
+    <string name="inbox_notification_body">Tap to open your notification inbox.</string>
+    <plurals name="inbox_notification_title">
+        <item quantity="one">%1$d held notifications</item>
+        <item quantity="other">%1$d held notifications</item>
+    </plurals>
+
+    <!-- Plan notifications -->
+    <string name="plan_notification_snooze">Snooze 10 minutes</string>
+    <string name="plan_notification_body">Your planned focus time is here. Tap to start.</string>
+
+    <!-- Block screen -->
+    <string name="block_no_pass_message">No extra passes are available</string>
+    <string name="block_browser_button">Back to the browser</string>
+    <string name="block_app_button">Back to the app</string>
+    <string name="block_close_button">Close</string>
+    <string name="block_pass_button">Open for 5 more minutes</string>
+    <string name="block_no_passes">No passes left today.</string>
+    <string name="block_last_pass">This is your last pass today.</string>
+    <plurals name="block_wait_seconds">
+        <item quantity="one">Take a breath. %1$d s</item>
+        <item quantity="other">Take a breath. %1$d s</item>
+    </plurals>
+    <plurals name="block_passes_left">
+        <item quantity="one">%1$d passes left today.</item>
+        <item quantity="other">%1$d passes left today.</item>
+    </plurals>
+    <string name="block_pebble_focus_1">Not now. You\'re focusing!</string>
+    <string name="block_pebble_focus_2">Back to it. I believe in you.</string>
+    <string name="block_pebble_focus_3">Nice try! Your focus comes first.</string>
+    <string name="block_pebble_schedule_1">It\'s not time for this yet.</string>
+    <string name="block_pebble_schedule_2">Your plan says no. I agree.</string>
+    <string name="block_pebble_limit_1">That\'s enough for today.</string>
+    <string name="block_pebble_limit_2">Your time is used up. See you tomorrow!</string>
+    <string name="block_pebble_shorts_1">No endless scrolling!</string>
+    <string name="block_pebble_shorts_2">Shorts are closed. The rest is yours.</string>
+    <string name="block_pebble_study_1">Study mode is on.</string>
+    <string name="block_pebble_study_2">Let\'s find something useful.</string>
+    <string name="block_pebble_site_1">Hmm, not this site.</string>
+    <string name="block_pebble_site_2">This site is on your list.</string>
+    <string name="block_pebble_protection_1">Nice try. Your blocks stay on.</string>
+    <string name="block_pebble_protection_2">Not today. Strict mode is on.</string>
+    <string name="block_pebble_multi_window_1">One app at a time.</string>
+    <string name="block_focus_title">%1$s is blocked during focus</string>
+    <string name="block_focus_detail">Your focus round ends at %1$s.</string>
+    <string name="block_schedule_title">%1$s is blocked during %2$s</string>
+    <string name="block_schedule_detail">The block ends at %1$s.</string>
+    <string name="block_limit_title">Your %1$s on %2$s is used up</string>
+    <string name="block_limit_reset">The limit resets at midnight.</string>
+    <string name="block_limit_wait">Wait a moment if you really need it.</string>
+    <string name="block_windows_title">Multiple app windows are blocked</string>
+    <string name="block_windows_detail">Use one app during this block.</string>
+    <string name="block_short_title">%1$s is blocked</string>
+    <string name="block_short_detail">The rest of the app still works.</string>
+    <string name="block_youtube_home_title">YouTube home is blocked</string>
+    <string name="block_youtube_home_detail">Search for a video or use your subscriptions.</string>
+    <string name="block_channel_title">This YouTube channel is blocked</string>
+    <string name="block_channel_detail">Only your chosen channels work in study mode.</string>
+    <string name="block_site_title">%1$s is blocked</string>
+    <string name="block_site_detail">Going back opens a blank page in this tab.</string>
+    <string name="block_settings_title">Stillpoint settings are locked</string>
+    <string name="block_settings_detail">You can change them when the focus round or schedule ends.</string>
+
+    <!-- Limit -->
+    <string name="limit_reminder_title">Time to take a break?</string>
+    <plurals name="limit_reminder_body">
+        <item quantity="one">You have used %1$s for %2$d minutes.</item>
+        <item quantity="other">You have used %1$s for %2$d minutes.</item>
+    </plurals>
+
+    <!-- Durations -->
+    <plurals name="duration_minutes">
+        <item quantity="one">%1$dm</item>
+        <item quantity="other">%1$dm</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%1$dh</item>
+        <item quantity="other">%1$dh</item>
+    </plurals>
+    <plurals name="duration_hours_minutes">
+        <item quantity="one">%1$dh %2$dm</item>
+        <item quantity="other">%1$dh %2$dm</item>
+    </plurals>
+
+    <!-- Pebble -->
+    <string name="pebble_pet_action">Pet Pebble</string>
+    <string name="pebble_name" translatable="false">Pebble</string>
+
+    <!-- Notification channels -->
+    <string name="notification_channel_focus">Focus timer</string>
+    <string name="notification_channel_events">Focus events</string>
 </resources>

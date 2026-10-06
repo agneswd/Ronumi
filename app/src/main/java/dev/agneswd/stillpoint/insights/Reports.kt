@@ -7,6 +7,9 @@ import dev.agneswd.stillpoint.game.rewardDate
 import dev.agneswd.stillpoint.guard.blocks
 import java.time.LocalDate
 
+// Keep the existing grouping key for blank tags. The report screen resolves its display text.
+const val UNTAGGED_REPORT_KEY = "Untagged"
+
 /** A report uses stored usage, so it can include dates beyond Android's event retention. */
 data class Report(
     val focusMinutes: Long,
@@ -58,7 +61,7 @@ fun report(
     val selected = sessions.filter { it.rewardDate() in start..today }
     val records = usage.filter { LocalDate.parse(it.day) in start..today }
     val total = selected.sumOf { it.focusedMillis } / 60_000
-    val tags = selected.groupBy { it.tag.ifBlank { "Untagged" } }.map { (tag, list) -> tag to list.sumOf { it.focusedMillis } / 60_000 }.sortedByDescending { it.second }
+    val tags = selected.groupBy { it.tag.ifBlank { UNTAGGED_REPORT_KEY } }.map { (tag, list) -> tag to list.sumOf { it.focusedMillis } / 60_000 }.sortedByDescending { it.second }
     val productive = records.sumOf { record ->
         record.perApp.filterKeys { usageCategory(it, settings, essentialPackages) == UsageCategory.PRODUCTIVE }.values.sum()
     }

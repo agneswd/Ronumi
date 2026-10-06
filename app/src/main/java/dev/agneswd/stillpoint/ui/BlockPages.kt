@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,13 +60,13 @@ import dev.agneswd.stillpoint.ui.design.appear
 import kotlinx.coroutines.launch
 
 /** The short-video apps that Stillpoint can close the feed of. */
-data class ShortsApp(val pkg: String, val name: String, val logo: Int, val get: (Settings) -> Boolean, val set: (Settings, Boolean) -> Settings)
+data class ShortsApp(val pkg: String, @param:androidx.annotation.StringRes val nameRes: Int, val logo: Int, val get: (Settings) -> Boolean, val set: (Settings, Boolean) -> Settings)
 
 val shortsApps = listOf(
-    ShortsApp("com.google.android.youtube", "YouTube Shorts", R.drawable.logo_youtube, { it.blockYoutubeShorts }, { s, v -> s.copy(blockYoutubeShorts = v) }),
-    ShortsApp("com.instagram.android", "Instagram Reels", R.drawable.logo_instagram, { it.blockInstagramReels }, { s, v -> s.copy(blockInstagramReels = v) }),
-    ShortsApp("com.snapchat.android", "Snapchat Spotlight", R.drawable.logo_snapchat, { it.blockSnapchatSpotlight }, { s, v -> s.copy(blockSnapchatSpotlight = v) }),
-    ShortsApp("com.facebook.katana", "Facebook Reels", R.drawable.logo_facebook, { it.blockFacebookReels }, { s, v -> s.copy(blockFacebookReels = v) }),
+    ShortsApp("com.google.android.youtube", R.string.blocks_youtube_shorts, R.drawable.logo_youtube, { it.blockYoutubeShorts }, { s, v -> s.copy(blockYoutubeShorts = v) }),
+    ShortsApp("com.instagram.android", R.string.blocks_instagram_reels, R.drawable.logo_instagram, { it.blockInstagramReels }, { s, v -> s.copy(blockInstagramReels = v) }),
+    ShortsApp("com.snapchat.android", R.string.blocks_snapchat_spotlight, R.drawable.logo_snapchat, { it.blockSnapchatSpotlight }, { s, v -> s.copy(blockSnapchatSpotlight = v) }),
+    ShortsApp("com.facebook.katana", R.string.blocks_facebook_reels, R.drawable.logo_facebook, { it.blockFacebookReels }, { s, v -> s.copy(blockFacebookReels = v) }),
 )
 
 /**
@@ -117,36 +119,36 @@ fun Hint(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun ShortVideosPage(onClose: () -> Unit) {
-    BlockPage("Short videos", "I close the endless feed. The rest of the app keeps working.", Mood.GUARD, onClose) { s, update ->
+    BlockPage(stringResource(R.string.blocks_short_videos), stringResource(R.string.blocks_shorts_description), Mood.GUARD, onClose) { s, update ->
         Group(Modifier.appear(0)) {
             shortsApps.forEach { item ->
-                SwitchRow(item.name, null, item.get(s), leading = { AppIcon(item.pkg, name = item.name, logo = item.logo) }) { on -> update { item.set(it, on) } }
+                SwitchRow(stringResource(item.nameRes), null, item.get(s), leading = { AppIcon(item.pkg, name = stringResource(item.nameRes), logo = item.logo) }) { on -> update { item.set(it, on) } }
             }
         }
         Group(Modifier.padding(top = 12.dp).appear(60)) {
-            SwitchRow("Allow the first video", "On YouTube and Instagram, the first video of each visit plays, like one a friend sent. The next one is blocked.", s.allowFirstShort) { on ->
+            SwitchRow(stringResource(R.string.blocks_allow_the_first_video), stringResource(R.string.blocks_first_video_description), s.allowFirstShort) { on ->
                 update { it.copy(allowFirstShort = on) }
             }
-            SwitchRow("Only during focus", "Also applies to websites and YouTube channels.", s.contentOnlyDuringFocus) { on ->
+            SwitchRow(stringResource(R.string.blocks_only_during_focus), stringResource(R.string.blocks_shorts_focus_scope), s.contentOnlyDuringFocus) { on ->
                 update { it.copy(contentOnlyDuringFocus = on) }
             }
         }
 
-        SectionTitle("YouTube")
+        SectionTitle(stringResource(R.string.blocks_youtube))
         Group(Modifier.appear(120)) {
-            SwitchRow("Hide the home feed", "Search and subscriptions still work.", s.blockYoutubeHome) { on -> update { it.copy(blockYoutubeHome = on) } }
-            SwitchRow("Study mode", "Only videos from the channels below can play.", s.youtubeStudyMode) { on -> update { it.copy(youtubeStudyMode = on) } }
+            SwitchRow(stringResource(R.string.blocks_hide_the_home_feed), stringResource(R.string.blocks_youtube_home_description), s.blockYoutubeHome) { on -> update { it.copy(blockYoutubeHome = on) } }
+            SwitchRow(stringResource(R.string.blocks_study_mode), stringResource(R.string.blocks_study_description), s.youtubeStudyMode) { on -> update { it.copy(youtubeStudyMode = on) } }
         }
         if (s.youtubeStudyMode) {
             Column(Modifier.appear(0)) {
-                SectionTitle("Allowed channels")
-                ChipList(s.allowedYoutubeChannels, empty = "No channels yet. Every video is blocked.") { channel ->
+                SectionTitle(stringResource(R.string.blocks_allowed_channels))
+                ChipList(s.allowedYoutubeChannels, empty = stringResource(R.string.blocks_channels_empty)) { channel ->
                     update { it.copy(allowedYoutubeChannels = it.allowedYoutubeChannels - channel) }
                 }
-                AddField("Channel name or @handle", KeyboardType.Text, clean = { it.trim().takeIf(String::isNotEmpty) }) { channel ->
+                AddField(stringResource(R.string.blocks_channel_name_or_handle), KeyboardType.Text, clean = { it.trim().takeIf(String::isNotEmpty) }) { channel ->
                     update { it.copy(allowedYoutubeChannels = it.allowedYoutubeChannels + channel) }
                 }
-                Hint("Type the name exactly as YouTube shows it under the video.")
+                Hint(stringResource(R.string.blocks_channel_input_help))
             }
         }
     }
@@ -157,29 +159,29 @@ fun WebsitesPage(onClose: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
     val sites by app.dao.sites().collectAsState(emptyList())
-    BlockPage("Websites", "I watch the address bar in your browsers.", Mood.THINK, onClose) { s, update ->
+    BlockPage(stringResource(R.string.blocks_websites), stringResource(R.string.blocks_websites_description), Mood.THINK, onClose) { s, update ->
         Group(Modifier.appear(0)) {
-            SwitchRow("Block adult sites", "A built-in list of adult domains and words.", s.blockAdultSites) { on ->
+            SwitchRow(stringResource(R.string.blocks_block_adult_sites), stringResource(R.string.blocks_adult_filter_description), s.blockAdultSites) { on ->
                 update { it.copy(blockAdultSites = on) }
             }
-            SwitchRow("Only during focus", "Also applies to short videos and YouTube channels.", s.contentOnlyDuringFocus) { on ->
+            SwitchRow(stringResource(R.string.blocks_only_during_focus), stringResource(R.string.blocks_websites_focus_scope), s.contentOnlyDuringFocus) { on ->
                 update { it.copy(contentOnlyDuringFocus = on) }
             }
         }
 
-        SectionTitle("Your list")
+        SectionTitle(stringResource(R.string.blocks_your_list))
         Row(Modifier.padding(horizontal = ScreenPadding).appear(60), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ChoiceButton("Block these", !s.siteAllowList, Modifier.weight(1f)) { update { it.copy(siteAllowList = false) } }
-            ChoiceButton("Allow only these", s.siteAllowList, Modifier.weight(1f)) { update { it.copy(siteAllowList = true) } }
+            ChoiceButton(stringResource(R.string.blocks_block_these), !s.siteAllowList, Modifier.weight(1f)) { update { it.copy(siteAllowList = false) } }
+            ChoiceButton(stringResource(R.string.blocks_allow_only_these), s.siteAllowList, Modifier.weight(1f)) { update { it.copy(siteAllowList = true) } }
         }
         Hint(
-            if (s.siteAllowList) "Every other website is blocked. Subdomains of a listed site work too."
-            else "These sites and their subdomains are blocked.",
+            if (s.siteAllowList) stringResource(R.string.blocks_allowlist_description)
+            else stringResource(R.string.blocks_denylist_description),
         )
-        AddField(if (s.siteAllowList) "Allow a site, like example.com" else "Block a site, like example.com", KeyboardType.Uri, clean = ::hostOf) { domain ->
+        AddField(stringResource(if (s.siteAllowList) R.string.blocks_allowlist_input_hint else R.string.blocks_denylist_input_hint, stringResource(R.string.blocks_example_domain)), KeyboardType.Uri, clean = ::hostOf) { domain ->
             app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.addSite(BlockedSite(domain)) } }
         }
-        ChipList(sites.map { it.domain }.toSet(), empty = if (s.siteAllowList) "No sites yet. Every website is blocked." else "No sites yet.") { domain ->
+        ChipList(sites.map { it.domain }.toSet(), empty = if (s.siteAllowList) stringResource(R.string.blocks_allowlist_empty) else stringResource(R.string.blocks_no_sites_yet)) { domain ->
             sites.firstOrNull { it.domain == domain }?.let { app.scope.launch { PolicyActions.changeBlocks(context) { app.dao.deleteSite(it) } } }
         }
     }
@@ -187,18 +189,19 @@ fun WebsitesPage(onClose: () -> Unit) {
 
 @Composable
 fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val context = LocalContext.current
     val app = context.app
     val held by app.dao.held().collectAsState(emptyList())
     val access = rememberAccess()
     var picking by remember { mutableStateOf(false) }
     val use24 = rememberUse24Hour()
-    BlockPage("Notifications", "I keep them in a box until you finish.", Mood.CALM, onClose) { s, update ->
+    BlockPage(stringResource(R.string.blocks_notifications), stringResource(R.string.blocks_inbox_description), Mood.CALM, onClose) { s, update ->
         if (!access.listener) {
             Group(Modifier.padding(bottom = 12.dp)) {
                 ListRow(
-                    "Allow notification access",
-                    "Stillpoint needs it to hold notifications.",
+                    stringResource(R.string.blocks_allow_notification_access),
+                    stringResource(R.string.blocks_listener_description),
                     onClick = { navigator.push(Route.Settings) },
                     leading = { IconTile(R.drawable.ic_bell, Sp.colors.danger) },
                 ) { Chevron() }
@@ -206,23 +209,23 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
         }
         Group(Modifier.appear(0)) {
             ListRow(
-                "Hold notifications from",
-                if (s.heldPackages.isEmpty()) "No apps" else appCount(s.heldPackages.size),
+                stringResource(R.string.blocks_hold_notifications_from),
+                if (s.heldPackages.isEmpty()) stringResource(R.string.blocks_no_apps) else appCount(s.heldPackages.size),
                 onClick = {
-                    navigator.push(Route.PickApps("Hold notifications from", s.heldPackages, single = false) { picked -> update { it.copy(heldPackages = picked) } })
+                    navigator.push(Route.PickApps(resources.getString(R.string.blocks_hold_notifications_from), s.heldPackages, single = false) { picked -> update { it.copy(heldPackages = picked) } })
                 },
             ) { AppSelectionPreview(s.heldPackages) }
-            SwitchRow("Hold all day", if (s.holdAlways) "Held at all times." else "Held only during focus and schedules.", s.holdAlways) { on ->
+            SwitchRow(stringResource(R.string.blocks_hold_all_day), if (s.holdAlways) stringResource(R.string.blocks_held_at_all_times) else stringResource(R.string.blocks_hold_focus_description), s.holdAlways) { on ->
                 update { it.copy(holdAlways = on) }
             }
             ListRow(
-                "Inbox",
-                if (held.isEmpty()) "Nothing waiting" else "${held.size} waiting",
+                stringResource(R.string.blocks_inbox),
+                if (held.isEmpty()) stringResource(R.string.blocks_nothing_waiting) else pluralStringResource(R.plurals.blocks_waiting, held.size, held.size),
                 onClick = { navigator.push(Route.Held) },
             ) { Chevron() }
         }
 
-        SectionTitle("Delivery times")
+        SectionTitle(stringResource(R.string.blocks_delivery_times))
         val times = s.notificationDeliveryTimes.mapNotNull(String::toIntOrNull).sorted()
         FlowRow(
             Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(60),
@@ -232,11 +235,11 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
             times.forEach { minute ->
                 Chip(minuteText(minute, use24)) { update { it.copy(notificationDeliveryTimes = it.notificationDeliveryTimes - minute.toString()) } }
             }
-            AddChip("Add time") { picking = true }
+            AddChip(stringResource(R.string.blocks_add_time)) { picking = true }
         }
         Hint(
-            if (times.isEmpty()) "Held notifications wait in the inbox until you open it."
-            else "At these times you get one quiet summary of what waited.",
+            if (times.isEmpty()) stringResource(R.string.blocks_delivery_empty_description)
+            else stringResource(R.string.blocks_delivery_times_description),
         )
     }
     if (picking) {
@@ -249,27 +252,27 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
 
 @Composable
 fun StrictPage(onClose: () -> Unit) {
-    BlockPage("Strict mode", "When strict mode is on, nobody can switch me off in a weak moment. Not even you.", Mood.STRICT, onClose) { s, update ->
+    BlockPage(stringResource(R.string.blocks_strict_mode), stringResource(R.string.blocks_protection_description), Mood.STRICT, onClose) { s, update ->
         Group(Modifier.appear(0)) {
             SwitchRow(
-                "Lock Stillpoint while blocks run",
-                "Locks the Blocks tab and supported settings pages during focus and schedules.",
+                stringResource(R.string.blocks_protection_switch),
+                stringResource(R.string.blocks_protection_switch_description),
                 s.protection,
             ) { on -> update { it.copy(protection = on) } }
             SwitchRow(
-                "Block split screen",
-                "Closes split screen and floating windows during focus and schedules.",
+                stringResource(R.string.blocks_block_split_screen),
+                stringResource(R.string.blocks_windows_description),
                 s.blockMultiWindow,
             ) { on -> update { it.copy(blockMultiWindow = on) } }
         }
 
-        SectionTitle("Extra time")
+        SectionTitle(stringResource(R.string.blocks_extra_time))
         Group(Modifier.appear(60)) {
-            Stepper("Passes each day", s.emergencyPassesPerDay, 0..10, 1, { if (it == 0) "None" else "$it" }) { value ->
+            Stepper(stringResource(R.string.blocks_passes_each_day), s.emergencyPassesPerDay, 0..10, 1, { if (it == 0) stringResource(R.string.blocks_none) else stringResource(R.string.blocks_pass_count, it) }) { value ->
                 update { it.copy(emergencyPassesPerDay = value) }
             }
         }
-        Hint("A pass opens an app with a gentle limit for 5 more minutes. Strict limits never take passes.")
+        Hint(stringResource(R.string.blocks_pass_help))
     }
 }
 
@@ -303,7 +306,7 @@ fun Chip(text: String, onRemove: () -> Unit) {
         Spacer(Modifier.width(2.dp))
         Icon(
             painterResource(R.drawable.ic_close),
-            "Remove $text",
+            stringResource(R.string.blocks_remove, text),
             tint = Sp.colors.brand,
             modifier = Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).clickable(onClick = onRemove).padding(8.dp),
         )
@@ -351,6 +354,6 @@ private fun AddField(placeholder: String, keyboard: KeyboardType, clean: (String
             modifier = Modifier.weight(1f).trackTextFieldFocus(),
         )
         Spacer(Modifier.width(8.dp))
-        ChunkyButton("Add", submit, enabled = value != null, height = 52.dp)
+        ChunkyButton(stringResource(R.string.blocks_add), submit, enabled = value != null, height = 52.dp)
     }
 }

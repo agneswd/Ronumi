@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.guard
 
+import dev.agneswd.stillpoint.R
 import android.view.accessibility.AccessibilityNodeInfo
 import dev.agneswd.stillpoint.data.Settings
 
@@ -13,7 +14,7 @@ import dev.agneswd.stillpoint.data.Settings
  */
 data class ShortsFeed(
     val packageName: String,
-    val name: String,
+    @param:androidx.annotation.StringRes val nameRes: Int,
     val viewIds: List<String> = emptyList(),
     val selectedTabLabels: List<String> = emptyList(),
     val titleIds: List<String> = emptyList(),
@@ -24,7 +25,7 @@ data class ShortsFeed(
 val shortsFeeds = listOf(
     ShortsFeed(
         "com.google.android.youtube",
-        "YouTube Shorts",
+        R.string.blocks_youtube_shorts,
         viewIds = listOf(
             "reel_recycler",
             "reel_player_page_container",
@@ -39,7 +40,7 @@ val shortsFeeds = listOf(
     ),
     ShortsFeed(
         "com.instagram.android",
-        "Instagram Reels",
+        R.string.blocks_instagram_reels,
         viewIds = listOf("clips_viewer_view_pager", "clips_viewer_container", "clips_video_container"),
         selectedTabLabels = listOf("Reels"),
         titleIds = listOf("clips_caption_text", "clips_video_title", "caption"),
@@ -47,13 +48,13 @@ val shortsFeeds = listOf(
     ),
     ShortsFeed(
         "com.snapchat.android",
-        "Snapchat Spotlight",
+        R.string.blocks_snapchat_spotlight,
         selectedTabLabels = listOf("Spotlight"),
         enabled = { it.blockSnapchatSpotlight },
     ),
     ShortsFeed(
         "com.facebook.katana",
-        "Facebook Reels",
+        R.string.blocks_facebook_reels,
         selectedTabLabels = listOf("Reels"),
         tabsAtBottom = false,
         enabled = { it.blockFacebookReels },

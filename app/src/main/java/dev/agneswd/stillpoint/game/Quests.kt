@@ -1,5 +1,9 @@
 package dev.agneswd.stillpoint.game
 
+import dev.agneswd.stillpoint.ui.quantityResource
+import dev.agneswd.stillpoint.ui.textResource
+import dev.agneswd.stillpoint.ui.ResourceText
+import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.data.FocusSession
 import java.time.LocalDate
 
@@ -16,7 +20,7 @@ fun questsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): 
     val longest = (completed.maxOfOrNull { it.safeFocusMillis() } ?: 0) / 60_000
     val named = completed.count { it.tag.isNotBlank() }
     val reflected = completed.count { it.notes.isNotBlank() }
-    fun quest(id: String, title: String, value: Int, target: Int, xp: Int, category: String, detail: String) =
+    fun quest(id: String, title: ResourceText, value: Int, target: Int, xp: Int, category: String, detail: ResourceText) =
         Quest(id, title, value.coerceAtMost(target), target, xp, category, detail)
     // Each category has its own six-day rotation. Dates alone select the tasks.
     val rotation = Math.floorMod(date.toEpochDay(), 6)
@@ -33,17 +37,24 @@ fun questsFor(date: LocalDate, sessions: List<FocusSession>, goalMinutes: Int): 
     val finishProgress = completed.count { it.safeFocusMillis() >= finishLength * 60_000L }
     val goalTarget = (goal * goalShares[gi] / 100).coerceIn(5, 90)
     val care = when (rotation) {
-        0 -> quest("v1_name1", "Finish a named session", named, 1, 15, "Intention", "Name a task before you start, then complete that session today. A saved session with any nonempty name counts.")
-        1 -> quest("v1_note1", "Write a session reflection", reflected, 1, 15, "Intention", "Complete a session started today. Add a note on its completion screen, then select Continue to save it. Notes on abandoned sessions do not count.")
-        2 -> quest("v1_steady10", "Finish 10 minutes in one session", longest.toInt(), 10, 20, "Intention", "Complete one session started today with at least 10 focus minutes. Break time does not count. Giving up does not complete this task.")
-        3 -> quest("v1_name2", "Finish two named sessions", named, 2, 25, "Intention", "Complete two sessions started today with a task name. You can use the same name for both. Giving up does not count.")
-        4 -> quest("v1_note2", "Reflect on two sessions", reflected, 2, 25, "Intention", "Complete two sessions started today. Add a note after each session and select Continue to save it. Each saved note counts once.")
-        else -> quest("v1_steady20", "Finish 20 minutes in one session", longest.toInt(), 20, 25, "Intention", "Complete one session started today with at least 20 focus minutes. Break time does not count. Giving up does not complete this task.")
+        0 -> quest("v1_name1", textResource(R.string.quest_v1_name1_title), named, 1, 15, "Intention", textResource(R.string.quest_v1_name1_detail))
+        1 -> quest("v1_note1", textResource(R.string.quest_v1_note1_title), reflected, 1, 15, "Intention", textResource(R.string.quest_v1_note1_detail))
+        2 -> quest("v1_steady10", textResource(R.string.quest_v1_steady10_title), longest.toInt(), 10, 20, "Intention", textResource(R.string.quest_v1_steady10_detail))
+        3 -> quest("v1_name2", textResource(R.string.quest_v1_name2_title), named, 2, 25, "Intention", textResource(R.string.quest_v1_name2_detail))
+        4 -> quest("v1_note2", textResource(R.string.quest_v1_note2_title), reflected, 2, 25, "Intention", textResource(R.string.quest_v1_note2_detail))
+        else -> quest("v1_steady20", textResource(R.string.quest_v1_steady20_title), longest.toInt(), 20, 25, "Intention", textResource(R.string.quest_v1_steady20_detail))
     }
     return listOf(
-        quest("v1_focus$fi", "Focus for $focusTarget minutes", minutes, focusTarget, 10 + focusTarget / 2, "Focus", "Collect $focusTarget focus minutes across saved sessions started today. Sessions you end early count too. Break time does not count."),
-        quest("v1_finish$ci", if (finishLength == 0) "Finish $finishCount ${if (finishCount == 1) "session" else "sessions"}" else "Finish $finishCount ${if (finishCount == 1) "session" else "sessions"} of $finishLength minutes", finishProgress, finishCount, 15 + finishCount * 5, "Finish", "Complete $finishCount ${if (finishCount == 1) "session" else "sessions"} started today.${if (finishLength > 0) " Each needs at least $finishLength focus minutes." else " Each needs at least one saved focus minute."} Let the timer finish, or select I'm done in stopwatch mode. Giving up does not count."),
-        quest("v1_goal$gi", "Put $goalTarget minutes toward your goal", minutes, goalTarget, 15 + goalTarget / 3, "Your pace", "Collect $goalTarget focus minutes across sessions started today. This task uses ${goalShares[gi]}% of your $goal-minute goal, limited to 5-90 minutes. The first saved session fixes the target; later goal changes do not change it."),
+        quest("v1_focus$fi", quantityResource(R.plurals.quest_focus_title, focusTarget, focusTarget), minutes, focusTarget, 10 + focusTarget / 2, "Focus",
+            quantityResource(R.plurals.quest_focus_detail, focusTarget, focusTarget)),
+        quest("v1_finish$ci",
+            if (finishLength == 0) quantityResource(R.plurals.quest_finish_title, finishCount, finishCount)
+            else quantityResource(R.plurals.quest_finish_length_title, finishCount, finishCount, finishLength),
+            finishProgress, finishCount, 15 + finishCount * 5, "Finish",
+            if (finishLength == 0) quantityResource(R.plurals.quest_finish_detail, finishCount, finishCount)
+            else quantityResource(R.plurals.quest_finish_length_detail, finishCount, finishCount, finishLength)),
+        quest("v1_goal$gi", quantityResource(R.plurals.quest_goal_title, goalTarget, goalTarget), minutes, goalTarget, 15 + goalTarget / 3, "Your pace",
+            quantityResource(R.plurals.quest_goal_detail, goalTarget, goalTarget, goalShares[gi], goal)),
         care,
     )
 }

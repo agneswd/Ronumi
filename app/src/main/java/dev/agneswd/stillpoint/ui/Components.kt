@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -152,7 +154,7 @@ fun AppIcon(packageName: String, size: Dp = 40.dp, name: String? = null, logo: I
     } else {
         val label = name ?: remember(packageName) { context.app.catalog.label(packageName) }
         Box(Modifier.size(size).clip(RoundedCornerShape(size / 4)).background(Sp.colors.brandSoft), contentAlignment = Alignment.Center) {
-            Text(label.take(1).uppercase(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.brand)
+            Text(label.take(1).uppercase(androidx.compose.ui.platform.LocalLocale.current.platformLocale), style = MaterialTheme.typography.titleMedium, color = Sp.colors.brand)
         }
     }
 }
@@ -167,12 +169,12 @@ fun IconTile(icon: Int, color: Color, size: Dp = 40.dp) {
 
 /** A value with minus and plus buttons. */
 @Composable
-fun Stepper(label: String, value: Int, range: IntRange, step: Int, format: (Int) -> String, onChange: (Int) -> Unit) {
+fun Stepper(label: String, value: Int, range: IntRange, step: Int, format: @Composable (Int) -> String, onChange: (Int) -> Unit) {
     ListRow(label) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RoundKey(R.drawable.ic_minus, "Decrease $label", enabled = value > range.first) { onChange((value - step).coerceIn(range)) }
+            RoundKey(R.drawable.ic_minus, stringResource(R.string.common_decrease, label), enabled = value > range.first) { onChange((value - step).coerceIn(range)) }
             Text(format(value), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text, modifier = Modifier.widthIn(min = 64.dp), textAlign = TextAlign.Center)
-            RoundKey(R.drawable.ic_plus, "Increase $label", enabled = value < range.last) { onChange((value + step).coerceIn(range)) }
+            RoundKey(R.drawable.ic_plus, stringResource(R.string.common_increase, label), enabled = value < range.last) { onChange((value + step).coerceIn(range)) }
         }
     }
 }
@@ -265,9 +267,9 @@ fun GameBar(game: GameState?, modifier: Modifier = Modifier, onOpen: () -> Unit 
         }
         Spacer(Modifier.weight(1f))
         Stat(onOpen) {
-            Text("Level", style = MaterialTheme.typography.titleSmall, color = c.brand)
+            Text(stringResource(R.string.common_level), style = MaterialTheme.typography.titleSmall, color = c.brand)
             Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(c.brand), contentAlignment = Alignment.Center) {
-                Text("${game?.level?.number ?: 1}", style = MaterialTheme.typography.labelMedium, color = c.onFill)
+                Text(stringResource(R.string.common_number, game?.level?.number ?: 1), style = MaterialTheme.typography.labelMedium, color = c.onFill)
             }
         }
     }
@@ -290,7 +292,7 @@ private fun Counter(value: Int, color: Color) {
         transitionSpec = { (scaleIn(spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium)) + fadeIn()) togetherWith fadeOut() },
         label = "counter",
     ) { v ->
-        Text("$v", style = MaterialTheme.typography.titleMedium, color = color)
+        Text(stringResource(R.string.common_number, v), style = MaterialTheme.typography.titleMedium, color = color)
     }
 }
 
@@ -301,11 +303,11 @@ fun TopBar(title: String, onClose: () -> Unit, action: String? = null, actionEna
         Box(
             Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).clickable(onClick = onClose),
             contentAlignment = Alignment.Center,
-        ) { Icon(painterResource(R.drawable.ic_close), "Close", tint = Sp.colors.textDim, modifier = Modifier.size(22.dp)) }
+        ) { Icon(painterResource(R.drawable.ic_close), stringResource(R.string.common_close), tint = Sp.colors.textDim, modifier = Modifier.size(22.dp)) }
         Text(title, style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, modifier = Modifier.weight(1f).padding(horizontal = 8.dp))
         if (action != null) {
             Text(
-                action.uppercase(),
+                action.uppercase(androidx.compose.ui.platform.LocalLocale.current.platformLocale),
                 style = MaterialTheme.typography.labelLarge,
                 color = if (actionEnabled) Sp.colors.brand else Sp.colors.border,
                 modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(enabled = actionEnabled, onClick = onAction).padding(12.dp),
@@ -323,7 +325,8 @@ fun ShareBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Sp.c
     }
 }
 
-fun appCount(count: Int): String = if (count == 1) "1 app" else "$count apps"
+@Composable
+fun appCount(count: Int): String = pluralStringResource(R.plurals.common_app_count, count, count)
 
 /** A button in a row of choices. The chosen one is filled. */
 @Composable

@@ -80,7 +80,7 @@ fun Modifier.pulse(amount: Float = 0.05f, periodMillis: Int = 1400): Modifier = 
 
 /** Counts a number up from zero, for XP and totals on reward screens. */
 @Composable
-fun CountUp(target: Int, style: TextStyle, color: Color, durationMillis: Int = 900, delayMillis: Int = 0, format: (Int) -> String = Int::toString) {
+fun CountUp(target: Int, style: TextStyle, color: Color, durationMillis: Int = 900, delayMillis: Int = 0, format: @Composable (Int) -> String = { androidx.compose.ui.res.stringResource(dev.agneswd.stillpoint.R.string.common_number, it) }) {
     val value = remember { Animatable(0f) }
     LaunchedEffect(target) {
         kotlinx.coroutines.delay(delayMillis.toLong())

@@ -109,7 +109,7 @@
         <receiver
             android:name=".widget.UsageWidget"
             android:exported="false"
-            android:label="Screen time">
+            android:label="@string/widget_usage_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -121,7 +121,7 @@
         <receiver
             android:name=".widget.FocusWidget"
             android:exported="false"
-            android:label="Focus">
+            android:label="@string/widget_focus_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -132,7 +132,7 @@
         <receiver
             android:name=".widget.GoalWidget"
             android:exported="false"
-            android:label="Focus goal">
+            android:label="@string/widget_goal_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -144,7 +144,7 @@
         <receiver
             android:name=".widget.CalendarWidget"
             android:exported="false"
-            android:label="Focus calendar">
+            android:label="@string/widget_calendar_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

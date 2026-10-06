@@ -1,5 +1,11 @@
 package dev.agneswd.stillpoint.guard
 
+import dev.agneswd.stillpoint.ui.nameResource
+import dev.agneswd.stillpoint.ui.resolve
+import dev.agneswd.stillpoint.ui.quantityResource
+import dev.agneswd.stillpoint.R
+import dev.agneswd.stillpoint.ui.textResource
+import dev.agneswd.stillpoint.ui.ResourceText
 import dev.agneswd.stillpoint.data.ActiveFocus
 import dev.agneswd.stillpoint.data.AppLimit
 import dev.agneswd.stillpoint.data.BlockMode
@@ -14,8 +20,8 @@ enum class BlockKind { FOCUS, SCHEDULE, LIMIT, SHORTS, SITE, PROTECTION, STUDY, 
 /** Why the block screen shows. [gentle] blocks let the user take 5 more minutes. */
 data class BlockReason(
     val kind: BlockKind,
-    val title: String,
-    val detail: String,
+    val title: ResourceText,
+    val detail: ResourceText,
     val gentle: Boolean = false,
 )
 
@@ -61,7 +67,7 @@ data class Rules(
         if (focus != null && focusing) {
             if (focus.lockHome && pkg in launchers) return Verdict.ReturnToFocus
             if (pkg !in essentials && focus.mode.blocks(pkg, focus.packages)) {
-                return Verdict.Block(BlockReason(BlockKind.FOCUS, "$label is blocked during focus", "Your focus round ends at ${time(focus.phaseEndsAt, use24Hour)}."))
+                return Verdict.Block(BlockReason(BlockKind.FOCUS, textResource(R.string.block_focus_title, label), textResource(R.string.block_focus_detail, time(focus.phaseEndsAt, use24Hour))))
             }
         }
 
@@ -71,7 +77,7 @@ data class Rules(
         if (pkg !in essentials) {
             activeSchedules(now).firstOrNull { it.mode.blocks(pkg, it.packages) }?.let { schedule ->
                 return Verdict.Block(
-                    BlockReason(BlockKind.SCHEDULE, "$label is blocked during ${schedule.name}", "The block ends at ${minuteText(schedule.endMinute, use24Hour)}."),
+                    BlockReason(BlockKind.SCHEDULE, textResource(R.string.block_schedule_title, label, schedule.name.nameResource()), textResource(R.string.block_schedule_detail, minuteText(schedule.endMinute, use24Hour))),
                 )
             }
         }
@@ -83,8 +89,8 @@ data class Rules(
         return Verdict.Block(
             BlockReason(
                 BlockKind.LIMIT,
-                "Your ${formatMinutes(limit.minutesPerDay)} on $label is used up",
-                if (limit.mode == LimitMode.STRICT) "The limit resets at midnight." else "Wait a moment if you really need it.",
+                textResource(R.string.block_limit_title, minutesResource(limit.minutesPerDay), label),
+                if (limit.mode == LimitMode.STRICT) textResource(R.string.block_limit_reset) else textResource(R.string.block_limit_wait),
                 gentle = limit.mode == LimitMode.GENTLE,
             ),
         )
@@ -117,24 +123,28 @@ fun android.content.Context.uses24HourClock(style: String): Boolean = when (styl
     else -> android.text.format.DateFormat.is24HourFormat(this)
 }
 
-/** A clock time. 12-hour text uses AM and PM. */
+/** A clock time using the selected hour cycle and the current locale. */
 fun minuteText(minuteOfDay: Int, use24: Boolean): String {
     val minute = minuteOfDay.coerceIn(0, 1439)
-    val hour = minute / 60
-    val mins = minute % 60
-    if (use24) return "%02d:%02d".format(hour, mins)
-    val hour12 = if (hour % 12 == 0) 12 else hour % 12
-    val suffix = if (hour < 12) "AM" else "PM"
-    return "%d:%02d %s".format(hour12, mins, suffix)
+    val locale = java.util.Locale.getDefault()
+    val pattern = if (locale.language == "en") {
+        if (use24) "HH:mm" else "h:mm a"
+    } else android.text.format.DateFormat.getBestDateTimePattern(locale, if (use24) "Hm" else "hm")
+    return java.time.LocalTime.of(minute / 60, minute % 60).format(
+        java.time.format.DateTimeFormatter.ofPattern(pattern, locale)
+            .withDecimalStyle(java.time.format.DecimalStyle.of(locale)),
+    )
 }
 
-fun formatMinutes(minutes: Int): String = when {
-    minutes < 60 -> "${minutes}m"
-    minutes % 60 == 0 -> "${minutes / 60}h"
-    else -> "${minutes / 60}h ${minutes % 60}m"
+fun minutesResource(minutes: Int): ResourceText = when {
+    minutes < 60 -> quantityResource(R.plurals.duration_minutes, minutes, minutes)
+    minutes % 60 == 0 -> quantityResource(R.plurals.duration_hours, minutes / 60, minutes / 60)
+    else -> quantityResource(R.plurals.duration_hours_minutes, minutes / 60, minutes / 60, minutes % 60)
 }
 
-fun formatDuration(millis: Long): String = formatMinutes((millis / 60_000).toInt())
+fun formatMinutes(context: android.content.Context, minutes: Int): String = minutesResource(minutes).resolve(context)
+
+fun formatDuration(context: android.content.Context, millis: Long): String = formatMinutes(context, (millis / 60_000).toInt())
 
 fun time(epochMillis: Long, use24: Boolean): String {
     val zoned = java.time.Instant.ofEpochMilli(epochMillis).atZone(java.time.ZoneId.systemDefault())

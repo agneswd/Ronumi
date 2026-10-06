@@ -62,8 +62,8 @@ object Widgets {
                 val week = (6 downTo 1).map { history[LocalDate.now().minusDays(it.toLong()).toString()] ?: 0L } + today.totalMillis
                 val (w, h) = artSize(context, manager, id, widthShare = 1f, heightShare = 0.4f)
                 manager.updateAppWidget(id, RemoteViews(context.packageName, R.layout.widget_usage).apply {
-                    setTextViewText(R.id.widget_value, formatDuration(today.totalMillis))
-                    setTextViewText(R.id.widget_detail, if (today.unlocks == 1) "1 unlock today" else "${today.unlocks} unlocks today")
+                    setTextViewText(R.id.widget_value, formatDuration(context, today.totalMillis))
+                    setTextViewText(R.id.widget_detail, context.resources.getQuantityString(R.plurals.widget_unlock_count, today.unlocks, today.unlocks))
                     setImageViewBitmap(R.id.widget_art, barsArt(context, week, w, h))
                     setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingHome(context))
                 })
@@ -80,8 +80,8 @@ object Widgets {
                 }
                 manager.updateAppWidget(id, RemoteViews(context.packageName, R.layout.widget_goal).apply {
                     setImageViewBitmap(R.id.widget_art, goalArt(context, fraction, mood, style = style))
-                    setTextViewText(R.id.widget_value, "${formatMinutes(g.todayMinutes)} of ${formatMinutes(g.goalMinutes)}")
-                    setTextViewText(R.id.widget_detail, streakText(g.streak, g.streakSafeToday))
+                    setTextViewText(R.id.widget_value, context.getString(R.string.widget_goal_progress, formatMinutes(context, g.todayMinutes), formatMinutes(context, g.goalMinutes)))
+                    setTextViewText(R.id.widget_detail, streakText(context, g.streak, g.streakSafeToday))
                     setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingHome(context))
                 })
             }
@@ -93,7 +93,7 @@ object Widgets {
                 val (w, h) = artSize(context, manager, id, widthShare = 1f, heightShare = 0.72f)
                 manager.updateAppWidget(id, RemoteViews(context.packageName, R.layout.widget_calendar).apply {
                     setImageViewBitmap(R.id.widget_art, calendarArt(context, minutes, settings.focusGoalMinutes, frozen, w, h))
-                    setTextViewText(R.id.widget_detail, streakText(g.streak, g.streakSafeToday))
+                    setTextViewText(R.id.widget_detail, streakText(context, g.streak, g.streakSafeToday))
                     setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingHome(context))
                 })
             }
@@ -103,17 +103,17 @@ object Widgets {
                 val views = RemoteViews(context.packageName, R.layout.widget_focus)
                 if (focus == null) {
                     views.setImageViewBitmap(R.id.widget_art, pebbleArt(context, Mood.IDLE, style = style))
-                    views.setTextViewText(R.id.widget_value, "Focus")
-                    views.setTextViewText(R.id.widget_detail, "${formatMinutes(settings.focusMinutes)} session")
-                    views.setTextViewText(R.id.widget_action, "START")
+                    views.setTextViewText(R.id.widget_value, context.getString(R.string.widget_focus_title))
+                    views.setTextViewText(R.id.widget_detail, context.getString(R.string.widget_session_length, formatMinutes(context, settings.focusMinutes)))
+                    views.setTextViewText(R.id.widget_action, context.getString(R.string.widget_start_button))
                     val start = Intent(context, FocusWidget::class.java).setAction(FocusWidget.ACTION_START)
                     views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getBroadcast(context, 0, start, PendingIntent.FLAG_IMMUTABLE))
                 } else {
                     val mood = if (!focus.running) Mood.SLEEPY else if (focus.phase == FocusPhase.FOCUS) Mood.CALM else Mood.HAPPY
                     views.setImageViewBitmap(R.id.widget_art, pebbleArt(context, mood, style = style))
-                    views.setTextViewText(R.id.widget_value, if (!focus.running) "Paused" else if (focus.phase == FocusPhase.FOCUS) "Focusing" else "On a break")
-                    views.setTextViewText(R.id.widget_detail, if (!focus.running) "Tap to resume" else "Until ${time(System.currentTimeMillis() + focus.remainingMillis(), context.uses24HourClock(settings.clockFormat))}")
-                    views.setTextViewText(R.id.widget_action, "OPEN")
+                    views.setTextViewText(R.id.widget_value, if (!focus.running) context.getString(R.string.widget_paused_title) else if (focus.phase == FocusPhase.FOCUS) context.getString(R.string.widget_running_title) else context.getString(R.string.widget_break_title))
+                    views.setTextViewText(R.id.widget_detail, if (!focus.running) context.getString(R.string.widget_resume_hint) else context.getString(R.string.widget_end_time, time(System.currentTimeMillis() + focus.remainingMillis(), context.uses24HourClock(settings.clockFormat))))
+                    views.setTextViewText(R.id.widget_action, context.getString(R.string.widget_open_button))
                     views.setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingFocus(context))
                 }
                 manager.updateAppWidget(focusIds, views)
@@ -121,10 +121,10 @@ object Widgets {
         }
     }
 
-    private fun streakText(streak: Int, safe: Boolean) = when {
-        streak == 0 -> "Start a streak today"
-        safe -> "$streak day streak"
-        else -> "$streak day streak, keep it today"
+    private fun streakText(context: Context, streak: Int, safe: Boolean) = when {
+        streak == 0 -> context.getString(R.string.widget_streak_empty)
+        safe -> context.resources.getQuantityString(R.plurals.widget_streak_safe, streak, streak)
+        else -> context.resources.getQuantityString(R.plurals.widget_streak_pending, streak, streak)
     }
 
     /** The picture size in pixels: a share of the widget's current size, from the launcher's size options. */

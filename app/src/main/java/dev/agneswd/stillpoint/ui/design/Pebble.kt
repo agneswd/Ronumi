@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui.design
 
+import dev.agneswd.stillpoint.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -101,6 +103,8 @@ fun Pebble(
         }
     }
     val interaction = remember { MutableInteractionSource() }
+    val pebbleName = stringResource(R.string.pebble_name)
+    val petLabel = stringResource(R.string.pebble_pet_action)
     val time = rememberInfiniteTransition(label = "pebble")
     val breath by time.animateFloat(0f, 1f, infiniteRepeatable(tween(2600, easing = LinearEasing)), label = "breath")
     val blink by time.animateFloat(
@@ -122,8 +126,8 @@ fun Pebble(
 
     Canvas(
         modifier.size(size, size * 1.1f)
-            .semantics { contentDescription = "Pebble" }
-            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = "Pet Pebble") {
+            .semantics { contentDescription = pebbleName }
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = petLabel) {
                 dev.agneswd.stillpoint.game.PebblePets.pet(context)
                 pet.tap(SystemClock.uptimeMillis())
                 taps.trySend(Unit)

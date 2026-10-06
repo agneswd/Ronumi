@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.data
 
+import dev.agneswd.stillpoint.R
 import java.nio.ByteBuffer
 import java.security.SecureRandom
 import javax.crypto.BadPaddingException
@@ -22,10 +23,10 @@ object BackupCrypto {
     const val MAX_ENCRYPTED_BYTES = MAX_PLAINTEXT_BYTES + HEADER_BYTES + TAG_BYTES
     // OWASP recommends 600,000 iterations for PBKDF2-HMAC-SHA256.
     private const val ITERATIONS = 600_000
-    private const val INVALID = "Wrong password or damaged backup"
+    private val INVALID = R.string.backup_error_authentication
 
     fun encrypt(plaintext: ByteArray, password: CharArray): ByteArray {
-        require(plaintext.size <= MAX_PLAINTEXT_BYTES) { "Backup exceeds 16 MB" }
+        requireBackup(plaintext.size <= MAX_PLAINTEXT_BYTES) { R.string.backup_error_size }
         val random = SecureRandom()
         val salt = ByteArray(SALT_BYTES).also(random::nextBytes)
         val nonce = ByteArray(NONCE_BYTES).also(random::nextBytes)
@@ -35,30 +36,30 @@ object BackupCrypto {
     }
 
     fun decrypt(encrypted: ByteArray, password: CharArray): ByteArray {
-        require(encrypted.size <= MAX_ENCRYPTED_BYTES) { "Backup exceeds 16 MB" }
-        require(encrypted.size >= magic.size && encrypted.copyOfRange(0, magic.size).contentEquals(magic)) {
-            "Use an encrypted Stillpoint backup. Plaintext and other formats are not supported."
+        requireBackup(encrypted.size <= MAX_ENCRYPTED_BYTES) { R.string.backup_error_size }
+        requireBackup(encrypted.size >= magic.size && encrypted.copyOfRange(0, magic.size).contentEquals(magic)) {
+            R.string.backup_error_format
         }
-        require(encrypted.size > magic.size) { INVALID }
-        require(encrypted[magic.size].toInt() == VERSION) { "Unsupported encrypted backup version" }
-        require(encrypted.size >= HEADER_BYTES + TAG_BYTES) { INVALID }
+        requireBackup(encrypted.size > magic.size) { INVALID }
+        requireBackup(encrypted[magic.size].toInt() == VERSION) { R.string.backup_error_encrypted_version }
+        requireBackup(encrypted.size >= HEADER_BYTES + TAG_BYTES) { INVALID }
         val header = encrypted.copyOfRange(0, HEADER_BYTES)
         val parsed = ByteBuffer.wrap(header).apply { position(magic.size + 1) }
         val plaintextSize = parsed.int
-        require(plaintextSize in 0..MAX_PLAINTEXT_BYTES && encrypted.size == HEADER_BYTES + plaintextSize + TAG_BYTES) { INVALID }
+        requireBackup(plaintextSize in 0..MAX_PLAINTEXT_BYTES && encrypted.size == HEADER_BYTES + plaintextSize + TAG_BYTES) { INVALID }
         val salt = ByteArray(SALT_BYTES).also(parsed::get)
         val nonce = ByteArray(NONCE_BYTES).also(parsed::get)
         return try {
             crypt(Cipher.DECRYPT_MODE, encrypted.copyOfRange(HEADER_BYTES, encrypted.size), password, salt, nonce, header)
         } catch (_: BadPaddingException) {
-            throw IllegalArgumentException(INVALID)
+            throw BackupTextException(INVALID)
         } catch (_: IllegalBlockSizeException) {
-            throw IllegalArgumentException(INVALID)
+            throw BackupTextException(INVALID)
         }
     }
 
     private fun crypt(mode: Int, input: ByteArray, password: CharArray, salt: ByteArray, nonce: ByteArray, header: ByteArray): ByteArray {
-        require(password.size in 1..1024) { "Use a password with 1 to 1024 characters" }
+        requireBackup(password.size in 1..1024) { R.string.backup_error_password_length }
         val copy = password.copyOf()
         val spec = PBEKeySpec(copy, salt, ITERATIONS, 256)
         copy.fill('\u0000')

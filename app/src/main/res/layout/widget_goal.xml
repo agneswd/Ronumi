@@ -25,7 +25,7 @@
         android:fontFamily="@font/nunito_bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="0m of 2h"
+        android:text="@string/widget_goal_initial_progress"
         android:textColor="@color/widget_text"
         android:textSize="16sp" />
     <TextView
@@ -35,7 +35,7 @@
         android:fontFamily="@font/nunito_bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="Start a streak"
+        android:text="@string/widget_goal_initial_streak"
         android:textColor="@color/widget_flame"
         android:textSize="12sp" />
 </LinearLayout>

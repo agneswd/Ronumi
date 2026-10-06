@@ -1,5 +1,8 @@
 package dev.agneswd.stillpoint.game
 
+import dev.agneswd.stillpoint.ui.textResource
+import dev.agneswd.stillpoint.ui.ResourceText
+import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.data.FocusSession
 import dev.agneswd.stillpoint.data.Settings
 import java.time.Instant
@@ -19,12 +22,24 @@ const val STREAK_MINUTES = 10
 private const val XP_PER_MINUTE = 1
 private const val XP_COMPLETED = 15
 
-data class Quest(val id: String, val title: String, val progress: Int, val target: Int, val xp: Int, val category: String = "Focus", val detail: String = "") {
+data class Quest(val id: String, val title: ResourceText, val progress: Int, val target: Int, val xp: Int, val category: String = "Focus", val detail: ResourceText = textResource(R.string.quest_empty_detail)) {
+    @get:androidx.annotation.StringRes
+    val categoryRes: Int
+        get() = when (category) {
+            "Focus" -> R.string.quest_category_focus
+            "Finish" -> R.string.quest_category_finish
+            "Practice" -> R.string.quest_category_practice
+            "Your pace" -> R.string.quest_category_your_pace
+            "Morning" -> R.string.quest_category_morning
+            "Steady focus" -> R.string.quest_category_steady_focus
+            "Intention" -> R.string.quest_category_intention
+            else -> R.string.quest_category_focus
+        }
     val done: Boolean get() = progress >= target
     val fraction: Float get() = (progress.toFloat() / target).coerceIn(0f, 1f)
 }
 
-data class Badge(val id: String, val title: String, val detail: String, val unlocked: Boolean, val progress: Float, val category: String = "Milestones")
+data class Badge(val id: String, @param:androidx.annotation.StringRes val titleRes: Int, @param:androidx.annotation.StringRes val detailRes: Int, val unlocked: Boolean, val progress: Float, val category: String = "Milestones")
 
 data class Level(val number: Int, val xpInLevel: Int, val xpForNext: Int) {
     val fraction: Float get() = xpInLevel.toFloat() / xpForNext
@@ -119,13 +134,13 @@ internal fun legacyQuestsFor(date: LocalDate, sessions: List<FocusSession>, goal
     val morning = sessions.filter { it.rewardHour() < 12 }
         .sumOf { it.safeFocusMillis() } / 60_000
     val pool = listOf(
-        Quest("focus25", "Focus for 25 minutes", minutes.coerceAtMost(25), 25, 20, "Focus", "Collect 25 focus minutes across saved sessions started today. Time from sessions you end early also counts."),
-        Quest("complete1", "Finish a session without giving up", completed.coerceAtMost(1), 1, 15, "Finish", "Complete one saved session started today. Let the timer finish, or select I'm done in stopwatch mode. Giving up does not count."),
-        Quest("sessions2", "Do 2 focus sessions", sessions.size.coerceAtMost(2), 2, 20, "Practice", "Save two sessions started today, each with at least one focus minute. Sessions you end early count for this task."),
-        Quest("goal", "Reach your daily goal", minutes.coerceAtMost(goalMinutes), goalMinutes, 40, "Your pace", "Collect $goalMinutes focus minutes across sessions started today. The first saved session fixes this goal. Later goal changes do not change it."),
-        Quest("morning", "Focus 20 minutes before noon", morning.toInt().coerceAtMost(20), 20, 25, "Morning", "Collect 20 focus minutes in sessions started before noon today. Their full focus time counts, including time after noon and sessions ended early."),
-        Quest("long45", "Stay in one session for 45 minutes", longest.toInt().coerceAtMost(45), 45, 30, "Steady focus", "Save one session started today with at least 45 focus minutes. Breaks do not count. Ending the session early does not remove its progress."),
-        Quest("focus60", "Focus for 1 hour in total", minutes.coerceAtMost(60), 60, 30, "Focus", "Collect 60 focus minutes across saved sessions started today. Split the time into shorter sessions. Time from sessions ended early also counts."),
+        Quest("focus25", textResource(R.string.quest_legacy_focus25_title), minutes.coerceAtMost(25), 25, 20, "Focus", textResource(R.string.quest_legacy_focus25_detail)),
+        Quest("complete1", textResource(R.string.quest_legacy_complete1_title), completed.coerceAtMost(1), 1, 15, "Finish", textResource(R.string.quest_legacy_complete1_detail)),
+        Quest("sessions2", textResource(R.string.quest_legacy_sessions2_title), sessions.size.coerceAtMost(2), 2, 20, "Practice", textResource(R.string.quest_legacy_sessions2_detail)),
+        Quest("goal", textResource(R.string.quest_legacy_goal_title), minutes.coerceAtMost(goalMinutes), goalMinutes, 40, "Your pace", dev.agneswd.stillpoint.ui.quantityResource(R.plurals.quest_legacy_goal_detail, goalMinutes, goalMinutes)),
+        Quest("morning", textResource(R.string.quest_legacy_morning_title), morning.toInt().coerceAtMost(20), 20, 25, "Morning", textResource(R.string.quest_legacy_morning_detail)),
+        Quest("long45", textResource(R.string.quest_legacy_long45_title), longest.toInt().coerceAtMost(45), 45, 30, "Steady focus", textResource(R.string.quest_legacy_long45_detail)),
+        Quest("focus60", textResource(R.string.quest_legacy_focus60_title), minutes.coerceAtMost(60), 60, 30, "Focus", textResource(R.string.quest_legacy_focus60_detail)),
     )
     val seed = date.toEpochDay()
     // Always one easy quest first, then two more picked by the date.
@@ -154,7 +169,7 @@ private fun bestStreak(minutes: Map<LocalDate, Int>, frozen: Set<LocalDate>, set
 private fun badges(sessions: List<FocusSession>, streak: Int, totalMinutes: Int): List<Badge> {
     val hours = sessions.map { it.rewardHour() }
     val longest = (sessions.maxOfOrNull { it.safeFocusMillis() } ?: 0L) / 60_000
-    fun b(id: String, title: String, detail: String, value: Float, target: Float) =
+    fun b(id: String, @androidx.annotation.StringRes title: Int, @androidx.annotation.StringRes detail: Int, value: Float, target: Float) =
         Badge(id, title, detail, value >= target, (value / target).coerceIn(0f, 1f))
     val completed = sessions.filter { it.completed }
     val days = sessions.groupBy { it.rewardDate() }
@@ -165,39 +180,39 @@ private fun badges(sessions: List<FocusSession>, streak: Int, totalMinutes: Int)
     val questDays = days.count { (date, rows) -> questsFor(date, rows, rows.minBy { it.startedAt }.goalMinutes).all { it.done } }
     val questCount = days.entries.sumOf { (date, rows) -> questsFor(date, rows, rows.minBy { it.startedAt }.goalMinutes).count { it.done } }
     return listOf(
-        b("first", "First step", "Finish your first focus session", sessions.count { it.completed }.toFloat(), 1f),
-        b("streak3", "Warming up", "Keep a 3 day streak", streak.toFloat(), 3f),
-        b("streak7", "On fire", "Keep a 7 day streak", streak.toFloat(), 7f),
-        b("streak30", "Unshakable", "Keep a 30 day streak", streak.toFloat(), 30f),
-        b("hours10", "Deep diver", "Focus for 10 hours in total", totalMinutes / 60f, 10f),
-        b("hours50", "Mountain mover", "Focus for 50 hours in total", totalMinutes / 60f, 50f),
-        b("marathon", "Marathon", "Stay in one session for 2 hours", longest.toFloat(), 120f),
-        b("early", "Early bird", "Start a session before 7 in the morning", if (hours.any { it < 7 }) 1f else 0f, 1f),
-        b("night", "Night owl", "Start a session after 10 at night", if (hours.any { it >= 22 }) 1f else 0f, 1f),
-        b("sessions50", "Habit builder", "Finish 50 sessions", completed.size.toFloat(), 50f),
-        b("sessions5", "Finding a rhythm", "Finish 5 sessions", completed.size.toFloat(), 5f),
-        b("sessions10", "A steady start", "Finish 10 sessions", completed.size.toFloat(), 10f),
-        b("sessions25", "Practice makes progress", "Finish 25 sessions", completed.size.toFloat(), 25f),
-        b("sessions100", "Here to stay", "Finish 100 sessions", completed.size.toFloat(), 100f),
-        b("hours1", "Time well spent", "Focus for 1 hour in total", totalMinutes.toFloat(), 60f),
-        b("hours5", "Room to grow", "Focus for 5 hours in total", totalMinutes.toFloat(), 300f),
-        b("hours25", "Making room", "Focus for 25 hours in total", totalMinutes.toFloat(), 1500f),
-        b("hours100", "A lasting practice", "Focus for 100 hours in total", totalMinutes.toFloat(), 6000f),
-        b("streak14", "Two weeks together", "Keep a 14 day streak", streak.toFloat(), 14f),
-        b("days7", "Seven small steps", "Focus for at least 10 minutes on 7 days", activeDays.toFloat(), 7f),
-        b("days30", "Time after time", "Focus for at least 10 minutes on 30 days", activeDays.toFloat(), 30f),
-        b("days100", "Always welcome back", "Focus for at least 10 minutes on 100 days", activeDays.toFloat(), 100f),
-        b("goals1", "Your own pace", "Reach your daily goal once", goalDays.toFloat(), 1f),
-        b("goals7", "Making space", "Reach your daily goal on 7 days", goalDays.toFloat(), 7f),
-        b("goals30", "A plan that works", "Reach your daily goal on 30 days", goalDays.toFloat(), 30f),
-        b("named1", "With purpose", "Finish a named session", named.toFloat(), 1f),
-        b("named10", "Clear intentions", "Finish 10 named sessions", named.toFloat(), 10f),
-        b("notes1", "A moment to reflect", "Add a note to a completed session", reflected.toFloat(), 1f),
-        b("notes10", "Learning as you go", "Add notes to 10 completed sessions", reflected.toFloat(), 10f),
-        b("quests10", "Curious Pebble", "Complete 10 daily quests", questCount.toFloat(), 10f),
-        b("quests50", "Quest companion", "Complete 50 daily quests", questCount.toFloat(), 50f),
-        b("questday1", "A full little day", "Complete every quest on one day", questDays.toFloat(), 1f),
-        b("questday7", "Seven good days", "Complete every quest on 7 days", questDays.toFloat(), 7f),
+        b("first", R.string.badge_first_title, R.string.badge_first_detail, sessions.count { it.completed }.toFloat(), 1f),
+        b("streak3", R.string.badge_streak3_title, R.string.badge_streak3_detail, streak.toFloat(), 3f),
+        b("streak7", R.string.badge_streak7_title, R.string.badge_streak7_detail, streak.toFloat(), 7f),
+        b("streak30", R.string.badge_streak30_title, R.string.badge_streak30_detail, streak.toFloat(), 30f),
+        b("hours10", R.string.badge_hours10_title, R.string.badge_hours10_detail, totalMinutes / 60f, 10f),
+        b("hours50", R.string.badge_hours50_title, R.string.badge_hours50_detail, totalMinutes / 60f, 50f),
+        b("marathon", R.string.badge_marathon_title, R.string.badge_marathon_detail, longest.toFloat(), 120f),
+        b("early", R.string.badge_early_title, R.string.badge_early_detail, if (hours.any { it < 7 }) 1f else 0f, 1f),
+        b("night", R.string.badge_night_title, R.string.badge_night_detail, if (hours.any { it >= 22 }) 1f else 0f, 1f),
+        b("sessions50", R.string.badge_sessions50_title, R.string.badge_sessions50_detail, completed.size.toFloat(), 50f),
+        b("sessions5", R.string.badge_sessions5_title, R.string.badge_sessions5_detail, completed.size.toFloat(), 5f),
+        b("sessions10", R.string.badge_sessions10_title, R.string.badge_sessions10_detail, completed.size.toFloat(), 10f),
+        b("sessions25", R.string.badge_sessions25_title, R.string.badge_sessions25_detail, completed.size.toFloat(), 25f),
+        b("sessions100", R.string.badge_sessions100_title, R.string.badge_sessions100_detail, completed.size.toFloat(), 100f),
+        b("hours1", R.string.badge_hours1_title, R.string.badge_hours1_detail, totalMinutes.toFloat(), 60f),
+        b("hours5", R.string.badge_hours5_title, R.string.badge_hours5_detail, totalMinutes.toFloat(), 300f),
+        b("hours25", R.string.badge_hours25_title, R.string.badge_hours25_detail, totalMinutes.toFloat(), 1500f),
+        b("hours100", R.string.badge_hours100_title, R.string.badge_hours100_detail, totalMinutes.toFloat(), 6000f),
+        b("streak14", R.string.badge_streak14_title, R.string.badge_streak14_detail, streak.toFloat(), 14f),
+        b("days7", R.string.badge_days7_title, R.string.badge_days7_detail, activeDays.toFloat(), 7f),
+        b("days30", R.string.badge_days30_title, R.string.badge_days30_detail, activeDays.toFloat(), 30f),
+        b("days100", R.string.badge_days100_title, R.string.badge_days100_detail, activeDays.toFloat(), 100f),
+        b("goals1", R.string.badge_goals1_title, R.string.badge_goals1_detail, goalDays.toFloat(), 1f),
+        b("goals7", R.string.badge_goals7_title, R.string.badge_goals7_detail, goalDays.toFloat(), 7f),
+        b("goals30", R.string.badge_goals30_title, R.string.badge_goals30_detail, goalDays.toFloat(), 30f),
+        b("named1", R.string.badge_named1_title, R.string.badge_named1_detail, named.toFloat(), 1f),
+        b("named10", R.string.badge_named10_title, R.string.badge_named10_detail, named.toFloat(), 10f),
+        b("notes1", R.string.badge_notes1_title, R.string.badge_notes1_detail, reflected.toFloat(), 1f),
+        b("notes10", R.string.badge_notes10_title, R.string.badge_notes10_detail, reflected.toFloat(), 10f),
+        b("quests10", R.string.badge_quests10_title, R.string.badge_quests10_detail, questCount.toFloat(), 10f),
+        b("quests50", R.string.badge_quests50_title, R.string.badge_quests50_detail, questCount.toFloat(), 50f),
+        b("questday1", R.string.badge_questday1_title, R.string.badge_questday1_detail, questDays.toFloat(), 1f),
+        b("questday7", R.string.badge_questday7_title, R.string.badge_questday7_detail, questDays.toFloat(), 7f),
     ).filter { it.id !in setOf("early", "night", "marathon") || it.unlocked }
 }
 

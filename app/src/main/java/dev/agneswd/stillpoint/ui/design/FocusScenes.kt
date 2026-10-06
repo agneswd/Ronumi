@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui.design
 
+import dev.agneswd.stillpoint.R
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,12 +19,12 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 /** Animated backgrounds for the focus screen. All are drawn on the device; none are photos. */
-enum class FocusTheme(val label: String) {
-    LAKE("Still lake"),
-    DAWN("Dawn"),
-    FOREST("Firefly forest"),
-    SPACE("Deep space"),
-    RAIN("Rain"),
+enum class FocusTheme(@param:StringRes val labelRes: Int) {
+    LAKE(R.string.focus_scene_lake),
+    DAWN(R.string.focus_scene_dawn),
+    FOREST(R.string.focus_scene_forest),
+    SPACE(R.string.focus_scene_space),
+    RAIN(R.string.focus_scene_rain),
 }
 
 /**

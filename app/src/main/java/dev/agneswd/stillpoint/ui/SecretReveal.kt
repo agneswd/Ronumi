@@ -1,5 +1,7 @@
 package dev.agneswd.stillpoint.ui
 
+import dev.agneswd.stillpoint.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -55,21 +57,21 @@ fun SecretReveal() {
         Box {
             ChunkyCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Secret found!", style = MaterialTheme.typography.titleMedium, color = if (Sp.colors.dark) Sp.colors.flame else Color(0xFFA64D00))
+                    Text(stringResource(R.string.wardrobe_secret_secret_found), style = MaterialTheme.typography.titleMedium, color = if (Sp.colors.dark) Sp.colors.flame else Color(0xFFA64D00))
                     Spacer(Modifier.height(8.dp))
                     Pebble(Mood.CELEBRATE, Modifier.popIn(150), size = 150.dp, style = preview)
                     Spacer(Modifier.height(10.dp))
-                    Text("Star guardian", style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
+                    Text(stringResource(R.string.wardrobe_secret_star_guardian), style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "A thousand pats! Pebble has never felt so loved. This outfit is yours to keep.",
+                        stringResource(R.string.wardrobe_secret_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Sp.colors.textDim,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(16.dp))
                     ChunkyButton(
-                        "Wear it now",
+                        stringResource(R.string.wardrobe_secret_wear_it_now),
                         {
                             close()
                             app.scope.launch {
@@ -82,7 +84,7 @@ fun SecretReveal() {
                         Modifier.fillMaxWidth(),
                         sound = Sound.SELECT,
                     )
-                    ChunkyButton("Later", close, Modifier.fillMaxWidth(), kind = ButtonKind.GHOST, sound = null)
+                    ChunkyButton(stringResource(R.string.wardrobe_secret_later), close, Modifier.fillMaxWidth(), kind = ButtonKind.GHOST, sound = null)
                 }
             }
             Confetti(key = Unit, Modifier.matchParentSize())

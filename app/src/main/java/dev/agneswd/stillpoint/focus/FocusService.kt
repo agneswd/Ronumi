@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.focus
 
+import dev.agneswd.stillpoint.ui.displayName
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
@@ -77,19 +78,19 @@ class FocusService : LifecycleService() {
         ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
     }
 
-    private fun placeholder(): Notification = builder().setContentTitle("Focus").build()
+    private fun placeholder(): Notification = builder().setContentTitle(getString(R.string.focus_notification_title)).build()
 
     private fun notification(focus: ActiveFocus, live: Boolean): Notification {
         val title = when {
-            !focus.running -> "Paused"
-            focus.phase == FocusPhase.BREAK -> "Break"
-            focus.rounds > 1 -> "Focus, round ${focus.round} of ${focus.rounds}"
-            else -> "Focus"
+            !focus.running -> getString(R.string.focus_notification_paused)
+            focus.phase == FocusPhase.BREAK -> getString(R.string.focus_notification_break)
+            focus.rounds > 1 -> getString(R.string.focus_notification_round, focus.round, focus.rounds)
+            else -> getString(R.string.focus_notification_title)
         }
         val stopwatch = focus.timerMode == TimerMode.STOPWATCH
         val builder = builder()
             .setContentTitle(title)
-            .setContentText(focus.tag.ifBlank { null })
+            .setContentText(focus.tag.ifBlank { null }?.displayName(this))
             .setWhen(System.currentTimeMillis() + if (stopwatch) -focus.elapsedPhaseMillis() else focus.remainingMillis())
             .setShowWhen(focus.running)
             .setUsesChronometer(focus.running)
@@ -98,10 +99,10 @@ class FocusService : LifecycleService() {
             .setRequestPromotedOngoing(live)
         // A stopwatch has no early end. Finishing it counts as a completed session, as on the focus screen.
         if (stopwatch) {
-            builder.addAction(0, "Finish", PendingIntent.getService(this, 2, intent(this).setAction(ACTION_FINISH), PendingIntent.FLAG_IMMUTABLE))
+            builder.addAction(0, getString(R.string.focus_notification_finish), PendingIntent.getService(this, 2, intent(this).setAction(ACTION_FINISH), PendingIntent.FLAG_IMMUTABLE))
         } else if (!focus.strict) {
             val giveUp = PendingIntent.getService(this, 1, intent(this).setAction(ACTION_GIVE_UP), PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(0, "End session", giveUp)
+            builder.addAction(0, getString(R.string.focus_notification_end), giveUp)
         }
         return builder.build()
     }

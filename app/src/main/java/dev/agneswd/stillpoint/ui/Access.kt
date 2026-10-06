@@ -1,5 +1,6 @@
 package dev.agneswd.stillpoint.ui
 
+import androidx.compose.ui.res.stringResource
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -82,8 +83,8 @@ fun AccessRows(access: Access, includeOptional: Boolean, onlyMissing: Boolean = 
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     if (!onlyMissing || !access.usage) AccessRow(
-        "Usage access",
-        "Shows screen time and checks app limits.",
+        stringResource(R.string.permissions_usage_access),
+        stringResource(R.string.permissions_usage_description),
         access.usage,
     ) {
         context.openFirst(
@@ -92,19 +93,19 @@ fun AccessRows(access: Access, includeOptional: Boolean, onlyMissing: Boolean = 
         )
     }
     if (!onlyMissing || !access.guard) AccessRow(
-        "Accessibility",
-        "Sees which app is open so Stillpoint can block it. If the switch is grey, open App info, tap the menu, then allow restricted settings.",
+        stringResource(R.string.permissions_accessibility),
+        stringResource(R.string.permissions_accessibility_description),
         access.guard,
     ) { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
     if (!includeOptional) return
     if (Build.VERSION.SDK_INT >= 31 && (!onlyMissing || !access.exactAlarms)) AccessRow(
-        "Alarms and reminders",
-        "Starts planned focus and ends timer rounds while the phone sleeps.",
+        stringResource(R.string.permissions_alarms_and_reminders),
+        stringResource(R.string.permissions_alarms_description),
         access.exactAlarms,
     ) { context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}"))) }
     if (!onlyMissing || !access.notifications) AccessRow(
-        "Notifications",
-        "Shows the focus timer and tells you when a round ends.",
+        stringResource(R.string.permissions_notifications),
+        stringResource(R.string.permissions_notifications_description),
         access.notifications,
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -114,8 +115,8 @@ fun AccessRows(access: Access, includeOptional: Boolean, onlyMissing: Boolean = 
         }
     }
     if (!onlyMissing || !access.listener) AccessRow(
-        "Notification access",
-        "Holds notifications from the apps you choose.",
+        stringResource(R.string.permissions_notification_access),
+        stringResource(R.string.permissions_listener_description),
         access.listener,
     ) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
 }
@@ -123,9 +124,9 @@ fun AccessRows(access: Access, includeOptional: Boolean, onlyMissing: Boolean = 
 @Composable
 private fun AccessRow(title: String, why: String, granted: Boolean, open: () -> Unit) {
     val icon = when (title) {
-        "Usage access" -> R.drawable.ic_timer
-        "Accessibility" -> R.drawable.ic_tab_blocks
-        "Notifications" -> R.drawable.ic_bell
+        stringResource(R.string.permissions_usage_access) -> R.drawable.ic_timer
+        stringResource(R.string.permissions_accessibility) -> R.drawable.ic_tab_blocks
+        stringResource(R.string.permissions_notifications) -> R.drawable.ic_bell
         else -> R.drawable.ic_tag
     }
     ChunkyCard(Modifier.fillMaxWidth().padding(vertical = 5.dp), contentPadding = 14.dp) {
@@ -139,10 +140,10 @@ private fun AccessRow(title: String, why: String, granted: Boolean, open: () -> 
             Spacer(Modifier.width(10.dp))
             if (granted) {
                 Box(Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(Sp.colors.mint), contentAlignment = Alignment.Center) {
-                    Icon(painterResource(R.drawable.ic_check), "Allowed", tint = Sp.colors.onFill, modifier = Modifier.size(20.dp))
+                    Icon(painterResource(R.drawable.ic_check), stringResource(R.string.permissions_allowed), tint = Sp.colors.onFill, modifier = Modifier.size(20.dp))
                 }
             } else {
-                ChunkyButton("Allow", open, Modifier.width(96.dp), height = 40.dp)
+                ChunkyButton(stringResource(R.string.permissions_allow), open, Modifier.width(96.dp), height = 40.dp)
             }
         }
     }
