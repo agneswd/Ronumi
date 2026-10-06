@@ -33,7 +33,7 @@ def settings_update_section(e):
     e.open_stillpoint("PROGRESS")
     e.tap("Settings", exact=True)
     e.wait_for("Daily goal")
-    e.scroll_to("GET RONUMI")
+    e.scroll_to("GET RONUMI", tries=14)
     tree = "\n".join(
         (node.get("text") or "") + "\n" + (node.get("content-desc") or "")
         for node in e.screen().iter("node")
