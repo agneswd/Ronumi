@@ -4,6 +4,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="dev.agneswd.stillpoint.permission.MIGRATE" />
+    <queries>
+        <package android:name="dev.agneswd.stillpoint" />
+        <provider android:authorities="dev.agneswd.stillpoint.migrate" />
+    </queries>
     <application>
         <service
             android:name=".update.UpdateJob"

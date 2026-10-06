@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="import_prompt">Welcome back. Bring your progress from Stillpoint?</string>
+    <string name="import_bring">Bring my progress</string>
+    <string name="import_fresh">Start fresh</string>
+    <string name="import_working">Bringing your progress.</string>
+    <string name="import_success">All set. You can uninstall Stillpoint now.</string>
+    <string name="import_uninstall">Uninstall Stillpoint</string>
+    <string name="import_later">Later</string>
+    <string name="import_failed">Ronumi could not read the Stillpoint data.</string>
+    <string name="import_restore">Restore a backup file</string>
+</resources>

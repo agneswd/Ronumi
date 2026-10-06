@@ -45,7 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Keeps one backup operation active across navigation and configuration changes. */
-private object BackupWork {
+internal object BackupWork {
     val busy = MutableStateFlow(false)
     val message = MutableStateFlow<String?>(null)
 
@@ -107,43 +107,55 @@ fun BackupSettings(restoreLocked: Boolean) {
     }
 
     pendingUri?.let { source ->
-        // Passwords stay in this dialog's memory. They are never saved with UI state or preferences.
-        var password by remember(source, saving) { mutableStateOf("") }
-        var confirmation by remember(source, saving) { mutableStateOf("") }
-        var visible by remember(source, saving) { mutableStateOf(false) }
-        val valid = password.length in (if (saving) 12 else 1)..1024 && (!saving || password == confirmation)
-        fun submit() {
-            if (!valid || BackupWork.busy.value) return
-            val secret = password.toCharArray()
-            password = ""
-            confirmation = ""
+        BackupPasswordDialog(source, saving, onDismiss = { pendingUri = null }) { secret ->
             pendingUri = null
             BackupWork.start(context.applicationContext, source, saving, secret)
         }
-        AlertDialog(
-            onDismissRequest = { password = ""; confirmation = ""; pendingUri = null },
-            title = { Text(if (saving) stringResource(R.string.backup_protect_your_backup) else stringResource(R.string.backup_unlock_your_backup)) },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(if (saving) stringResource(R.string.backup_password_create_help)
-                        else stringResource(R.string.backup_password_restore_help))
-                    OutlinedTextField(password, { if (it.length <= 1024) password = it },
-                        label = { Text(stringResource(R.string.backup_password)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = if (saving) ImeAction.Next else ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { submit() }))
-                    if (saving) {
-                        OutlinedTextField(confirmation, { if (it.length <= 1024) confirmation = it },
-                            label = { Text(stringResource(R.string.backup_repeat_password)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                            visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = { submit() }))
-                    }
-                    TextButton(onClick = { visible = !visible }) { Text(if (visible) stringResource(R.string.backup_hide_password) else stringResource(R.string.backup_show_password)) }
-                }
-            },
-            confirmButton = { TextButton(onClick = { submit() }, enabled = valid) { Text(if (saving) stringResource(R.string.backup_save_backup) else stringResource(R.string.backup_restore_backup)) } },
-            dismissButton = { TextButton(onClick = { password = ""; confirmation = ""; pendingUri = null }) { Text(stringResource(R.string.backup_cancel)) } },
-        )
     }
+}
+
+/** Password entry for an encrypted backup. The password stays in this dialog's memory. */
+@Composable
+fun BackupPasswordDialog(source: String, saving: Boolean, onDismiss: () -> Unit, onSubmit: (CharArray) -> Unit) {
+    var password by remember(source, saving) { mutableStateOf("") }
+    var confirmation by remember(source, saving) { mutableStateOf("") }
+    var visible by remember(source, saving) { mutableStateOf(false) }
+    val valid = password.length in (if (saving) 12 else 1)..1024 && (!saving || password == confirmation)
+    fun submit() {
+        if (!valid || BackupWork.busy.value) return
+        val secret = password.toCharArray()
+        password = ""
+        confirmation = ""
+        onSubmit(secret)
+    }
+    fun dismiss() {
+        password = ""
+        confirmation = ""
+        onDismiss()
+    }
+    AlertDialog(
+        onDismissRequest = { dismiss() },
+        title = { Text(if (saving) stringResource(R.string.backup_protect_your_backup) else stringResource(R.string.backup_unlock_your_backup)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(if (saving) stringResource(R.string.backup_password_create_help)
+                    else stringResource(R.string.backup_password_restore_help))
+                OutlinedTextField(password, { if (it.length <= 1024) password = it },
+                    label = { Text(stringResource(R.string.backup_password)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = if (saving) ImeAction.Next else ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }))
+                if (saving) {
+                    OutlinedTextField(confirmation, { if (it.length <= 1024) confirmation = it },
+                        label = { Text(stringResource(R.string.backup_repeat_password)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submit() }))
+                }
+                TextButton(onClick = { visible = !visible }) { Text(if (visible) stringResource(R.string.backup_hide_password) else stringResource(R.string.backup_show_password)) }
+            }
+        },
+        confirmButton = { TextButton(onClick = { submit() }, enabled = valid) { Text(if (saving) stringResource(R.string.backup_save_backup) else stringResource(R.string.backup_restore_backup)) } },
+        dismissButton = { TextButton(onClick = { dismiss() }) { Text(stringResource(R.string.backup_cancel)) } },
+    )
 }

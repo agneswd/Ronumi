@@ -26,6 +26,10 @@ object Distribution {
 
     @Composable
     fun UpdateSettings(settings: Settings) = dev.agneswd.ronumi.ui.UpdateSettings(settings)
+
+    /** True while the Stillpoint import screen covers setup. Null while that check runs. */
+    @Composable
+    fun ImportOffer(): Boolean? = dev.agneswd.ronumi.ui.LegacyImportGate()
 }
 
 private object GithubPlus : Plus {

@@ -11,4 +11,8 @@ object Distribution {
 
     @Composable
     fun UpdateSettings(settings: Settings) = Unit
+
+    /** The Play build has no import screen. */
+    @Composable
+    fun ImportOffer(): Boolean? = false
 }

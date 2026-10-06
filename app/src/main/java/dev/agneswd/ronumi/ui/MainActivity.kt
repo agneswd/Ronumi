@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import dev.agneswd.ronumi.Distribution
 import dev.agneswd.ronumi.R
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.data.AppLimit
@@ -268,10 +269,12 @@ private fun App(navigator: Navigator) {
     ) {
         Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
             SecretReveal()
+            val importing = Distribution.ImportOffer()
             val running = focus
             val celebrateId = celebrate
             val route = navigator.stack.lastOrNull()
             when {
+                importing != false -> Unit
                 s == null -> Unit
                 !s.onboarded -> Onboarding(onDone = { navigator.tab = Tab.HOME })
                 celebrateId != null -> Celebration(celebrateId, onDone = Celebrations::consume)

@@ -55,9 +55,23 @@ suspend fun importBackup(context: Context, dao: RonumiDao, source: Uri, password
         out.toByteArray()
     }
     val plaintext = BackupCrypto.decrypt(bytes, password)
+    restorePlainDocument(context, dao, plaintext)
+}
+
+/**
+ * Restores one plaintext backup document. [bytes] is wiped here.
+ * This path does not decrypt a password envelope.
+ */
+suspend fun restorePlainDocument(context: Context, dao: RonumiDao, bytes: ByteArray) = withContext(Dispatchers.IO) {
     val backup = try {
-        json.decodeFromString<Backup>(plaintext.decodeToString(throwOnInvalidSequence = true)).validated()
-    } finally { plaintext.fill(0) }
+        json.decodeFromString<Backup>(bytes.decodeToString(throwOnInvalidSequence = true))
+    } finally { bytes.fill(0) }
+    restoreBackup(context, dao, backup)
+}
+
+/** Validates [backup] before the transaction. A failed check does not change stored data. */
+internal suspend fun restoreBackup(context: Context, dao: RonumiDao, backup: Backup) {
+    val ready = backup.validated()
     context.app.database.withTransaction {
         require(dao.activeFocus() == null) { context.getString(R.string.backup_error_focus_running) }
         val current = dao.currentSettings()
@@ -65,7 +79,7 @@ suspend fun importBackup(context: Context, dao: RonumiDao, source: Uri, password
             context.getString(R.string.backup_error_schedule_running)
         }
         dev.agneswd.ronumi.game.RonumiPets.invalidatePendingTaps()
-        dao.replaceAll(backup.copy(settings = backup.settings.copy(id = 0, pauseBlocksUntil = 0)))
+        dao.replaceAll(ready.copy(settings = ready.settings.copy(id = 0, pauseBlocksUntil = 0)))
     }
     context.getSharedPreferences("delivery", Context.MODE_PRIVATE).edit().clear().apply()
     context.getSharedPreferences("plans", Context.MODE_PRIVATE).edit().clear().apply()
