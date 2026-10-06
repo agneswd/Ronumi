@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import dev.agneswd.stillpoint.Distribution
 import dev.agneswd.stillpoint.R
 import dev.agneswd.stillpoint.app
 import dev.agneswd.stillpoint.game.GameState
@@ -95,6 +96,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 110.dp)) {
             GameBar(game, onOpen = { navigator.tab = Tab.PROGRESS })
+            Distribution.MigrationNotice()
             if (!access.ready) {
                 SetupNudge(Modifier.padding(horizontal = ScreenPadding).appear(0)) { navigator.push(Route.Settings) }
             }
@@ -358,3 +360,8 @@ private fun nextSchedule(schedules: List<dev.agneswd.stillpoint.data.Schedule>):
             s to if (wait < 60) pluralStringResource(R.plurals.home_schedule_wait_minutes, wait, wait) else pluralStringResource(R.plurals.home_schedule_wait_hours, wait / 60, wait / 60)
         }
 }
+
+// Play uses this empty fallback. The GitHub Distribution member takes precedence.
+@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
+@Composable
+private fun Distribution.MigrationNotice() = Unit

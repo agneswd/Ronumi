@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ronumi bridge -->
+    <string name="bridge_notice">Stillpoint is now Ronumi. Install Ronumi, and it brings your progress with it.</string>
+    <string name="bridge_get_ronumi">GET RONUMI</string>
+    <string name="bridge_dismiss">Dismiss</string>
+    <string name="bridge_no_browser">Install a browser to open the download page.</string>
+</resources>

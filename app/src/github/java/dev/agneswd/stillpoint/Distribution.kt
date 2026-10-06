@@ -25,6 +25,9 @@ object Distribution {
     }
 
     @Composable
+    fun MigrationNotice() = dev.agneswd.stillpoint.ui.MigrationNotice()
+
+    @Composable
     fun UpdateSettings(settings: Settings) = dev.agneswd.stillpoint.ui.UpdateSettings(settings)
 }
 
