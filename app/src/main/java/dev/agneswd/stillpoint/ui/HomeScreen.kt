@@ -360,8 +360,3 @@ private fun nextSchedule(schedules: List<dev.agneswd.stillpoint.data.Schedule>):
             s to if (wait < 60) pluralStringResource(R.plurals.home_schedule_wait_minutes, wait, wait) else pluralStringResource(R.plurals.home_schedule_wait_hours, wait / 60, wait / 60)
         }
 }
-
-// Play uses this empty fallback. The GitHub Distribution member takes precedence.
-@Suppress("EXTENSION_SHADOWED_BY_MEMBER")
-@Composable
-private fun Distribution.MigrationNotice() = Unit
