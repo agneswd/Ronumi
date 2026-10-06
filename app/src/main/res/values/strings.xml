@@ -912,7 +912,6 @@
     <string name="settings_android_notification_settings">Android notification settings</string>
     <string name="settings_system_notifications_help">Control notification sound and visibility.</string>
     <string name="settings_about">About</string>
-    <string name="settings_about_description">Focus works offline. No account or ads. GitHub is used only to check for and download app updates.</string>
     <string name="settings_source_code">Source code</string>
     <string name="settings_repository_name" translatable="false">github.com/agneswd/Stillpoint</string>
     <string name="settings_source_description">GPLv3 at %1$s</string>
