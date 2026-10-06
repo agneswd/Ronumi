@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,9 +61,11 @@ fun LegacyImportGate(): Boolean? {
     var awaitingRestore by remember { mutableStateOf(false) }
     var sawRestoreBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val resources = LocalResources.current
     val busy by BackupWork.busy.collectAsState()
     val backupMessage by BackupWork.message.collectAsState()
     val failedText = stringResource(R.string.import_failed)
+    val restoredText = stringResource(R.string.backup_restore_success)
     val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) restoreSource = uri.toString()
     }
@@ -81,7 +84,7 @@ fun LegacyImportGate(): Boolean? {
         if (!sawRestoreBusy) return@LaunchedEffect
         awaitingRestore = false
         sawRestoreBusy = false
-        if (backupMessage == context.getString(R.string.backup_restore_success)) {
+        if (backupMessage == restoredText) {
             LegacyImport.remember(context)
             phase = ImportPhase.Hidden
         } else if (backupMessage != null) {
@@ -100,7 +103,7 @@ fun LegacyImportGate(): Boolean? {
                 phase = if (LegacyImport.decided(context)) ImportPhase.Success else ImportPhase.Ask
                 throw error
             } catch (error: Exception) {
-                detail = (error as? BackupTextException)?.let { context.getString(it.messageRes) } ?: failedText
+                detail = (error as? BackupTextException)?.let { resources.getString(it.messageRes) } ?: failedText
                 phase = ImportPhase.Failed
             }
         }
