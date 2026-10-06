@@ -20,7 +20,7 @@ The GitHub APK includes every feature for free. The Google Play version is free 
 <!--
 ### Get it on Google Play
 
-[Get it on Google Play](https://play.google.com/store/apps/details?id=dev.agneswd.stillpoint)
+[Get it on Google Play](https://play.google.com/store/apps/details?id=dev.agneswd.ronumi)
 -->
 
 Stillpoint supports **Android 9 and later**. Download the APK from the [latest release](https://github.com/agneswd/Stillpoint/releases/latest).

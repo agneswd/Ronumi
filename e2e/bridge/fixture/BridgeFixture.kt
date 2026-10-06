@@ -1,10 +1,10 @@
-package dev.agneswd.stillpoint
+package dev.agneswd.ronumi
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import dev.agneswd.stillpoint.data.*
+import dev.agneswd.ronumi.data.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.io.File

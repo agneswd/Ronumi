@@ -38,7 +38,7 @@ def inspect(flavor, build_type):
     actual = permissions(manifest)
     merged = ET.parse(BUILD / f"intermediates/merged_manifests/{variant}/process{variant[0].upper() + variant[1:]}Manifest/AndroidManifest.xml")
     assert actual == permissions(merged.getroot()), f"{variant}: merged and packaged permissions differ"
-    assert manifest.attrib["package"] == "dev.agneswd.stillpoint", variant
+    assert manifest.attrib["package"] == "dev.agneswd.ronumi", variant
 
     args = ["dex", "packages", "--defined-only"]
     if build_type == "release":
@@ -52,7 +52,7 @@ def inspect(flavor, build_type):
     if flavor == "play":
         assert not actual & PLAY_FORBIDDEN_PERMISSIONS, f"{variant}: updater permissions {actual & PLAY_FORBIDDEN_PERMISSIONS}"
         assert BILLING in actual, variant
-        for forbidden in ("dev.agneswd.stillpoint.update", "UpdatesActivity", "UpdateSettingsKt"):
+        for forbidden in ("dev.agneswd.ronumi.update", "UpdatesActivity", "UpdateSettingsKt"):
             assert forbidden not in classes, f"{variant}: updater class {forbidden}"
     else:
         assert UPDATER_PERMISSIONS <= actual, variant

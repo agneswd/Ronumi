@@ -21,7 +21,7 @@ import json
 import sqlite3
 
 SERIAL = os.environ.get("ANDROID_SERIAL", "emulator-5554")
-PKG = "dev.agneswd.stillpoint"
+PKG = "dev.agneswd.ronumi"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 APK = ROOT / "app/build/outputs/apk/github/debug/app-github-debug.apk"
 RUN = ROOT / "e2e/artifacts" / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -302,7 +302,7 @@ def device_workflow(scenario: str, extras: str = "", receiver: str = ".StorageCh
 
 def schema_upgrade():
     """Install the first database schema, then open it with the real upgraded app."""
-    schema = json.loads((ROOT / "app/schemas/dev.agneswd.stillpoint.data.StillpointDatabase/1.json").read_text())["database"]
+    schema = json.loads((ROOT / "app/schemas/dev.agneswd.ronumi.data.StillpointDatabase/1.json").read_text())["database"]
     fixture = RUN / "schema-1.db"
     now = int(time.time() * 1000)
     values = {

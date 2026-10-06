@@ -12,7 +12,7 @@ Set `sdk.dir` in an untracked `local.properties`, or set `ANDROID_HOME`.
 ./gradlew assemblePlayDebug assemblePlayRelease bundlePlayRelease lintPlayDebug lintPlayRelease
 ```
 
-Both distributions use application ID `dev.agneswd.stillpoint` and the same version code.
+Both distributions use application ID `dev.agneswd.ronumi` and the same version code.
 APKs are in `app/build/outputs/apk/<flavor>/<buildType>/`.
 The Play bundle is `app/build/outputs/bundle/playRelease/app-play-release.aab`.
 
@@ -54,7 +54,7 @@ It also runs the Play fake-store workflow on each CI emulator, without extra app
 
 ## Plus foundation
 
-`context.app.plus` is the process-wide `Plus` service in `dev.agneswd.stillpoint.plus`.
+`context.app.plus` is the process-wide `Plus` service in `dev.agneswd.ronumi.plus`.
 Compose screens can collect `plus.state` with `collectAsStateWithLifecycle()`.
 Services can read `plus.state.value` or `plus.has(feature)` synchronously without I/O.
 
@@ -224,7 +224,7 @@ Older backups omit the field and restore as `SYSTEM`.
 
 ## Built-in updates
 
-Version 0.1.3 retires the GitHub updater. It is the last release of package `dev.agneswd.stillpoint`.
+Version 0.1.3 retires the GitHub updater. It is the last release of package `dev.agneswd.ronumi`.
 The github build no longer schedules the daily update job, and it cancels the job (id 64021) that older builds scheduled.
 Settings shows the Ronumi notice instead of update controls. The app makes no network requests.
 The download and install code stays in the github source set, but nothing calls it.

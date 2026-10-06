@@ -62,7 +62,7 @@
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.Stillpoint.Block"
-            android:taskAffinity="dev.agneswd.stillpoint.block" />
+            android:taskAffinity="dev.agneswd.ronumi.block" />
 
         <service
             android:name=".guard.GuardService"

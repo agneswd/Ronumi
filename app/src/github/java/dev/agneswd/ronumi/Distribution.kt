@@ -1,0 +1,31 @@
+package dev.agneswd.ronumi
+
+import android.app.Activity
+import androidx.compose.runtime.Composable
+import dev.agneswd.ronumi.data.Settings
+import dev.agneswd.ronumi.plus.Entitlement
+import dev.agneswd.ronumi.plus.Plus
+import dev.agneswd.ronumi.plus.PlusState
+import dev.agneswd.ronumi.update.UpdateScheduler
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+object Distribution {
+    fun createPlus(app: StillpointApp): Plus {
+        // Last Stillpoint release. Cancel a daily job from an older build. Do not schedule another.
+        UpdateScheduler.cancel(app)
+        return GithubPlus
+    }
+
+    @Composable
+    fun MigrationNotice() = dev.agneswd.ronumi.ui.MigrationNotice()
+
+    @Composable
+    fun UpdateSettings(settings: Settings) = dev.agneswd.ronumi.ui.UpdateSettings(settings)
+}
+
+private object GithubPlus : Plus {
+    override val state = MutableStateFlow(PlusState(Entitlement.UNLOCKED)).asStateFlow()
+    override fun purchase(activity: Activity) = Unit
+    override fun restore() = Unit
+}

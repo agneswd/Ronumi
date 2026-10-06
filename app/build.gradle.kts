@@ -6,12 +6,12 @@ plugins {
 }
 
 android {
-    namespace = "dev.agneswd.stillpoint"
+    namespace = "dev.agneswd.ronumi"
     compileSdk = 37
     buildToolsVersion = "37.0.0"
 
     defaultConfig {
-        applicationId = "dev.agneswd.stillpoint"
+        applicationId = "dev.agneswd.ronumi"
         // API 28 is the first release that reports unlock events through UsageStatsManager.
         minSdk = 28
         targetSdk = 36

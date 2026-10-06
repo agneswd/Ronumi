@@ -1,4 +1,4 @@
-package dev.agneswd.stillpoint
+package dev.agneswd.ronumi
 
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
@@ -7,8 +7,8 @@ import android.content.ContentProvider
 import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
-import dev.agneswd.stillpoint.update.UpdateJob
-import dev.agneswd.stillpoint.update.UpdateScheduler
+import dev.agneswd.ronumi.update.UpdateJob
+import dev.agneswd.ronumi.update.UpdateScheduler
 import java.io.File
 
 /**
