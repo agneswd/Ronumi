@@ -1,6 +1,6 @@
 # Behavior checks
 
-The Android tests must cover these failures before release.
+The Android tests must cover these failures.
 Each run must save screenshots, a report, and the crash log.
 
 - First-launch setup cannot finish, loses answers, or repeats after a restart.
@@ -32,12 +32,12 @@ Each run must save screenshots, a report, and the crash log.
 - App usage bars use a different category from the report totals.
 
 Real YouTube, Instagram, Snapchat, and Facebook checks need compatible installed apps.
-Report an unavailable app as a validation gap. A fixture does not prove real-app detection.
+If an app is not installed, record that in the run. A fixture does not prove real-app detection.
 
-## Backend checks completed
+## JVM checks
 
-Pure-JVM checks use compiled application classes. Earlier audio checks used the former production sample generator.
-They cover these behavior gaps:
+Pure-JVM checks use compiled application classes.
+They cover these failures:
 
 - Rain and waves clip, have a DC offset, differ greatly in volume, or cannot render faster than playback.
 - Output buffers reset noise filters or the wave envelope. Stop and restart omit the short fade.
@@ -53,167 +53,135 @@ They cover these behavior gaps:
 - Allow-list focus mode labels allowed apps as distracting, or category totals omit uncategorized usage.
 - Productive choices and essential exclusions duplicate time or make a category total negative.
 
-The original procedural audio passed 20-second render checks before its replacement. Those results do not validate the new recordings.
-Focus ambience now uses bundled CC0 recordings. The importer checks duration, peak, RMS, and loop seams.
-All five imported loops have RMS 0.070 and no clipped samples. The player adds start and stop fades.
+Focus ambience uses bundled CC0 recordings. The importer checks duration, peak, RMS, and loop seams.
 See [focus audio sources](../docs/focus-audio-sources.md) for measured levels and source licenses.
 Short interaction sounds use quiet CC0 library recordings. See [UI audio sources](../docs/audio-sources.md).
 
-## Device checks still required
+## Device checks
 
-- Check rapid sound switching and pause/resume on physical phones.
-- Move the clock backward while a blocked app remains open. Content checks and block screens must continue.
+Check these cases on a device:
+
+- Switch sounds quickly, and pause and resume, on a physical phone.
+- Move the clock backward while a blocked app stays open. Content checks and block screens must continue.
 - Cross midnight with a foreground app, a used pass, and an overnight protected schedule.
 - Reboot with a pending plan, a snoozed plan, and a running focus session.
 - Kill the process during alarm refresh. Existing alarms must remain until their replacements are set.
-- Change the time zone around a pending plan and notification delivery time.
-- Deliver during the spring gap and autumn overlap. Confirm one delivery per resolved occurrence.
-- Apply a freeze twice and cross a week reward boundary after rest days and missed days.
+- Change the time zone around a pending plan and a notification delivery time.
+- Deliver during the spring gap and the autumn overlap. Confirm one delivery for each resolved occurrence.
+- Apply a freeze twice, and cross a week reward boundary after rest days and missed days.
 - Complete multiple Pomodoro rounds, including zero short breaks and zero long breaks.
-- Verify onboarding on smaller manufacturer viewports. CI uses Pixel 2 at 1080x1920 and tests the visible skip button.
-- Verify report categories against real app use on a physical phone. JVM checks confirm that categories sum to the same-period total.
+- Check onboarding on a smaller manufacturer screen. At 1080x1920, the skip button must stay visible.
+- Compare report categories with real app use on a physical phone. JVM checks confirm that categories sum to the same-period total.
 
-CI runs on the backend branch and the PR. It uploads APKs, lint and JVM reports, E2E reports, crash logs, and Plus state results.
-It prints alarm, clock, and screen diagnostics from the disposable CI device. Other device artifacts stay local.
-
-The device driver posts real notifications on Android 9 and later. The workflow no longer depends on a shell notification command.
-It checks capture, content updates, process restart, and duplicate delivery. The fixture waits for Android's asynchronous notification post.
-Local Android 9 and Android 14 runs pass this workflow.
-
-## Interface and audio checks
-
-The full Android 14 run covers onboarding, Chrome blocking, focus enforcement, process recovery, home lock,
-protected settings, pause/resume, gentle passes, storage, notifications, and planned focus.
-The first run found an oversized minimized-focus chip. The corrected layout passed a focused repeat of the affected workflows.
-YouTube testing skips because the installed app requires an update.
-Android 9 passed schema migration, onboarding, home, storage, notifications, and planned focus locally.
-Two additional Android 9 alarm runs passed after process death and screen-off completion.
+The device driver posts real notifications on Android 9 and later.
+It does not use a shell notification command.
+It checks capture, content updates, process restart, and duplicate delivery.
+The fixture waits until Android posts the notification.
 
 The focus layout scales its timer and mascot to the available height. Small screens and large fonts can scroll.
 Theme labels sit outside image clipping. Paused Pebble has closed eyes. Strict Pebble uses curved, overlapping arms.
 
-Use `e2e/demo.py --scrcpy /path/to/scrcpy --output /path/to/demo.mp4` to capture the screen and real app audio.
-The tour resets app data. Back up an existing device first. It records setup, blocking, all five bundled focus recordings,
-a real one-minute timer, rewards, and widgets. The rewards chapter uses sample history from a debug-only fixture.
-A chapter file records timestamps next to the video. Promotional screenshots use fresh captures, separate from test artifacts.
-The demo uses no microphone and has no three-minute recording limit.
+Use this command to capture the screen and app audio:
 
-## Current progression and interface checks
+```sh
+python3 e2e/demo.py --scrcpy /path/to/scrcpy --output /path/to/demo.mp4
+```
 
-The Android 9 and Android 14 `progression_workflow` passed during development. It checks:
+The tour resets app data. Back up an existing device first.
+It records setup, blocking, all five bundled focus recordings, a real one-minute timer, rewards, and widgets.
+The rewards chapter uses sample history from a debug-only fixture.
+A chapter file records timestamps next to the video.
+Take promotional screenshots as fresh captures, separate from test artifacts.
+The demo uses no microphone, and it has no three-minute recording limit.
+
+The completion summary fits a 1080x1920 display at density 420 without scrolling.
+Continue and Add a note stay visible at 1080x1640 with font scale 1.2.
+Notes keep multiline input. A tap outside the field dismisses the keyboard.
+Wardrobe items stay reachable at font scale 2. A closed hat covers the sprout. Open headwear leaves it visible.
+An active streak stays lit before today's step, on the normal light or dark card background.
+
+The fixture waits for the guard to bind before setup completes.
+Before it replaces the APK or clears app data, it disables the guard and waits until the connection is gone.
+Android 9 can keep an interrupted binding after either operation, even when the app did not crash.
+Changing the enabled-service setting does not clear that connection.
+Onboarding still checks that the guard is bound.
+
+## Progression checks
+
+`progression_workflow` checks:
 
 - Room preserves equipped item IDs and session quest versions.
 - New backups retain both fields. Old backups receive compatible defaults.
-- New days receive four quests. Legacy sessions retain three-quest rules.
+- New days receive four quests. Older sessions retain three-quest rules.
 - Completed sessions count for completion quests. Abandoned sessions do not.
 - Changing the current daily goal does not change saved quest targets.
 - The item resolver excludes locked and unknown items, and permits one item per slot.
 - The fixture restores the original settings and session history.
 
-Manual Android 14 checks passed for returning to the same Settings scroll position, keyboard dismissal,
-locked wardrobe previews and equip controls, opening the Mountain mover badge details, and retaining the page across theme changes.
-The permissions section collapses when all grants are present and expands on request.
-With one notification permission revoked, only the missing permission is shown.
-These checks do not replace a full pass over all items, badge filters, font sizes, and light or dark screens.
-
-Debug assembly and lint passed. Android 9 passed migration, onboarding, home, storage, progression, notifications, and planned focus.
-The first Android 9 attempt lost the accessibility tree. A device reboot restored it, and the full selected run passed.
-The Android workflow runs these checks on Android 9 and Android 16. Check its result for the exact branch revision.
+The permissions section collapses when every grant is present, and it expands on request.
+When one notification permission is missing, the screen shows only that permission.
 The UI reader preserves other accessibility services. Onboarding checks each slide and refreshes the permission state.
-The complete selected workflow also passed locally on Android 14 after these driver changes.
-The full demo includes all five focus recordings, rewards, wardrobe, dark theme, and launcher widgets.
-A chapter file identifies sample-history sections. Partial recordings are not release evidence.
 
-The fixture waits for the guard to bind before setup completes.
-Before replacing the APK or clearing app data, it disables the guard and waits for its connection to disappear.
-Android 9 can retain an interrupted binding after either operation, even with no app crash.
-Changing the enabled-service setting cannot recover that pending connection. Onboarding still checks that the guard is bound.
+## Updater, theme, and schema 5
 
-The completion summary fits a 1080x1920 display at density 420 without scrolling.
-Continue and Add a note also stay visible at 1080x1640 with font scale 1.2.
-Notes retain multiline input, and an outside tap dismisses the keyboard.
-Wardrobe items remain reachable at font scale 2. Closed hats cover the sprout; open headwear keeps it visible.
-Active streaks remain lit before today's step, on the normal light or dark card background.
-
-## Pending checks for changes after c9b935d
-
-Revision `c9b935d` passed Android 9 and Android 16 CI. Earlier results above apply to that work, not all newer changes.
-The next device and CI runs must cover these failures:
+Also cover these failures:
 
 - Schema 5 loses prior data or assigns incorrect preference defaults.
 - Old backups fail without the new fields. Invalid theme or schedule icon IDs enter saved settings.
 - System mode ignores a phone theme change. Forced Light or Dark follows the phone instead.
-- A theme change resets navigation or Settings scroll position, or leaves dialogs and block screens in the old theme.
+- A theme change resets navigation or the Settings scroll position, or leaves dialogs and the block screen in the old theme.
 - Notification switches change enforcement, stop automatic planned sessions, or erase held messages.
-- A schedule icon changes after editing, restart, or restore. Automatic icons stop following the start time.
-- Pet progress resets after restart or grants the hidden reward before its requirement is met.
+- A schedule icon changes after an edit, a restart, or a restore. Automatic icons stop following the start time.
+- Pet progress resets after a restart, or grants the hidden reward before its requirement is met.
 - Rest days or frozen days lower Pebble's mood. Partial focus fails to acknowledge a return.
-- New animation loops snap at their boundary or move clothing separately from the body.
+- New animation loops snap at their boundary, or move clothing separately from the body.
 - Automatic update checks continue after being disabled, or download an APK without a user action.
-- Network failure prevents local focus or leaves the update screen stuck.
+- Network failure prevents local focus, or leaves the update screen stuck.
 - A wrong-package, older, modified, oversized, or differently signed APK reaches the installer.
-- Installation bypasses Android confirmation or fails to recover after install permission is granted.
+- Installation bypasses Android confirmation, or fails to recover after install permission is granted.
 
-The app now has intentional Internet access for GitHub updates. Test local focus and blocking without a network.
-Do not treat a successful GitHub metadata response as proof of a complete signed update installation.
-
-Local checks for the new work passed:
-- `assembleDebug` and `lintDebug`.
-- Android 14 storage, progression, and notification workflows, with user data restored by each fixture.
-- Pure JVM mood cases, including rest-day focus and frozen-day focus.
-- Pure JVM update version, trusted URL, redirect, and signer-set rules.
-- Live GitHub no-release response shown in the app.
-- Automatic update toggle cancels and restores the persisted daily job.
-
-A source review checked the updater and found no remaining security blocker.
-It also found a forced-theme system-bar mismatch, which was corrected before the final build.
-A real signed update installation remains unverified because the repository has no public stable release yet.
+The GitHub flavor has Internet access for updates. Test local focus and blocking with the network off.
+A GitHub metadata response does not prove that a signed update installs.
 
 ## Encrypted backups and schema 6
 
-The backup format now requires a password. Earlier plaintext-backup device results do not verify this implementation.
-The existing storage workflow now covers encrypted export and restore, one authenticated invalid record, wrong passwords,
-changed ciphertext, plaintext rejection, and retained local pass counts. Other invalid record cases exercise validation directly.
-The fixture preserves the device's original pass rows after the check. It uses a debug-only password.
+The storage workflow covers encrypted export and restore, one authenticated invalid record, wrong passwords,
+changed ciphertext, plaintext rejection, and retained local pass counts.
+Other invalid records are checked in validation directly.
+The fixture restores the device's original pass rows. It uses a debug-only password.
 
-A throwaway JVM harness was written before implementation. It now passes these crypto cases:
+JVM crypto checks cover:
 
 - The correct password restores the original bytes, including Unicode text.
 - Repeated exports produce different encrypted bytes.
-- Wrong passwords, modified salt or nonce, and changed ciphertext fail authentication.
+- Wrong passwords, a modified salt or nonce, and changed ciphertext fail authentication.
 - Truncated, appended, oversized, plaintext, and unsupported-version input is rejected.
-- The caller's password array remains unchanged, and an empty password is rejected.
+- The caller's password array stays unchanged, and an empty password is rejected.
 
-Android 9 passed all seven CI scenarios in `20261002-175503`, with no crashes.
-The storage artifact confirms encrypted round trip, wrong-password and tamper rejection, validated records, and retained pass counts.
-Migration preserved schema 1 records through schema 6. Planned focus completed after a real minute.
+Also cover:
 
-The clock JVM harness passed clock jumps, pauses, reboot checkpoint recovery, reward dates, freeze replay, and bounded XP.
-These checks do not substitute for device lifecycle checks. Remaining manual checks include:
-
-- Schema 1 through 5 upgrades preserve records and progress in running or paused phases.
-- Passwords do not survive activity recreation. A running backup stays marked busy after leaving and returning to Settings.
+- Schema 1 through 5 upgrades preserve records and progress in a running or paused phase.
+- Passwords do not survive activity recreation. A running backup stays marked busy after you leave Settings and return.
 - Wrong passwords, altered files, and invalid authenticated records leave stored data unchanged.
 - Restoring an older backup preserves used passes and expires active passes.
 - Wall-clock jumps do not add focus minutes or complete a phase early.
 - Pause, resume, process death, and reboot keep the expected checkpoint and remaining duration.
 - A reboot does not count powered-off time. Any lost time is limited to the unsaved interval.
-- New reward dates remain stable across time-zone changes, while legacy history retains its compatibility behavior.
+- New reward dates stay stable across time-zone changes. Older history keeps its compatibility behavior.
 - Returning to an old date cannot grant an already rewarded freeze milestone again.
 - Large or invalid focus totals cannot overflow XP arithmetic or hang level calculation.
 
-The new crypto JVM result does not prove Android provider behavior, file-picker access, or lifecycle handling.
-Local artifacts are in `e2e/artifacts/20261002-175503/`. They are not uploaded or committed.
+The JVM crypto checks do not cover the Android provider, file-picker access, or the activity lifecycle.
 
-## Distribution and Plus foundation
+## Distribution and Plus
 
 The entitlement JVM cases cover pending purchases, unacknowledged purchases, failed queries, refunds, duplicate tokens,
 completed or canceled pending purchases, unrelated products, and partial purchase callbacks.
-The Play debug workflow checks the same app-wide service used by future feature gates.
+The Play debug workflow checks the same app-wide service used by feature gates.
 It checks cache survival after an offline restart, acknowledgement, purchase errors, cancellation, already-owned recovery,
-and encrypted backup restore in both directions. Each run saves `plus-states.json` and the normal report and crash log.
+and encrypted backup restore in both directions.
+Each run saves `plus-states.json` and the normal report and crash log.
 The fake store and its receiver exist only in `playDebug`.
-Real Google Play checkout, pending completion, refunds, and service reconnects still need a Play test-track install.
+The fake store does not cover a real Google Play checkout, a purchase that stays pending on Play, a refund from Play, or a billing service reconnect.
 
-CI builds and lints both flavors. Existing emulator checks use `githubDebug`; Plus checks use `playDebug`.
-CI uploads the Plus state artifact and text reports with APKs, JVM results, and lint reports.
+Emulator checks for the rest of the app use `githubDebug`. Plus checks use `playDebug`.

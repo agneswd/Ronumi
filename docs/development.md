@@ -110,7 +110,7 @@ After building all four variants, run `python3 .github/scripts/verify_distributi
 It compares merged and packaged permissions and inspects dex classes with `apkanalyzer` and each release R8 mapping.
 It confirms that only `playDebug` contains the fake store and saves evidence in `app/build/reports/distributions/`.
 CI runs this check and uploads its reports.
-These checks do not validate Google Play checkout. A Play test-track install and license tester must verify real checkout and pending completion.
+The fake store does not run a Google Play checkout.
 
 ## Progression and appearance checks
 
@@ -131,7 +131,7 @@ If a day already contains an old session, that day keeps the original three ques
 Check Settings > Appearance with System, Light, and Dark. Forced modes must ignore the phone theme.
 System mode must follow it without resetting navigation or scroll position.
 Check locked item previews, item removal, large text, keyboard dismissal, and scroll restoration on the device.
-See [behavior coverage](../e2e/coverage.md) for completed checks and gaps.
+See [behavior coverage](../e2e/coverage.md) for the cases these checks cover.
 
 ## Audio and demo capture
 
@@ -212,7 +212,6 @@ Wrong passwords and authentication failures share one error. Unsupported formats
 Validation bounds collection sizes and limits one session to 48 focus hours, the maximum twelve-round Pomodoro duration.
 Restore remains locked during active focus or a protected schedule. One app-wide operation state prevents overlapping UI backup operations.
 The debug storage fixture checks encrypted round trip, tampering, wrong passwords, invalid records, and retained local pass counts.
-The Android 9 encrypted storage workflow passes, including wrong passwords, altered files, invalid records, and retained pass counts.
 
 Encryption protects backup contents from someone without the password. A password owner can still create modified records.
 Do not describe this as an anti-cheat guarantee. Export excludes held notification text, active sessions, and temporary passes.
@@ -225,16 +224,9 @@ Older backups omit the field and restore as `SYSTEM`.
 
 ## Built-in updates
 
-Version 0.1.3 retires the GitHub updater.
-This is the last release of package `dev.agneswd.stillpoint`.
-The github build does not schedule the daily update job.
-At startup, the app cancels JobScheduler job 64021 from an older build.
-Settings shows the Ronumi notice and the GET RONUMI button.
-The app does not call GitHub.
-The download code stays in the github source set.
-Removing it would be a large change.
-This release does not call the download code.
-`UpdateJob` stays registered and returns without a network call.
-After the repository rename, the old updater would reject the GitHub redirect and report an error on every check.
-The Play build has no updater.
+Version 0.1.3 retires the GitHub updater. It is the last release of package `dev.agneswd.stillpoint`.
+The github build no longer schedules the daily update job, and it cancels the job (id 64021) that older builds scheduled.
+Settings shows the Ronumi notice instead of update controls. The app makes no network requests.
+The download and install code stays in the github source set, but nothing calls it.
+The Play flavor declares Internet access only through the Billing library and makes no network requests of its own.
 Focus, blocking, reports, and audio remain local.
