@@ -1,31 +1,41 @@
 """Run the signed-client bridge checks through the standard E2E driver."""
 import json
 import os
+import re
 import subprocess
 import time
 
+# Android 14 prints "Registered <count> jobs:". Some builds print "Registered jobs:".
+_REGISTERED = re.compile(r"^Registered(?: \d+)? jobs:$")
+_REQUIRED = ("Pending queue:", "Active jobs:")
+
 
 def job_sections(dump: str) -> str:
-    """Registered, pending, and active JobScheduler rows. History is excluded."""
-    markers = ("Registered jobs:", "Pending queue:", "Active jobs:")
+    """Keep registered, pending, and active JobScheduler rows.
+
+    History and the component catalog stay out. A cancelled job or a declared
+    service must not look like a scheduled job.
+    """
     lines = dump.splitlines()
     keep = []
     capture = False
-    found = False
+    saw = set()
     for line in lines:
         stripped = line.strip()
-        if any(stripped.startswith(marker) for marker in markers):
+        registered = _REGISTERED.fullmatch(stripped) is not None
+        if registered or stripped in _REQUIRED:
             capture = True
-            found = True
+            saw.add("Registered jobs:" if registered else stripped)
             keep.append(line)
             continue
         if capture and line and not line[0].isspace() and stripped.endswith(":"):
             capture = False
         if capture:
             keep.append(line)
-    if not found:
+    missing = [name for name in ("Registered jobs:", *_REQUIRED) if name not in saw]
+    if missing:
         preview = "\n".join(lines[:80])
-        raise AssertionError("dumpsys jobscheduler did not include the job sections:\n" + preview)
+        raise AssertionError("dumpsys jobscheduler missed " + ", ".join(missing) + ":\n" + preview)
     return "\n".join(keep) + "\n"
 
 
