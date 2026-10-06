@@ -70,13 +70,13 @@ val shortsApps = listOf(
 )
 
 /**
- * The frame of a Blocks detail page: a top bar, Pebble with a short line, then the rows.
+ * The frame of a Blocks detail page: a top bar, Ronumi with a short line, then the rows.
  * The content gets the current settings and a function that saves a change.
  */
 @Composable
 private fun BlockPage(
     title: String,
-    pebble: String,
+    line: String,
     mood: Mood,
     onClose: () -> Unit,
     content: @Composable ColumnScope.(Settings, SettingsUpdate) -> Unit,
@@ -96,7 +96,7 @@ private fun BlockPage(
             return@Column
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            PebbleSays(pebble, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp), pebbleSize = 80.dp)
+            RonumiSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp), ronumiSize = 80.dp)
             content(s, update)
             Spacer(Modifier.height(32.dp))
         }

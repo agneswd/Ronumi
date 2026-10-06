@@ -156,11 +156,11 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
             BackupSettings(restoreLocked = locked || focus != null)
 
             SectionTitle(stringResource(R.string.settings_about))
-            PebbleSays(
+            RonumiSays(
                 stringResource(R.string.distribution_privacy),
                 Mood.WAVE,
                 Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
-                pebbleSize = 80.dp,
+                ronumiSize = 80.dp,
             )
             Group(Modifier.padding(top = 12.dp)) {
                 ListRow(stringResource(R.string.settings_source_code), stringResource(R.string.settings_source_description, stringResource(R.string.settings_repository_name)), onClick = {

@@ -36,7 +36,7 @@ import android.view.WindowManager
 import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
 import dev.agneswd.ronumi.R
-import dev.agneswd.ronumi.StillpointApp
+import dev.agneswd.ronumi.RonumiApp
 import java.time.LocalDate
 
 /**
@@ -426,7 +426,7 @@ class GuardService : AccessibilityService() {
         val interval = minutes * 60_000L
         if (now - visitStarted < interval || lastReminder > 0 && now - lastReminder < interval) return
         lastReminder = now
-        val notification = NotificationCompat.Builder(this, StillpointApp.CHANNEL_EVENTS)
+        val notification = NotificationCompat.Builder(this, RonumiApp.CHANNEL_EVENTS)
             .setSmallIcon(R.drawable.ic_stat).setContentTitle(getString(R.string.limit_reminder_title))
             .setContentText(resources.getQuantityString(R.plurals.limit_reminder_body, ((now - visitStarted) / 60_000).toInt(), app.catalog.label(pkg), (now - visitStarted) / 60_000))
             .setContentIntent(MainActivity.pendingHome(this)).setAutoCancel(true).build()

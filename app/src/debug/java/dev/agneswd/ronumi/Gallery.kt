@@ -16,10 +16,10 @@ import dev.agneswd.ronumi.ui.design.*
 @Composable
 fun Gallery(page: String) {
     when (page) {
-        "pebble" -> FlowRow(Modifier.fillMaxWidth()) {
+        "ronumi" -> FlowRow(Modifier.fillMaxWidth()) {
             Mood.entries.forEach { mood ->
                 Column(Modifier.padding(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Pebble(mood, size = 100.dp)
+                    Ronumi(mood, size = 100.dp)
                     Text(mood.name, style = MaterialTheme.typography.labelSmall, color = Sp.colors.textDim)
                 }
             }
@@ -42,9 +42,9 @@ fun Gallery(page: String) {
             }
         }
         "says" -> Column(Modifier.padding(16.dp)) {
-            dev.agneswd.ronumi.ui.PebbleSays("Pick a daily focus goal", Mood.THINK, Modifier.fillMaxWidth(), pebbleSize = 84.dp)
-            dev.agneswd.ronumi.ui.PebbleSays("Which apps steal your time? Pick all that fit, I will remember.", Mood.THINK, Modifier.fillMaxWidth(), pebbleSize = 84.dp)
-            dev.agneswd.ronumi.ui.PebbleSays("Hi there!", Mood.HAPPY, Modifier.fillMaxWidth(), pebbleSize = 96.dp)
+            dev.agneswd.ronumi.ui.RonumiSays("Pick a daily focus goal", Mood.THINK, Modifier.fillMaxWidth(), ronumiSize = 84.dp)
+            dev.agneswd.ronumi.ui.RonumiSays("Which apps steal your time? Pick all that fit, I will remember.", Mood.THINK, Modifier.fillMaxWidth(), ronumiSize = 84.dp)
+            dev.agneswd.ronumi.ui.RonumiSays("Hi there!", Mood.HAPPY, Modifier.fillMaxWidth(), ronumiSize = 96.dp)
             dev.agneswd.ronumi.ui.Stepper("Focus length", 25, 5..240, 5, { "$it min" }) {}
         }
         "components" -> {

@@ -52,10 +52,10 @@ import kotlin.math.abs
 import kotlin.math.sin
 import android.os.SystemClock
 
-/** What Pebble feels. Each mood changes the face, the arms and the motion. */
+/** What Ronumi feels. Each mood changes the face, the arms and the motion. */
 enum class Mood { IDLE, HAPPY, CELEBRATE, CALM, SLEEPY, SAD, GUARD, WAVE, THINK, PROUD, STRICT }
 
-val LocalPebbleStyle = staticCompositionLocalOf<Set<String>> { emptySet() }
+val LocalRonumiStyle = staticCompositionLocalOf<Set<String>> { emptySet() }
 
 private val Ink = Color(0xFF262841)
 private val BodyTop = Color(0xFFA3AEFF)
@@ -68,22 +68,22 @@ private val LeafDark = Color(0xFF1FA874)
 private val Tongue = Color(0xFFFF7C9C)
 private val Spark = Color(0xFFFFC53D)
 
-/** The color of Pebble's thought dots. Speech bubbles reuse it for their trail. */
+/** The color of Ronumi's thought dots. Speech bubbles reuse it for their trail. */
 val ThoughtDot = Color(0xFF9AA6FF).copy(alpha = 0.7f)
 
 /**
- * Pebble, the Stillpoint mascot: a round stone with a sprout on top.
+ * Ronumi, the Stillpoint mascot: a round stone with a sprout on top.
  * It is drawn in code, so it scales to any size and animates without image files.
  * [look] moves the pupils, from -1 to 1 on each axis.
- * [thoughtDots] is false when a speech bubble beside Pebble draws its own thought trail.
+ * [thoughtDots] is false when a speech bubble beside Ronumi draws its own thought trail.
  */
 @Composable
-fun Pebble(
+fun Ronumi(
     mood: Mood,
     modifier: Modifier = Modifier,
     size: Dp = 160.dp,
     look: Offset = Offset.Zero,
-    style: Set<String> = LocalPebbleStyle.current,
+    style: Set<String> = LocalRonumiStyle.current,
     thoughtDots: Boolean = true,
     animated: Boolean = true,
 ) {
@@ -110,14 +110,14 @@ fun Pebble(
     val interaction = remember { MutableInteractionSource() }
     val pebbleName = stringResource(R.string.pebble_name)
     val petLabel = stringResource(R.string.pebble_pet_action)
-    // Breath and blink stay on every large Pebble. Hop, wave, and drift run only for moods that draw them.
+    // Breath and blink stay on every large Ronumi. Hop, wave, and drift run only for moods that draw them.
     val breath: State<Float>
     val blink: State<Float>
     val hop: State<Float>
     val wave: State<Float>
     val drift: State<Float>
     if (animated) {
-        val time = rememberInfiniteTransition(label = "pebble")
+        val time = rememberInfiniteTransition(label = "ronumi")
         breath = time.animateFloat(0f, 1f, infiniteRepeatable(tween(2600, easing = LinearEasing)), label = "breath")
         blink = time.animateFloat(
             1f, 1f,
@@ -159,7 +159,7 @@ fun Pebble(
         modifier.size(size, size * 1.1f)
             .semantics { contentDescription = pebbleName }
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = petLabel) {
-                dev.agneswd.ronumi.game.PebblePets.pet(context)
+                dev.agneswd.ronumi.game.RonumiPets.pet(context)
                 pet.tap(SystemClock.uptimeMillis())
                 if (animated) taps.trySend(Unit)
             },
@@ -185,7 +185,7 @@ fun Pebble(
         translate(top = -pet.lift.coerceAtLeast(0f) * gentle * u) {
             rotate(pet.lean * gentle, pivot) {
                 scale(1f + pet.press * 0.065f * gentle, 1f - pet.press * 0.065f * gentle, pivot) {
-                    drawPebble(mood, breathNow, petBlink, hopNow, waveNow + pet.lean * 0.035f * gentle, driftNow, petLook, style, thoughtDots)
+                    drawRonumi(mood, breathNow, petBlink, hopNow, waveNow + pet.lean * 0.035f * gentle, driftNow, petLook, style, thoughtDots)
                 }
             }
         }
@@ -193,7 +193,7 @@ fun Pebble(
     }
 }
 
-/** A phase that never changes. Widgets and a static Pebble use the same still values. */
+/** A phase that never changes. Widgets and a static Ronumi use the same still values. */
 @Composable
 private fun stillPhase(value: Float): State<Float> = remember(value) { mutableFloatStateOf(value) }
 
@@ -206,11 +206,11 @@ private val Mood.usesDrift: Boolean
         this == Mood.WAVE || this == Mood.PROUD || this == Mood.SLEEPY
 
 /**
- * Draws one frame of Pebble that fills the width of the draw area. The height is 1.1 times the width.
+ * Draws one frame of Ronumi that fills the width of the draw area. The height is 1.1 times the width.
  * The animation phases go from 0 to 1, except [wave] (-1 to 1) and [blink] (1 open, near 0 closed).
- * Widgets use it with the defaults to draw a still Pebble into a bitmap.
+ * Widgets use it with the defaults to draw a still Ronumi into a bitmap.
  */
-fun DrawScope.drawPebble(
+fun DrawScope.drawRonumi(
     mood: Mood,
     breath: Float = 0f,
     blink: Float = 1f,
@@ -267,7 +267,7 @@ fun DrawScope.drawPebble(
         else -> Offset.Zero
     }
 
-    // Ground shadow, smaller when Pebble is in the air.
+    // Ground shadow, smaller when Ronumi is in the air.
     val shadowScale = 1f - jump / 30f
     drawOval(
         Color.Black.copy(alpha = 0.12f),
@@ -306,7 +306,7 @@ private fun bodyPath(u: Float) = Path().apply {
     close()
 }
 
-private fun DrawScope.drawBody(u: Float, palette: PebblePalette) {
+private fun DrawScope.drawBody(u: Float, palette: RonumiPalette) {
     val path = bodyPath(u)
     drawPath(path, Brush.verticalGradient(listOf(palette.top, palette.bottom), startY = 14f * u, endY = 100f * u))
     clipPath(path) {
@@ -318,12 +318,12 @@ private fun DrawScope.drawBody(u: Float, palette: PebblePalette) {
     }
 }
 
-private fun DrawScope.drawFeet(u: Float, palette: PebblePalette) {
+private fun DrawScope.drawFeet(u: Float, palette: RonumiPalette) {
     drawOval(palette.shade, topLeft = Offset(28f * u, 95f * u), size = Size(18f * u, 9f * u))
     drawOval(palette.shade, topLeft = Offset(54f * u, 95f * u), size = Size(18f * u, 9f * u))
 }
 
-private fun DrawScope.drawArm(u: Float, pivot: Offset, angle: Float, left: Boolean, palette: PebblePalette) {
+private fun DrawScope.drawArm(u: Float, pivot: Offset, angle: Float, left: Boolean, palette: RonumiPalette) {
     rotate(angle, pivot) {
         val w = 12f * u
         val h = 22f * u
@@ -332,7 +332,7 @@ private fun DrawScope.drawArm(u: Float, pivot: Offset, angle: Float, left: Boole
     }
 }
 
-private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float, palette: PebblePalette, drift: Float) {
+private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float, palette: RonumiPalette, drift: Float) {
     if (mood == Mood.STRICT) {
         drawCrossedArms(u, palette)
         return
@@ -367,7 +367,7 @@ private fun DrawScope.drawArms(mood: Mood, u: Float, wave: Float, palette: Pebbl
 }
 
 /** Arms folded over the belly: strict and not moving. */
-private fun DrawScope.drawCrossedArms(u: Float, palette: PebblePalette) {
+private fun DrawScope.drawCrossedArms(u: Float, palette: RonumiPalette) {
     val back = Path().apply {
         moveTo(15f * u, 63f * u)
         cubicTo(5f * u, 65f * u, 8f * u, 84f * u, 22f * u, 88f * u)
@@ -573,18 +573,18 @@ fun DrawScope.sparkle(center: Offset, radius: Float, color: Color) {
     drawPath(path, color)
 }
 
-private data class PebblePalette(val top: Color, val bottom: Color, val shade: Color, val belly: Color)
+private data class RonumiPalette(val top: Color, val bottom: Color, val shade: Color, val belly: Color)
 
-private fun paletteFor(style: Set<String>): PebblePalette = when {
-    "color_mint" in style -> PebblePalette(Color(0xFFA3E8CB), Color(0xFF58BC9E), Color(0xFF3C987D), Color(0xFFD9F5E8))
-    "color_peach" in style -> PebblePalette(Color(0xFFFFC5A2), Color(0xFFE99680), Color(0xFFC77E71), Color(0xFFFFE6CE))
-    "color_sky" in style -> PebblePalette(Color(0xFFAFE3FA), Color(0xFF69B5DE), Color(0xFF4B92BB), Color(0xFFDDF3FF))
-    "color_rose" in style -> PebblePalette(Color(0xFFF5BFD5), Color(0xFFD982AD), Color(0xFFB46695), Color(0xFFFFDEEC))
-    "color_sand" in style -> PebblePalette(Color(0xFFE8D4A9), Color(0xFFC3A878), Color(0xFFA68B60), Color(0xFFF5EACF))
-    "color_slate" in style -> PebblePalette(Color(0xFFA6BDCD), Color(0xFF6E899F), Color(0xFF536C85), Color(0xFFD8E5EC))
-    "color_lilac" in style -> PebblePalette(Color(0xFFD9BBF5), Color(0xFFAA83D5), Color(0xFF8863B4), Color(0xFFEEDFFF))
-    "color_moon" in style -> PebblePalette(Color(0xFFF1EBFF), Color(0xFFB9B4DA), Color(0xFF928CB9), Color(0xFFFFF8E8))
-    else -> PebblePalette(BodyTop, BodyBottom, BodyShade, Belly)
+private fun paletteFor(style: Set<String>): RonumiPalette = when {
+    "color_mint" in style -> RonumiPalette(Color(0xFFA3E8CB), Color(0xFF58BC9E), Color(0xFF3C987D), Color(0xFFD9F5E8))
+    "color_peach" in style -> RonumiPalette(Color(0xFFFFC5A2), Color(0xFFE99680), Color(0xFFC77E71), Color(0xFFFFE6CE))
+    "color_sky" in style -> RonumiPalette(Color(0xFFAFE3FA), Color(0xFF69B5DE), Color(0xFF4B92BB), Color(0xFFDDF3FF))
+    "color_rose" in style -> RonumiPalette(Color(0xFFF5BFD5), Color(0xFFD982AD), Color(0xFFB46695), Color(0xFFFFDEEC))
+    "color_sand" in style -> RonumiPalette(Color(0xFFE8D4A9), Color(0xFFC3A878), Color(0xFFA68B60), Color(0xFFF5EACF))
+    "color_slate" in style -> RonumiPalette(Color(0xFFA6BDCD), Color(0xFF6E899F), Color(0xFF536C85), Color(0xFFD8E5EC))
+    "color_lilac" in style -> RonumiPalette(Color(0xFFD9BBF5), Color(0xFFAA83D5), Color(0xFF8863B4), Color(0xFFEEDFFF))
+    "color_moon" in style -> RonumiPalette(Color(0xFFF1EBFF), Color(0xFFB9B4DA), Color(0xFF928CB9), Color(0xFFFFF8E8))
+    else -> RonumiPalette(BodyTop, BodyBottom, BodyShade, Belly)
 }
 
 private fun DrawScope.drawOutfit(u: Float, style: Set<String>) {

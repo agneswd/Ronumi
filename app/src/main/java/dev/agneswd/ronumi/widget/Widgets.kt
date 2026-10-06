@@ -121,7 +121,7 @@ object Widgets {
         val today = recordToday(app)
         val sessions = app.dao.allSessions()
         val game = gameState(sessions, settings)
-        val style = dev.agneswd.ronumi.game.PebbleStyles.resolve(settings.pebbleItems, game.level.number, settings.petTapCount)
+        val style = dev.agneswd.ronumi.game.RonumiStyles.resolve(settings.pebbleItems, game.level.number, settings.petTapCount)
         lastStyle = style
         styleReady = true
         val history = if (usageIds.isEmpty()) emptyMap() else app.dao.allUsageDays().associate { it.day to it.perApp.values.sum() }
@@ -167,7 +167,7 @@ object Widgets {
         lastSizes.keys.retainAll(allIds)
     }
 
-    private suspend fun recordToday(app: dev.agneswd.ronumi.StillpointApp): dev.agneswd.ronumi.usage.DayUsage {
+    private suspend fun recordToday(app: dev.agneswd.ronumi.RonumiApp): dev.agneswd.ronumi.usage.DayUsage {
         val today = app.usage.day(LocalDate.now())
         if (app.usage.hasAccess()) app.dao.recordUsage(UsageDay(today.date.toString(), today.perApp.toMap(), today.unlocks))
         return today
@@ -184,7 +184,7 @@ object Widgets {
     ) {
         val views = RemoteViews(context.packageName, R.layout.widget_focus)
         if (focus == null) {
-            views.setImageViewBitmap(R.id.widget_art, artwork(ArtKey("pebble", Mood.IDLE.name, style, 0, 220, 220, night, "")) {
+            views.setImageViewBitmap(R.id.widget_art, artwork(ArtKey("ronumi", Mood.IDLE.name, style, 0, 220, 220, night, "")) {
                 pebbleArt(context, Mood.IDLE, style = style)
             })
             views.setTextViewText(R.id.widget_value, context.getString(R.string.widget_focus_title))
@@ -194,7 +194,7 @@ object Widgets {
             views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getBroadcast(context, 0, start, PendingIntent.FLAG_IMMUTABLE))
         } else {
             val mood = if (!focus.running) Mood.SLEEPY else if (focus.phase == FocusPhase.FOCUS) Mood.CALM else Mood.HAPPY
-            views.setImageViewBitmap(R.id.widget_art, artwork(ArtKey("pebble", mood.name, style, 0, 220, 220, night, "")) {
+            views.setImageViewBitmap(R.id.widget_art, artwork(ArtKey("ronumi", mood.name, style, 0, 220, 220, night, "")) {
                 pebbleArt(context, mood, style = style)
             })
             views.setTextViewText(R.id.widget_value, if (!focus.running) context.getString(R.string.widget_paused_title) else if (focus.phase == FocusPhase.FOCUS) context.getString(R.string.widget_running_title) else context.getString(R.string.widget_break_title))
@@ -264,7 +264,7 @@ object Widgets {
     }
 }
 
-/** Pebble and today's progress toward the focus goal. */
+/** Ronumi and today's progress toward the focus goal. */
 class GoalWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) = Widgets.refresh(context)
 

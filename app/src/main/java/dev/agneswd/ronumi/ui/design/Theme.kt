@@ -145,7 +145,7 @@ private val Type = Typography().let { base ->
 val NumberStyle = TextStyle(fontFamily = Nunito, fontWeight = FontWeight.Black, fontSize = 64.sp, letterSpacing = (-2).sp)
 
 @Composable
-fun StillpointTheme(themeMode: String = "SYSTEM", content: @Composable () -> Unit) {
+fun RonumiTheme(themeMode: String = "SYSTEM", content: @Composable () -> Unit) {
     val systemDark = isSystemInDarkTheme()
     val dark = when (themeMode) {
         "LIGHT" -> false

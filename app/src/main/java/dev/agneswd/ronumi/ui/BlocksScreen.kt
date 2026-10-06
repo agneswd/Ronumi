@@ -54,7 +54,7 @@ import dev.agneswd.ronumi.ui.design.ChunkyButton
 import dev.agneswd.ronumi.ui.design.ChunkyCard
 import dev.agneswd.ronumi.ui.design.Flame
 import dev.agneswd.ronumi.ui.design.Mood
-import dev.agneswd.ronumi.ui.design.Pebble
+import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.ScreenTitle
 import dev.agneswd.ronumi.ui.design.Sfx
 import dev.agneswd.ronumi.ui.design.Sound
@@ -222,7 +222,7 @@ private fun PauseBanner(until: Long) {
     val left = (until - now) / 1000
     ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).popIn(), fill = Sp.colors.flame.copy(alpha = 0.12f), contentPadding = 14.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Pebble(Mood.SLEEPY, size = 56.dp)
+            Ronumi(Mood.SLEEPY, size = 56.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.blocks_pause_title), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
@@ -264,7 +264,7 @@ fun MintSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
 fun LockedNotice() {
     Column(Modifier.fillMaxSize().padding(ScreenPadding), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
-        Pebble(Mood.STRICT, size = 160.dp)
+        Ronumi(Mood.STRICT, size = 160.dp)
         Spacer(Modifier.height(16.dp))
         Text(stringResource(R.string.blocks_locked_title), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.text)
         Spacer(Modifier.height(8.dp))

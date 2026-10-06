@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import dev.agneswd.ronumi.ui.design.Mood
-import dev.agneswd.ronumi.ui.design.drawPebble
+import dev.agneswd.ronumi.ui.design.drawRonumi
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -39,13 +39,13 @@ private fun render(width: Int, height: Int, draw: DrawScope.() -> Unit): Bitmap 
     return bitmap
 }
 
-/** Pebble in a square, with no ring. */
+/** Ronumi in a square, with no ring. */
 fun pebbleArt(context: Context, mood: Mood, sizePx: Int = 220, style: Set<String> = emptySet()): Bitmap = render(sizePx, sizePx) {
     val w = size.width * 0.86f
-    inset((size.width - w) / 2, size.height - w * 1.1f, (size.width - w) / 2, 0f) { drawPebble(mood, style = style) }
+    inset((size.width - w) / 2, size.height - w * 1.1f, (size.width - w) / 2, 0f) { drawRonumi(mood, style = style) }
 }
 
-/** The goal ring: progress toward today's goal, with Pebble inside. */
+/** The goal ring: progress toward today's goal, with Ronumi inside. */
 fun goalArt(context: Context, fraction: Float, mood: Mood, sizePx: Int = 360, style: Set<String> = emptySet()): Bitmap {
     val c = ArtColors(context.dark())
     return render(sizePx, sizePx) {
@@ -57,7 +57,7 @@ fun goalArt(context: Context, fraction: Float, mood: Mood, sizePx: Int = 360, st
         if (sweep > 0f) drawArc(if (fraction >= 1f) c.mint else c.brand, -90f, sweep, false, corner, box, style = Stroke(stroke, cap = StrokeCap.Round))
         val w = size.width * 0.5f
         val top = (size.height - w * 1.1f) / 2 + size.height * 0.02f
-        inset((size.width - w) / 2, top, (size.width - w) / 2, size.height - top - w * 1.1f) { drawPebble(mood, style = style) }
+        inset((size.width - w) / 2, top, (size.width - w) / 2, size.height - top - w * 1.1f) { drawRonumi(mood, style = style) }
     }
 }
 

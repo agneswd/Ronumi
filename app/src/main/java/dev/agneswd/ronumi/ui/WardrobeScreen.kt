@@ -47,13 +47,13 @@ import dev.agneswd.ronumi.data.currentSettings
 import dev.agneswd.ronumi.data.settings
 import dev.agneswd.ronumi.data.updateSettings
 import dev.agneswd.ronumi.game.GameState
-import dev.agneswd.ronumi.game.PebbleSlot
-import dev.agneswd.ronumi.game.PebbleStyles
+import dev.agneswd.ronumi.game.RonumiSlot
+import dev.agneswd.ronumi.game.RonumiStyles
 import dev.agneswd.ronumi.game.gameState
 import dev.agneswd.ronumi.ui.design.ChunkyButton
 import dev.agneswd.ronumi.ui.design.companionMood
 import dev.agneswd.ronumi.ui.design.Mood
-import dev.agneswd.ronumi.ui.design.Pebble
+import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.Sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,9 +68,9 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
     val app = context.app
     val settings by app.dao.settings().collectAsState(null)
     val saved = settings ?: return
-    val catalog = PebbleStyles.visibleItems(saved.petTapCount)
-    val worn = PebbleStyles.resolve(saved.pebbleItems, game.level.number, saved.petTapCount)
-    var slot by rememberSaveable { mutableStateOf(PebbleSlot.OUTFIT) }
+    val catalog = RonumiStyles.visibleItems(saved.petTapCount)
+    val worn = RonumiStyles.resolve(saved.pebbleItems, game.level.number, saved.petTapCount)
+    var slot by rememberSaveable { mutableStateOf(RonumiSlot.OUTFIT) }
     var previewId by rememberSaveable(slot, worn, catalog.size) {
         mutableStateOf(catalog.firstOrNull { it.slot == slot && it.id in worn }?.id)
     }
@@ -78,9 +78,9 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
     val selected = catalog.firstOrNull { it.id == previewId }
     val slotIds = catalog.filter { it.slot == slot }.mapTo(mutableSetOf()) { it.id }
     val preview = (worn - slotIds) + listOfNotNull(previewId)
-    val available = selected == null || PebbleStyles.isUnlocked(selected, game.level.number, saved.petTapCount)
+    val available = selected == null || RonumiStyles.isUnlocked(selected, game.level.number, saved.petTapCount)
     val equipped = preview == worn
-    val unlocked = catalog.count { PebbleStyles.isUnlocked(it, game.level.number, saved.petTapCount) }
+    val unlocked = catalog.count { RonumiStyles.isUnlocked(it, game.level.number, saved.petTapCount) }
     val nextLevel = catalog.filter { it.level > game.level.number }.minOfOrNull { it.level }
 
     fun wear(reset: Boolean = false) {
@@ -94,11 +94,11 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                 app.database.withTransaction {
                     val fresh = app.dao.currentSettings()
                     val level = gameState(app.dao.allSessions(), fresh).level.number
-                    if (!reset && requested != null && !PebbleStyles.isUnlocked(requested, level, fresh.petTapCount)) {
+                    if (!reset && requested != null && !RonumiStyles.isUnlocked(requested, level, fresh.petTapCount)) {
                         if (requested.minimumTaps > fresh.petTapCount) resources.getString(R.string.wardrobe_hidden_message) else resources.getString(R.string.wardrobe_locked_message, requested.level)
                     } else {
-                        val current = PebbleStyles.resolve(fresh.pebbleItems, level, fresh.petTapCount)
-                        val remove = PebbleStyles.items.filter { it.slot == requestedSlot }.map { it.id }.toSet()
+                        val current = RonumiStyles.resolve(fresh.pebbleItems, level, fresh.petTapCount)
+                        val remove = RonumiStyles.items.filter { it.slot == requestedSlot }.map { it.id }.toSet()
                         val updated = if (reset) emptySet() else (current - remove) + listOfNotNull(requested?.id)
                         app.dao.updateSettings { it.copy(pebbleItems = updated) }
                         null
@@ -122,7 +122,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Pebble(game.companionMood(), size = 126.dp, style = preview)
+                    Ronumi(game.companionMood(), size = 126.dp, style = preview)
                     Spacer(Modifier.width(16.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(selected?.let { stringResource(it.nameRes) } ?: originalLabel(slot), style = MaterialTheme.typography.titleLarge, color = Sp.colors.text)
@@ -164,7 +164,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    PebbleSlot.entries.forEach { category ->
+                    RonumiSlot.entries.forEach { category ->
                         Text(
                             slotLabel(category),
                             Modifier.clip(RoundedCornerShape(12.dp))
@@ -188,13 +188,13 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit) {
                     stringResource(item.nameRes),
                     when {
                         item.id in worn -> stringResource(R.string.wardrobe_equipped)
-                        !PebbleStyles.isUnlocked(item, game.level.number, saved.petTapCount) -> stringResource(R.string.wardrobe_unlocks_at_level, item.level)
+                        !RonumiStyles.isUnlocked(item, game.level.number, saved.petTapCount) -> stringResource(R.string.wardrobe_unlocks_at_level, item.level)
                         item.minimumTaps > 0 -> stringResource(R.string.wardrobe_secret_discovered)
                         else -> stringResource(R.string.wardrobe_ready_to_wear)
                     },
                     previewId == item.id,
                     (worn - slotIds) + item.id,
-                    locked = !PebbleStyles.isUnlocked(item, game.level.number, saved.petTapCount),
+                    locked = !RonumiStyles.isUnlocked(item, game.level.number, saved.petTapCount),
                 ) {
                     previewId = item.id
                     scope.launch { listState.animateScrollToItem(0) }
@@ -225,7 +225,7 @@ private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, loo
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Pebble(Mood.IDLE, size = 58.dp, style = look)
+        Ronumi(Mood.IDLE, size = 58.dp, style = look)
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(name, style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
@@ -239,17 +239,17 @@ private fun WardrobeItemRow(name: String, detail: String, selected: Boolean, loo
 }
 
 @Composable
-private fun slotLabel(slot: PebbleSlot) = when (slot) {
-    PebbleSlot.COLOR -> stringResource(R.string.wardrobe_colors)
-    PebbleSlot.OUTFIT -> stringResource(R.string.wardrobe_clothes)
-    PebbleSlot.HAT -> stringResource(R.string.wardrobe_hats)
-    PebbleSlot.ACCESSORY -> stringResource(R.string.wardrobe_extras)
+private fun slotLabel(slot: RonumiSlot) = when (slot) {
+    RonumiSlot.COLOR -> stringResource(R.string.wardrobe_colors)
+    RonumiSlot.OUTFIT -> stringResource(R.string.wardrobe_clothes)
+    RonumiSlot.HAT -> stringResource(R.string.wardrobe_hats)
+    RonumiSlot.ACCESSORY -> stringResource(R.string.wardrobe_extras)
 }
 
 @Composable
-private fun originalLabel(slot: PebbleSlot) = when (slot) {
-    PebbleSlot.COLOR -> stringResource(R.string.wardrobe_original_purple)
-    PebbleSlot.OUTFIT -> stringResource(R.string.wardrobe_no_clothes)
-    PebbleSlot.HAT -> stringResource(R.string.wardrobe_no_hat)
-    PebbleSlot.ACCESSORY -> stringResource(R.string.wardrobe_no_extra)
+private fun originalLabel(slot: RonumiSlot) = when (slot) {
+    RonumiSlot.COLOR -> stringResource(R.string.wardrobe_original_purple)
+    RonumiSlot.OUTFIT -> stringResource(R.string.wardrobe_no_clothes)
+    RonumiSlot.HAT -> stringResource(R.string.wardrobe_no_hat)
+    RonumiSlot.ACCESSORY -> stringResource(R.string.wardrobe_no_extra)
 }

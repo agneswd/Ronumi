@@ -23,16 +23,16 @@ import androidx.compose.ui.window.Dialog
 import androidx.room.withTransaction
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.data.updateSettings
-import dev.agneswd.ronumi.game.PebblePets
-import dev.agneswd.ronumi.game.PebbleSlot
-import dev.agneswd.ronumi.game.PebbleStyles
+import dev.agneswd.ronumi.game.RonumiPets
+import dev.agneswd.ronumi.game.RonumiSlot
+import dev.agneswd.ronumi.game.RonumiStyles
 import dev.agneswd.ronumi.ui.design.ButtonKind
 import dev.agneswd.ronumi.ui.design.ChunkyButton
 import dev.agneswd.ronumi.ui.design.ChunkyCard
 import dev.agneswd.ronumi.ui.design.Confetti
-import dev.agneswd.ronumi.ui.design.LocalPebbleStyle
+import dev.agneswd.ronumi.ui.design.LocalRonumiStyle
 import dev.agneswd.ronumi.ui.design.Mood
-import dev.agneswd.ronumi.ui.design.Pebble
+import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.Sfx
 import dev.agneswd.ronumi.ui.design.Sound
 import dev.agneswd.ronumi.ui.design.Sp
@@ -44,14 +44,14 @@ private const val SECRET_OUTFIT = "outfit_star_guardian"
 /** Celebrates the hidden outfit once, right after the tap that unlocks it. Place it above the app content. */
 @Composable
 fun SecretReveal() {
-    val show by PebblePets.reveal.collectAsState()
+    val show by RonumiPets.reveal.collectAsState()
     if (!show) return
     val context = LocalContext.current
     val app = context.app
-    val outfits = PebbleStyles.items.filter { it.slot == PebbleSlot.OUTFIT }.map { it.id }.toSet()
-    // Pebble keeps its color, hat and extras, and tries the new outfit on.
-    val preview = LocalPebbleStyle.current - outfits + SECRET_OUTFIT
-    val close = { PebblePets.reveal.value = false }
+    val outfits = RonumiStyles.items.filter { it.slot == RonumiSlot.OUTFIT }.map { it.id }.toSet()
+    // Ronumi keeps its color, hat and extras, and tries the new outfit on.
+    val preview = LocalRonumiStyle.current - outfits + SECRET_OUTFIT
+    val close = { RonumiPets.reveal.value = false }
     LaunchedEffect(Unit) { Sfx.play(Sound.LEVEL_UP) }
     Dialog(onDismissRequest = close) {
         Box {
@@ -59,7 +59,7 @@ fun SecretReveal() {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(stringResource(R.string.wardrobe_secret_secret_found), style = MaterialTheme.typography.titleMedium, color = if (Sp.colors.dark) Sp.colors.flame else Color(0xFFA64D00))
                     Spacer(Modifier.height(8.dp))
-                    Pebble(Mood.CELEBRATE, Modifier.popIn(150), size = 150.dp, style = preview)
+                    Ronumi(Mood.CELEBRATE, Modifier.popIn(150), size = 150.dp, style = preview)
                     Spacer(Modifier.height(10.dp))
                     Text(stringResource(R.string.wardrobe_secret_star_guardian), style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
                     Spacer(Modifier.height(6.dp))

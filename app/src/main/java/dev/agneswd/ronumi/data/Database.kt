@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 @Dao
-interface StillpointDao {
+interface RonumiDao {
     @Query("SELECT * FROM Settings WHERE id = 0")
     fun settingsFlow(): Flow<Settings?>
 
@@ -215,12 +215,12 @@ interface StillpointDao {
 }
 
 /** Settings with defaults when the row does not exist yet. */
-fun StillpointDao.settings(): Flow<Settings> = settingsFlow().map { it ?: Settings() }
+fun RonumiDao.settings(): Flow<Settings> = settingsFlow().map { it ?: Settings() }
 
-suspend fun StillpointDao.currentSettings(): Settings = settingsOrNull() ?: Settings()
+suspend fun RonumiDao.currentSettings(): Settings = settingsOrNull() ?: Settings()
 
 /** Room serializes read-modify-write changes with other database transactions. */
-suspend fun StillpointDao.updateSettings(change: (Settings) -> Settings) = changeSettings(change)
+suspend fun RonumiDao.updateSettings(change: (Settings) -> Settings) = changeSettings(change)
 
 class Converters {
     @TypeConverter
@@ -251,12 +251,12 @@ class Converters {
     version = 8,
 )
 @TypeConverters(Converters::class)
-abstract class StillpointDatabase : RoomDatabase() {
-    abstract fun dao(): StillpointDao
+abstract class RonumiDatabase : RoomDatabase() {
+    abstract fun dao(): RonumiDao
 
     companion object {
-        fun open(context: Context): StillpointDatabase =
-            Room.databaseBuilder(context, StillpointDatabase::class.java, "stillpoint.db")
+        fun open(context: Context): RonumiDatabase =
+            Room.databaseBuilder(context, RonumiDatabase::class.java, "ronumi.db")
                 .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build()
     }

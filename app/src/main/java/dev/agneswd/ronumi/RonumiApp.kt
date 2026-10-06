@@ -11,7 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import dev.agneswd.ronumi.data.FocusPhase
-import dev.agneswd.ronumi.data.StillpointDatabase
+import dev.agneswd.ronumi.data.RonumiDatabase
 import dev.agneswd.ronumi.usage.AppCatalog
 import dev.agneswd.ronumi.usage.UsageReader
 import dev.agneswd.ronumi.usage.UsageRefresher
@@ -26,8 +26,8 @@ import dev.agneswd.ronumi.data.settings
 import dev.agneswd.ronumi.schedule.Plans
 
 /** Holds the process-wide objects. Get it with [Context.app]. */
-class StillpointApp : Application() {
-    val database by lazy { StillpointDatabase.open(this) }
+class RonumiApp : Application() {
+    val database by lazy { RonumiDatabase.open(this) }
     val dao get() = database.dao()
     val usage by lazy { UsageReader(this, catalog) }
     val usageRefresh by lazy { UsageRefresher(this) }
@@ -56,7 +56,7 @@ class StillpointApp : Application() {
                 focus?.let { FocusScheduleKey(it.startedAt, it.phase, it.phaseEndsAt / 1000, paused = !it.running) }
             }.distinctUntilChanged()
             combine(dao.settings().map { it.notificationDeliveryTimes }.distinctUntilChanged(), dao.schedules(), focusKey) { _, _, _ -> Unit }.collect {
-                Plans.refresh(this@StillpointApp)
+                Plans.refresh(this@RonumiApp)
             }
         }
     }
@@ -90,4 +90,4 @@ class StillpointApp : Application() {
     }
 }
 
-val Context.app: StillpointApp get() = applicationContext as StillpointApp
+val Context.app: RonumiApp get() = applicationContext as RonumiApp

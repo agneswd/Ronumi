@@ -28,7 +28,7 @@ data class Backup(
 private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
 /** Reads a consistent snapshot, even if a session ends during export. */
-suspend fun exportBackup(context: Context, dao: StillpointDao, target: Uri, password: CharArray) = withContext(Dispatchers.IO) {
+suspend fun exportBackup(context: Context, dao: RonumiDao, target: Uri, password: CharArray) = withContext(Dispatchers.IO) {
     val backup = context.app.database.withTransaction {
         Backup(settings = dao.currentSettings(), limits = dao.allLimits(), schedules = dao.allSchedules(),
             sites = dao.allSites(), sessions = dao.allSessions(), usageDays = dao.allUsageDays())
@@ -41,7 +41,7 @@ suspend fun exportBackup(context: Context, dao: StillpointDao, target: Uri, pass
 }
 
 /** Validates the entire file before replacing any stored data. */
-suspend fun importBackup(context: Context, dao: StillpointDao, source: Uri, password: CharArray) = withContext(Dispatchers.IO) {
+suspend fun importBackup(context: Context, dao: RonumiDao, source: Uri, password: CharArray) = withContext(Dispatchers.IO) {
     val bytes = context.contentResolver.openInputStream(source).use { input ->
         requireNotNull(input) { context.getString(R.string.backup_error_read) }
         val out = ByteArrayOutputStream()
@@ -64,7 +64,7 @@ suspend fun importBackup(context: Context, dao: StillpointDao, source: Uri, pass
         require(!current.protection || !dev.agneswd.ronumi.guard.Rules(schedules = dao.allSchedules()).locked(java.time.LocalDateTime.now())) {
             context.getString(R.string.backup_error_schedule_running)
         }
-        dev.agneswd.ronumi.game.PebblePets.invalidatePendingTaps()
+        dev.agneswd.ronumi.game.RonumiPets.invalidatePendingTaps()
         dao.replaceAll(backup.copy(settings = backup.settings.copy(id = 0, pauseBlocksUntil = 0)))
     }
     context.getSharedPreferences("delivery", Context.MODE_PRIVATE).edit().clear().apply()

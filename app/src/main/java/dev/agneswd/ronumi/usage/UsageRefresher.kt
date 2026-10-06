@@ -2,7 +2,7 @@ package dev.agneswd.ronumi.usage
 
 import android.content.Context
 import android.os.SystemClock
-import dev.agneswd.ronumi.StillpointApp
+import dev.agneswd.ronumi.RonumiApp
 import dev.agneswd.ronumi.data.UsageDay
 import java.time.LocalDate
 import java.time.ZoneId
@@ -12,7 +12,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** One usage scan shared by the screens that show recent days. Call [refresh] off the main thread. */
-class UsageRefresher(private val app: StillpointApp) {
+class UsageRefresher(private val app: RonumiApp) {
     private val core = UsageRefreshCore()
     private val gate = Mutex()
     private val cache = HashMap<LocalDate, DayUsage>()

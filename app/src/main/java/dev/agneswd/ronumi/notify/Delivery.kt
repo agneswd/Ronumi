@@ -4,7 +4,7 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import dev.agneswd.ronumi.R
-import dev.agneswd.ronumi.StillpointApp
+import dev.agneswd.ronumi.RonumiApp
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.data.HeldNotification
 import dev.agneswd.ronumi.data.currentSettings
@@ -28,7 +28,7 @@ object Delivery {
             }
         val count = pendingNotifications(held, delivered).size
         if (count == 0) return@withLock
-        val notification = NotificationCompat.Builder(context, StillpointApp.CHANNEL_EVENTS)
+        val notification = NotificationCompat.Builder(context, RonumiApp.CHANNEL_EVENTS)
             .setSmallIcon(R.drawable.ic_stat).setContentTitle(context.resources.getQuantityString(R.plurals.inbox_notification_title, count, count))
             .setContentText(context.getString(R.string.inbox_notification_body))
             .setContentIntent(MainActivity.pendingInbox(context)).setAutoCancel(true)

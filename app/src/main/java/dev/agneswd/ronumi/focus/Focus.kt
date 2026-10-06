@@ -15,7 +15,7 @@ import dev.agneswd.ronumi.data.Schedule
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import dev.agneswd.ronumi.R
-import dev.agneswd.ronumi.StillpointApp
+import dev.agneswd.ronumi.RonumiApp
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.data.ActiveFocus
 import dev.agneswd.ronumi.data.FocusPhase
@@ -200,7 +200,7 @@ object Focus {
 
     private suspend fun announce(context: Context, title: String, text: String) {
         if (!context.app.dao.currentSettings().notifyFocusEvents) return
-        val notification = NotificationCompat.Builder(context, StillpointApp.CHANNEL_EVENTS)
+        val notification = NotificationCompat.Builder(context, RonumiApp.CHANNEL_EVENTS)
             .setSmallIcon(R.drawable.ic_stat)
             .setContentTitle(title)
             .setContentText(text)

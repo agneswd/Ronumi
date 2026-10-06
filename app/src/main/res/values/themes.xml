@@ -1,9 +1,9 @@
 <resources>
-    <style name="Theme.Stillpoint" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Ronumi" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/paper</item>
     </style>
 
-    <style name="Theme.Stillpoint.Block" parent="Theme.Stillpoint">
+    <style name="Theme.Ronumi.Block" parent="Theme.Ronumi">
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 </resources>

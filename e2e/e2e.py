@@ -227,7 +227,7 @@ def wait_top(fragment: str, timeout: float = 15):
 def wait_block(title: str, timeout: float = 15):
     end = time.time() + timeout
     while time.time() < end:
-        if title in sh("logcat -d -s Stillpoint:I"):
+        if title in sh("logcat -d -s Ronumi:I"):
             wait_top(".guard.BlockActivity")
             time.sleep(1)
             return
@@ -302,7 +302,7 @@ def device_workflow(scenario: str, extras: str = "", receiver: str = ".StorageCh
 
 def schema_upgrade():
     """Install the first database schema, then open it with the real upgraded app."""
-    schema = json.loads((ROOT / "app/schemas/dev.agneswd.ronumi.data.StillpointDatabase/1.json").read_text())["database"]
+    schema = json.loads((ROOT / "app/schemas/dev.agneswd.ronumi.data.RonumiDatabase/1.json").read_text())["database"]
     fixture = RUN / "schema-1.db"
     now = int(time.time() * 1000)
     values = {
@@ -326,9 +326,9 @@ def schema_upgrade():
         db.execute("PRAGMA user_version=1")
     disable_guard()
     sh(f"pm clear {PKG}")
-    adb("push", str(fixture), "/data/local/tmp/stillpoint-schema-1.db")
+    adb("push", str(fixture), "/data/local/tmp/ronumi-schema-1.db")
     sh(f"run-as {PKG} mkdir -p databases")
-    sh(f"run-as {PKG} sh -c 'cat /data/local/tmp/stillpoint-schema-1.db > databases/stillpoint.db'")
+    sh(f"run-as {PKG} sh -c 'cat /data/local/tmp/ronumi-schema-1.db > databases/ronumi.db'")
     try:
         device_workflow("migration")
         return "migration-check.txt"

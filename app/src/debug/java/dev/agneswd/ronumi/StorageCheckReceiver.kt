@@ -16,7 +16,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonArray
-import dev.agneswd.ronumi.game.PebbleStyles
+import dev.agneswd.ronumi.game.RonumiStyles
 import dev.agneswd.ronumi.game.questsFor
 import dev.agneswd.ronumi.game.CURRENT_QUEST_VERSION
 import java.io.File
@@ -96,7 +96,7 @@ private suspend fun prepareDemoRewards(context: Context): String {
 private suspend fun preparePlan(context: Context): String {
     val dao = context.app.dao
     check(dao.activeFocus() == null)
-    exportFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "plan-original.stillpoint")))
+    exportFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "plan-original.ronumi")))
     dao.updateSettings { it.copy(focusStrict = false, focusLockHome = false, focusSound = FocusSound.OFF, protection = false) }
     val now = java.time.LocalTime.now()
     val start = (now.hour * 60 + now.minute + 1) % 1440
@@ -119,13 +119,13 @@ private suspend fun checkPlan(context: Context): String {
     } finally {
         dao.clearActiveFocus()
         dev.agneswd.ronumi.focus.Celebrations.consume()
-        importFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "plan-original.stillpoint")))
+        importFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "plan-original.ronumi")))
     }
 }
 
 private suspend fun prepareNotifications(context: Context): String {
     val dao = context.app.dao
-    exportFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.stillpoint")))
+    exportFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.ronumi")))
     dao.clearHeld()
     val day = LocalDate.now().toString()
     val usage = dao.usageDay(day) ?: UsageDay(day, emptyMap(), 0)
@@ -162,7 +162,7 @@ private suspend fun checkNotifications(context: Context): String {
         check(manager.activeNotifications.single { it.id == 10 }.postTime == first)
         return "Held messages survived muted summaries and process restart. Enabling summaries delivered pending content once."
     } finally {
-        importFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.stillpoint")))
+        importFixtureBackup(context, dao, Uri.fromFile(File(context.filesDir, "notifications-original.ronumi")))
         context.getSystemService(android.app.NotificationManager::class.java).cancel(10)
     }
 }
@@ -201,7 +201,7 @@ private suspend fun checkStorage(context: Context): String {
             }
         }
     }
-    val original = File(context.filesDir, "check-original.stillpoint")
+    val original = File(context.filesDir, "check-original.ronumi")
     exportFixtureBackup(context, dao, Uri.fromFile(original))
     val results = mutableListOf<String>()
     try {
@@ -216,9 +216,9 @@ private suspend fun checkStorage(context: Context): String {
             sessions = listOf(FocusSession(1, start, start + 25 * 60_000, 25 * 60_000, true, "Reading", "Local notes", 25, rewardDay = yesterday.toString(), rewardStartHour = 9)),
             usageDays = listOf(UsageDay(yesterday.toString(), mapOf("com.google.android.deskclock" to 12 * 60_000), 7, 2,
                 limitMinutes = mapOf("com.google.android.deskclock" to 17))))
-        val file = File(context.filesDir, "check-backup.stillpoint")
+        val file = File(context.filesDir, "check-backup.ronumi")
         dao.replaceAll(fixture)
-        val exported = File(context.filesDir, "check-export.stillpoint")
+        val exported = File(context.filesDir, "check-export.ronumi")
         exportFixtureBackup(context, dao, Uri.fromFile(exported))
         dao.clearPasses()
         val usedPass = LimitPass(today.toString(), "dev.agneswd.ronumi.fixture", System.currentTimeMillis() + 60_000, 2)
@@ -352,17 +352,17 @@ private suspend fun checkProgression(context: Context): String {
     try {
         val secret = setOf("outfit_star_guardian")
         dao.updateSettings { it.copy(petTapCount = 990) }
-        val taps = List(9) { dev.agneswd.ronumi.game.PebblePets.pet(context) }
+        val taps = List(9) { dev.agneswd.ronumi.game.RonumiPets.pet(context) }
         taps.forEach { it.join() }
         check(dao.currentSettings().petTapCount == 999) { "Concurrent taps were lost" }
-        check(PebbleStyles.resolve(secret, 20, 999).isEmpty())
-        check(PebbleStyles.visibleItems(999).none { it.id in secret })
-        dev.agneswd.ronumi.game.PebblePets.pet(context).join()
+        check(RonumiStyles.resolve(secret, 20, 999).isEmpty())
+        check(RonumiStyles.visibleItems(999).none { it.id in secret })
+        dev.agneswd.ronumi.game.RonumiPets.pet(context).join()
         check(dao.currentSettings().petTapCount == 1000)
-        check(PebbleStyles.resolve(secret, 1, 1000) == secret)
-        dev.agneswd.ronumi.game.PebblePets.pet(context).join()
+        check(RonumiStyles.resolve(secret, 1, 1000) == secret)
+        dev.agneswd.ronumi.game.RonumiPets.pet(context).join()
         check(dao.currentSettings().petTapCount == 1000) { "Tap counter exceeded its cap" }
-        val reopened = dev.agneswd.ronumi.data.StillpointDatabase.open(context)
+        val reopened = dev.agneswd.ronumi.data.RonumiDatabase.open(context)
         try {
             check(reopened.dao().currentSettings().petTapCount == 1000) { "Unlock did not persist" }
         } finally { reopened.close() }
@@ -398,9 +398,9 @@ private suspend fun checkProgression(context: Context): String {
         check(tasks.single { it.category == "Finish" }.done)
         check(questsFor(date, completed.map { it.copy(completed = false) }, 60).none { it.category == "Finish" && it.done })
         check(questsFor(date, completed, 600) == tasks) { "Current goal changed saved quests" }
-        val resolved = PebbleStyles.resolve(worn + setOf("hat_crown", "color_peach", "unknown_item"), 2)
+        val resolved = RonumiStyles.resolve(worn + setOf("hat_crown", "color_peach", "unknown_item"), 2)
         check(resolved == worn) { "Locked or unknown items were equipped" }
-        check(PebbleStyles.resolve(setOf("color_mint", "color_peach"), 3).size == 1) { "Two items occupied one slot" }
+        check(RonumiStyles.resolve(setOf("color_mint", "color_peach"), 3).size == 1) { "Two items occupied one slot" }
         return "Room preserved wardrobe and quest fields. Backups retained new fields and accepted old defaults. " +
             "Completed sessions earned quests; abandoned sessions did not. Saved goals stayed stable. " +
             "Locked, unknown, and duplicate-slot items were filtered. Original data was restored."
@@ -433,7 +433,7 @@ private suspend fun prepareDemoWardrobe(context: Context): String {
     }
     val state = gameState(sessions, settings, today)
     check(state.level.number in 5..8) { "Demo history has an unexpected level" }
-    check(PebbleStyles.resolve(settings.pebbleItems, state.level.number) == settings.pebbleItems)
+    check(RonumiStyles.resolve(settings.pebbleItems, state.level.number) == settings.pebbleItems)
     dao.replaceAll(Backup(settings = settings, sessions = sessions,
         limits = emptyList(), schedules = emptyList(), sites = emptyList()))
     return "Sample wardrobe history ready at level ${state.level.number}. This fixture replaced the previous history."
@@ -441,14 +441,14 @@ private suspend fun prepareDemoWardrobe(context: Context): String {
 
 
 private inline fun <T> withFixturePassword(block: (CharArray) -> T): T {
-    val password = "Stillpoint debug backup fixture".toCharArray()
+    val password = "Ronumi debug backup fixture".toCharArray()
     return try { block(password) } finally { password.fill('\u0000') }
 }
 
-private suspend fun exportFixtureBackup(context: Context, dao: StillpointDao, target: Uri) =
+private suspend fun exportFixtureBackup(context: Context, dao: RonumiDao, target: Uri) =
     withFixturePassword { exportBackup(context, dao, target, it) }
 
-private suspend fun importFixtureBackup(context: Context, dao: StillpointDao, source: Uri) =
+private suspend fun importFixtureBackup(context: Context, dao: RonumiDao, source: Uri) =
     withFixturePassword { importBackup(context, dao, source, it) }
 
 private fun writeEncryptedFixture(file: File, text: String) = withFixturePassword { password ->

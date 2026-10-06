@@ -65,7 +65,7 @@ import dev.agneswd.ronumi.game.GameState
 import dev.agneswd.ronumi.game.applyStreakFreezes
 import dev.agneswd.ronumi.game.gameState
 import dev.agneswd.ronumi.ui.design.Sp
-import dev.agneswd.ronumi.ui.design.StillpointTheme
+import dev.agneswd.ronumi.ui.design.RonumiTheme
 import kotlinx.coroutines.launch
 
 enum class Tab(@param:androidx.annotation.StringRes val labelRes: Int, val icon: Int) {
@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeSettings by app.dao.settings().collectAsState(null)
             val themeMode = themeSettings?.themeMode ?: return@setContent
-            StillpointTheme(themeMode = themeMode) {
+            RonumiTheme(themeMode = themeMode) {
                 KeyboardDismissHost { App(navigator) }
             }
         }
@@ -263,8 +263,8 @@ private fun App(navigator: Navigator) {
         }
     }
     androidx.compose.runtime.CompositionLocalProvider(
-        dev.agneswd.ronumi.ui.design.LocalPebbleStyle provides
-            dev.agneswd.ronumi.game.PebbleStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1, s?.petTapCount ?: 0),
+        dev.agneswd.ronumi.ui.design.LocalRonumiStyle provides
+            dev.agneswd.ronumi.game.RonumiStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1, s?.petTapCount ?: 0),
     ) {
         Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
             SecretReveal()

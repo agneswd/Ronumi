@@ -7,10 +7,10 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /** A gentle response to focus history. Session-specific poses take precedence in the UI. */
-enum class PebbleFeeling { READY, QUIET, DOWN, HAPPY, PROUD, CELEBRATE }
+enum class RonumiFeeling { READY, QUIET, DOWN, HAPPY, PROUD, CELEBRATE }
 
-data class PebbleDisposition(
-    val feeling: PebbleFeeling = PebbleFeeling.READY,
+data class RonumiDisposition(
+    val feeling: RonumiFeeling = RonumiFeeling.READY,
     /** Consecutive missed study days within the last 28 calendar days. Today never counts as missed. */
     val missedDays: Int = 0,
 )
@@ -21,13 +21,13 @@ fun pebbleDisposition(
     settings: Settings,
     today: LocalDate,
     zone: ZoneId = ZoneId.systemDefault(),
-): PebbleDisposition {
+): RonumiDisposition {
     val minutes = sessions.asSequence()
         .filter { it.focusedMillis > 0 }
         .groupBy { if (it.rewardDay.isNotEmpty()) it.rewardDate() else Instant.ofEpochMilli(it.startedAt).atZone(zone).toLocalDate() }
         .filterKeys { it <= today }
         .mapValues { (_, rows) -> rows.sumOf { it.safeFocusMillis() } / 60_000 }
-    val firstDay = minutes.keys.minOrNull() ?: return PebbleDisposition()
+    val firstDay = minutes.keys.minOrNull() ?: return RonumiDisposition()
     val todayMinutes = minutes[today] ?: 0L
     val frozen = settings.frozenDays.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() }.toSet()
     fun planned(date: LocalDate) = settings.goalDays and (1 shl (date.dayOfWeek.value - 1)) != 0
@@ -38,13 +38,13 @@ fun pebbleDisposition(
         if (todayMinutes >= STREAK_MINUTES) 1 else 0
 
     val feeling = when {
-        todayMinutes >= settings.focusGoalMinutes.coerceAtLeast(1) -> PebbleFeeling.CELEBRATE
-        todayMinutes > 0L -> if (consistent >= 3) PebbleFeeling.PROUD else PebbleFeeling.HAPPY
-        !planned(today) || today in frozen -> PebbleFeeling.READY
-        consistent >= 3 -> PebbleFeeling.PROUD
-        missed >= 3 -> PebbleFeeling.DOWN
-        missed == 2 -> PebbleFeeling.QUIET
-        else -> PebbleFeeling.READY
+        todayMinutes >= settings.focusGoalMinutes.coerceAtLeast(1) -> RonumiFeeling.CELEBRATE
+        todayMinutes > 0L -> if (consistent >= 3) RonumiFeeling.PROUD else RonumiFeeling.HAPPY
+        !planned(today) || today in frozen -> RonumiFeeling.READY
+        consistent >= 3 -> RonumiFeeling.PROUD
+        missed >= 3 -> RonumiFeeling.DOWN
+        missed == 2 -> RonumiFeeling.QUIET
+        else -> RonumiFeeling.READY
     }
-    return PebbleDisposition(feeling, missed)
+    return RonumiDisposition(feeling, missed)
 }

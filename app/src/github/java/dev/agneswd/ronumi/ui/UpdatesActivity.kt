@@ -17,7 +17,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.data.settings
-import dev.agneswd.ronumi.ui.design.StillpointTheme
+import dev.agneswd.ronumi.ui.design.RonumiTheme
 
 /** Opens the GitHub update notification without adding update routes to the Play app. */
 class UpdatesActivity : ComponentActivity() {
@@ -26,7 +26,7 @@ class UpdatesActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val settings by app.dao.settings().collectAsState(null)
-            StillpointTheme(themeMode = settings?.themeMode ?: "SYSTEM") {
+            RonumiTheme(themeMode = settings?.themeMode ?: "SYSTEM") {
                 val dark = Sp.colors.dark
                 SideEffect {
                     WindowCompat.getInsetsController(window, window.decorView).apply {

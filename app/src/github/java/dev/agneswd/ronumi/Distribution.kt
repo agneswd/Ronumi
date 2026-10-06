@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 object Distribution {
-    fun createPlus(app: StillpointApp): Plus {
+    fun createPlus(app: RonumiApp): Plus {
         // Last Stillpoint release. Cancel a daily job from an older build. Do not schedule another.
         UpdateScheduler.cancel(app)
         return GithubPlus

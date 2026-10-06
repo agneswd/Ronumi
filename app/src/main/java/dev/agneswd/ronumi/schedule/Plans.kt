@@ -12,7 +12,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import dev.agneswd.ronumi.R
-import dev.agneswd.ronumi.StillpointApp
+import dev.agneswd.ronumi.RonumiApp
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.data.currentSettings
 import dev.agneswd.ronumi.focus.Focus
@@ -139,7 +139,7 @@ object Plans {
         if (!context.app.dao.currentSettings().notifyPlanReminders) return
         val snooze = PendingIntent.getBroadcast(context, id.toInt(), Intent(context, PlanReceiver::class.java)
             .setAction(SNOOZE).setData(Uri.parse("stillpoint://snooze/$id")).putExtra("id", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val notification = NotificationCompat.Builder(context, StillpointApp.CHANNEL_EVENTS)
+        val notification = NotificationCompat.Builder(context, RonumiApp.CHANNEL_EVENTS)
             .addAction(0, context.getString(R.string.plan_notification_snooze), snooze)
             .setSmallIcon(R.drawable.ic_stat).setContentTitle(title.displayName(context)).setContentText(context.getString(R.string.plan_notification_body))
             .setContentIntent(MainActivity.pendingPlan(context, id)).setAutoCancel(true).build()

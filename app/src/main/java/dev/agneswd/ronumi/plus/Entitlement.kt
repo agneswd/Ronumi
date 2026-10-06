@@ -1,6 +1,6 @@
 package dev.agneswd.ronumi.plus
 
-internal const val PLUS_PRODUCT = "stillpoint_plus"
+internal const val PLUS_PRODUCT = "ronumi_plus"
 internal enum class PurchaseState { PURCHASED, PENDING, UNSPECIFIED }
 internal data class StorePurchase(
     val products: Set<String>,

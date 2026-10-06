@@ -84,7 +84,7 @@ import dev.agneswd.ronumi.ui.design.FocusBackdrop
 import dev.agneswd.ronumi.ui.design.FocusTheme
 import dev.agneswd.ronumi.ui.design.Mood
 import dev.agneswd.ronumi.ui.design.NumberStyle
-import dev.agneswd.ronumi.ui.design.Pebble
+import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.Sp
 import dev.agneswd.ronumi.ui.design.XpBolt
 import dev.agneswd.ronumi.ui.design.appear
@@ -306,7 +306,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val dialSize = (maxHeight * 0.40f).coerceIn(160.dp, 270.dp)
-                val pebbleSize = (maxHeight * 0.16f).coerceIn(70.dp, 110.dp)
+                val ronumiSize = (maxHeight * 0.16f).coerceIn(70.dp, 110.dp)
                 Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = maxHeight), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         GlassButton(R.drawable.ic_chevron, stringResource(R.string.focus_minimize), rotate = 90f, onClick = onMinimize)
@@ -349,13 +349,13 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    Pebble(
+                    Ronumi(
                         when {
                             !focus.running -> Mood.SLEEPY
                             focus.phase == FocusPhase.BREAK -> Mood.HAPPY
                             else -> Mood.CALM
                         },
-                        size = pebbleSize,
+                        size = ronumiSize,
                         animated = focus.running,
                     )
                     Spacer(Modifier.height(12.dp))
@@ -399,7 +399,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
         Dialog(onDismissRequest = { askGiveUp = false }) {
             ChunkyCard(Modifier.fillMaxWidth()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Pebble(Mood.SAD, size = 110.dp)
+                    Ronumi(Mood.SAD, size = 110.dp)
                     Spacer(Modifier.height(8.dp))
                     Text(stringResource(R.string.focus_quit_title), style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
                     Spacer(Modifier.height(6.dp))
@@ -513,7 +513,7 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Pebble(if (session.completed) Mood.CELEBRATE else Mood.HAPPY, Modifier.popIn(), size = heroSize)
+                    Ronumi(if (session.completed) Mood.CELEBRATE else Mood.HAPPY, Modifier.popIn(), size = heroSize)
                     Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
                     Text(
                         if (session.completed) stringResource(R.string.focus_session_complete) else stringResource(R.string.focus_nice_effort),
@@ -640,7 +640,7 @@ fun FocusChip(focus: ActiveFocus, onOpen: () -> Unit, modifier: Modifier = Modif
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Pebble(Mood.CALM, size = 28.dp, animated = false)
+        Ronumi(Mood.CALM, size = 28.dp, animated = false)
         Spacer(Modifier.width(8.dp))
         Text(
             stringResource(if (focus.phase == FocusPhase.BREAK) R.string.focus_minimized_break else R.string.focus_minimized_running, clockText(shown)),

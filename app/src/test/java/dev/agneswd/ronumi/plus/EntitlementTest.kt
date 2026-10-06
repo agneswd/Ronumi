@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class EntitlementTest {
-    private val purchased = StorePurchase(setOf("stillpoint_plus"), "token", PurchaseState.PURCHASED, false)
+    private val purchased = StorePurchase(setOf("ronumi_plus"), "token", PurchaseState.PURCHASED, false)
     private val pending = purchased.copy(state = PurchaseState.PENDING)
 
     @Test fun pendingDoesNotUnlockOrAcknowledge() {

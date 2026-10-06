@@ -4,7 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 import android.content.Context
-import dev.agneswd.ronumi.StillpointApp
+import dev.agneswd.ronumi.RonumiApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /** Owns the cache and entitlement policy. All changes run on the main dispatcher. */
-internal class PlayPlus(app: StillpointApp, internal val store: Store) : Plus {
+internal class PlayPlus(app: RonumiApp, internal val store: Store) : Plus {
     // Encrypted user backups contain Room records only. They never read or clear these preferences.
     private val cache = app.getSharedPreferences("plus_entitlement", Context.MODE_PRIVATE)
     private val mutableState = MutableStateFlow(PlusState(

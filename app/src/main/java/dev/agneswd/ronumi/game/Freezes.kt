@@ -1,6 +1,6 @@
 package dev.agneswd.ronumi.game
 
-import dev.agneswd.ronumi.data.StillpointDao
+import dev.agneswd.ronumi.data.RonumiDao
 import dev.agneswd.ronumi.data.updateSettings
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
@@ -12,7 +12,7 @@ const val MAX_FREEZES = 2
  * Uses a streak freeze for each day missed since the streak was last active,
  * and gives a new freeze at every 7 days of streak. Call it when the app opens.
  */
-suspend fun applyStreakFreezes(dao: StillpointDao, today: LocalDate = LocalDate.now()) {
+suspend fun applyStreakFreezes(dao: RonumiDao, today: LocalDate = LocalDate.now()) {
     val sessions = dao.sessions().first()
     val minutes = sessions.groupBy { it.rewardDate() }.mapValues { (_, l) -> l.sumOf { it.safeFocusMillis() } / 60_000 }
     dao.updateSettings { s ->

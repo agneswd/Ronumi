@@ -67,7 +67,7 @@ import dev.agneswd.ronumi.ui.design.DayPartIcon
 import dev.agneswd.ronumi.ui.design.FloatingDots
 import dev.agneswd.ronumi.ui.design.Mood
 import dev.agneswd.ronumi.ui.design.NotificationScene
-import dev.agneswd.ronumi.ui.design.Pebble
+import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.ShortsScene
 import dev.agneswd.ronumi.ui.design.Sp
 import dev.agneswd.ronumi.ui.design.StreakScene
@@ -114,7 +114,7 @@ val commonDistractions = setOf(
     "com.pinterest", "tv.twitch.android.app", "com.netflix.mediaclient", "com.discord",
 )
 
-/** The first-launch flow. Pebble asks a few questions, sets up a plan, and asks for permissions. */
+/** The first-launch flow. Ronumi asks a few questions, sets up a plan, and asks for permissions. */
 @Composable
 fun Onboarding(onDone: () -> Unit) {
     val context = LocalContext.current
@@ -259,7 +259,7 @@ private fun Welcome(onNext: () -> Unit) {
         FloatingDots(Modifier.fillMaxSize())
         Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.weight(1f))
-            Pebble(Mood.WAVE, Modifier.popIn(), size = 200.dp)
+            Ronumi(Mood.WAVE, Modifier.popIn(), size = 200.dp)
             Spacer(Modifier.height(28.dp))
             Text(stringResource(R.string.onboarding_app_name), style = MaterialTheme.typography.displayMedium, color = Sp.colors.brand, modifier = Modifier.appear(200))
             Spacer(Modifier.height(8.dp))
@@ -280,7 +280,7 @@ private fun Welcome(onNext: () -> Unit) {
 private fun Chat(text: String, mood: Mood, onNext: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(24.dp)) {
         Spacer(Modifier.weight(1f))
-        PebbleSays(text, mood, Modifier.fillMaxWidth(), side = false, pebbleSize = 170.dp)
+        RonumiSays(text, mood, Modifier.fillMaxWidth(), side = false, ronumiSize = 170.dp)
         Spacer(Modifier.weight(1f))
         ChunkyButton(stringResource(R.string.onboarding_continue), onNext, Modifier.fillMaxWidth())
     }
@@ -289,7 +289,7 @@ private fun Chat(text: String, mood: Mood, onNext: () -> Unit) {
 @Composable
 private fun Question(title: String, options: List<Option>, selected: Set<String>, multi: Boolean, onPick: (String) -> Unit, onNext: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        PebbleSays(title, Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
+        RonumiSays(title, Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), ronumiSize = 84.dp)
         if (multi) Text(stringResource(R.string.onboarding_pick_all_that_fit), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim, modifier = Modifier.padding(bottom = 8.dp))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             options.forEachIndexed { i, option ->
@@ -310,7 +310,7 @@ private fun Question(title: String, options: List<Option>, selected: Set<String>
 private fun WhenStep(selected: DayPart?, onPick: (DayPart) -> Unit, onLater: () -> Unit, onNext: () -> Unit) {
     val use24 = rememberUse24Hour()
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        PebbleSays(stringResource(R.string.onboarding_schedule_question), Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
+        RonumiSays(stringResource(R.string.onboarding_schedule_question), Mood.THINK, Modifier.fillMaxWidth().padding(vertical = 12.dp), ronumiSize = 84.dp)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             DayPart.entries.forEachIndexed { i, part ->
                 ChunkyCard(Modifier.fillMaxWidth().appear(i * 60), onClick = { onPick(part) }, selected = part == selected, contentPadding = 12.dp) {
@@ -350,7 +350,7 @@ private fun PlanStep(goal: String, picked: Set<String>, part: DayPart?, onNext: 
         add(R.drawable.ic_activity_flame to stringResource(R.string.onboarding_plan_streak))
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        PebbleSays(stringResource(R.string.onboarding_plan_intro), Mood.PROUD, Modifier.fillMaxWidth().padding(vertical = 12.dp), pebbleSize = 84.dp)
+        RonumiSays(stringResource(R.string.onboarding_plan_intro), Mood.PROUD, Modifier.fillMaxWidth().padding(vertical = 12.dp), ronumiSize = 84.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items.forEachIndexed { i, (icon, text) ->
                 Row(Modifier.fillMaxWidth().appear(200 + i * 220), verticalAlignment = Alignment.CenterVertically) {
@@ -388,7 +388,7 @@ private fun AppsStep(installed: List<InstalledApp>, chosen: Set<String>, onChang
     // Suggested apps first, then the rest by name.
     val sorted = remember(installed) { installed.sortedBy { if (it.packageName in commonDistractions) 0 else 1 } }
     Column(Modifier.fillMaxSize()) {
-        PebbleSays(stringResource(R.string.onboarding_apps_question), Mood.THINK, Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), pebbleSize = 84.dp)
+        RonumiSays(stringResource(R.string.onboarding_apps_question), Mood.THINK, Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), ronumiSize = 84.dp)
         Text(
             pluralStringResource(R.plurals.onboarding_apps_selected, chosen.size, chosen.size),
             style = MaterialTheme.typography.bodyMedium,
@@ -410,11 +410,11 @@ private fun AppsStep(installed: List<InstalledApp>, chosen: Set<String>, onChang
 @Composable
 private fun AccessStep(access: Access, onNext: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-        PebbleSays(
+        RonumiSays(
             if (access.ready) stringResource(R.string.onboarding_permissions_ready) else stringResource(R.string.onboarding_permissions_missing),
             if (access.ready) Mood.CELEBRATE else Mood.IDLE,
             Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            pebbleSize = 84.dp,
+            ronumiSize = 84.dp,
         )
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             AccessRows(access, includeOptional = true)
@@ -434,7 +434,7 @@ private fun AccessStep(access: Access, onNext: () -> Unit) {
 private fun FirstFocus(enabled: Boolean, onStart: () -> Unit, onSkip: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(24.dp)) {
         Spacer(Modifier.weight(1f))
-        PebbleSays(stringResource(R.string.onboarding_first_session_intro), Mood.HAPPY, Modifier.fillMaxWidth(), side = false, pebbleSize = 170.dp)
+        RonumiSays(stringResource(R.string.onboarding_first_session_intro), Mood.HAPPY, Modifier.fillMaxWidth(), side = false, ronumiSize = 170.dp)
         Spacer(Modifier.weight(1f))
         ChunkyButton(stringResource(R.string.onboarding_first_session_start_button), onStart, Modifier.fillMaxWidth(), kind = ButtonKind.MINT, icon = painterResource(R.drawable.ic_play), enabled = enabled)
         ChunkyButton(stringResource(R.string.onboarding_maybe_later), onSkip, Modifier.fillMaxWidth().padding(top = 4.dp), kind = ButtonKind.GHOST, enabled = enabled)

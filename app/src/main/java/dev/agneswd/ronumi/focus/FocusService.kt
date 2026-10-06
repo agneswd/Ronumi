@@ -14,7 +14,7 @@ import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dev.agneswd.ronumi.R
-import dev.agneswd.ronumi.StillpointApp
+import dev.agneswd.ronumi.RonumiApp
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.data.ActiveFocus
 import dev.agneswd.ronumi.data.FocusPhase
@@ -107,7 +107,7 @@ class FocusService : LifecycleService() {
         return builder.build()
     }
 
-    private fun builder() = NotificationCompat.Builder(this, StillpointApp.CHANNEL_FOCUS)
+    private fun builder() = NotificationCompat.Builder(this, RonumiApp.CHANNEL_FOCUS)
         .setSmallIcon(R.drawable.ic_stat)
         .setOngoing(true)
         .setSilent(true)

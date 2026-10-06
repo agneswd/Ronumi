@@ -61,7 +61,7 @@ import dev.agneswd.ronumi.ui.design.ChunkyButton
 import dev.agneswd.ronumi.ui.design.Flame
 import dev.agneswd.ronumi.ui.design.LightPalette
 import dev.agneswd.ronumi.ui.design.Mood
-import dev.agneswd.ronumi.ui.design.Pebble
+import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.Sfx
 import dev.agneswd.ronumi.ui.design.Sound
 import dev.agneswd.ronumi.ui.design.Sp
@@ -195,11 +195,11 @@ private fun RoundKey(icon: Int, description: String, enabled: Boolean, onClick: 
 }
 
 /**
- * Pebble with a speech bubble. New text types itself out, like a chat message.
- * [side] puts the bubble to the right of Pebble; otherwise it sits above.
+ * Ronumi with a speech bubble. New text types itself out, like a chat message.
+ * [side] puts the bubble to the right of Ronumi; otherwise it sits above.
  */
 @Composable
-fun PebbleSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Boolean = true, pebbleSize: Dp = 92.dp) {
+fun RonumiSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Boolean = true, ronumiSize: Dp = 92.dp) {
     var shown by remember(text) { mutableIntStateOf(0) }
     LaunchedEffect(text) {
         while (shown < text.length) {
@@ -224,7 +224,7 @@ fun PebbleSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Bo
     if (side) {
         val thinking = mood == Mood.THINK
         Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-            Pebble(mood, size = pebbleSize, thoughtDots = !thinking)
+            Ronumi(mood, size = ronumiSize, thoughtDots = !thinking)
             if (thinking) ThoughtTrail() else Spacer(Modifier.width(10.dp))
             Box(Modifier.weight(1f).border(2.dp, Sp.colors.border, bubbleShape)) { bubble() }
         }
@@ -232,12 +232,12 @@ fun PebbleSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Bo
         Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.padding(horizontal = 24.dp).border(2.dp, Sp.colors.border, bubbleShape)) { bubble() }
             Spacer(Modifier.height(14.dp))
-            Pebble(mood, size = pebbleSize)
+            Ronumi(mood, size = ronumiSize)
         }
     }
 }
 
-/** Three dots that grow from Pebble toward the middle of the bubble on its right. */
+/** Three dots that grow from Ronumi toward the middle of the bubble on its right. */
 @Composable
 private fun ThoughtTrail() {
     Canvas(Modifier.size(20.dp, 24.dp)) {

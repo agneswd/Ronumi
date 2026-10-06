@@ -133,7 +133,7 @@ fun DayPartIcon(part: DayPart, modifier: Modifier = Modifier, size: Dp = 52.dp) 
     }
 }
 
-/** Onboarding scene: a phone with a short video feed and a stop badge. Pebble guards it. */
+/** Onboarding scene: a phone with a short video feed and a stop badge. Ronumi guards it. */
 @Composable
 fun ShortsScene(modifier: Modifier = Modifier) {
     val c = Sp.colors
@@ -177,11 +177,11 @@ fun ShortsScene(modifier: Modifier = Modifier) {
             drawCircle(c.danger, w * 0.2f, badge)
             drawLine(Color.White, badge + Offset(-w * 0.09f, 0f), badge + Offset(w * 0.09f, 0f), w * 0.06f, StrokeCap.Round)
         }
-        Pebble(Mood.GUARD, Modifier.offset(x = 80.dp, y = 70.dp), size = 120.dp)
+        Ronumi(Mood.GUARD, Modifier.offset(x = 80.dp, y = 70.dp), size = 120.dp)
     }
 }
 
-/** Onboarding scene: notifications drop into a closed box while Pebble rests. */
+/** Onboarding scene: notifications drop into a closed box while Ronumi rests. */
 @Composable
 fun NotificationScene(modifier: Modifier = Modifier) {
     val c = Sp.colors
@@ -209,11 +209,11 @@ fun NotificationScene(modifier: Modifier = Modifier) {
             drawRoundRect(c.brand, Offset(w * 0.12f, w * 0.6f), Size(w * 0.76f, w * 0.28f), CornerRadius(w * 0.06f))
             drawRoundRect(c.brandLip, Offset(w * 0.08f, w * 0.56f), Size(w * 0.84f, w * 0.08f), CornerRadius(w * 0.04f))
         }
-        Pebble(Mood.CALM, Modifier.offset(x = 0.dp, y = 40.dp), size = 96.dp)
+        Ronumi(Mood.CALM, Modifier.offset(x = 0.dp, y = 40.dp), size = 96.dp)
     }
 }
 
-/** Onboarding scene: a padlock with a timer ring. Pebble is proud of the strict session. */
+/** Onboarding scene: a padlock with a timer ring. Ronumi is proud of the strict session. */
 @Composable
 fun StrictScene(modifier: Modifier = Modifier) {
     val c = Sp.colors
@@ -237,16 +237,16 @@ fun StrictScene(modifier: Modifier = Modifier) {
             drawArc(c.brand, -90f, 360f * left, false, center - Offset(w * 0.19f, w * 0.19f), Size(w * 0.38f, w * 0.38f), style = Stroke(w * 0.05f, cap = StrokeCap.Round))
             drawCircle(c.text, w * 0.03f, center)
         }
-        Pebble(Mood.STRICT, Modifier.offset(x = 95.dp, y = 80.dp), size = 100.dp)
+        Ronumi(Mood.STRICT, Modifier.offset(x = 95.dp, y = 80.dp), size = 100.dp)
     }
 }
 
-/** Onboarding scene: a big flame with a day count. Pebble celebrates. */
+/** Onboarding scene: a big flame with a day count. Ronumi celebrates. */
 @Composable
 fun StreakScene(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
         Flame(Modifier.offset(x = (-50).dp, y = (-20).dp), size = 190.dp)
-        Pebble(Mood.CELEBRATE, Modifier.offset(x = 85.dp, y = 70.dp), size = 110.dp)
+        Ronumi(Mood.CELEBRATE, Modifier.offset(x = 85.dp, y = 70.dp), size = 110.dp)
     }
 }
 

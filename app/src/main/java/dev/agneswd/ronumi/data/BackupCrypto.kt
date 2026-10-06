@@ -14,6 +14,7 @@ import javax.crypto.spec.SecretKeySpec
 /** Portable password encryption. Version 1 fixes the algorithms and KDF cost; files cannot raise it. */
 object BackupCrypto {
     const val MAX_PLAINTEXT_BYTES = 16 * 1024 * 1024
+    // STLPBAK! is the Stillpoint backup header. Ronumi accepts those files.
     private val magic = "STLPBAK!".encodeToByteArray()
     private const val VERSION = 1
     private const val SALT_BYTES = 16

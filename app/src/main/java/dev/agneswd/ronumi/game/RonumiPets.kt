@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-/** Persists taps outside the screen lifecycle. Room serializes increments from every Pebble instance. */
-object PebblePets {
+/** Persists taps outside the screen lifecycle. Room serializes increments from every Ronumi instance. */
+object RonumiPets {
     private val restoreGeneration = AtomicLong()
 
     /** True after the tap that unlocks the secret outfit, until the reveal closes. */
@@ -26,12 +26,12 @@ object PebblePets {
                     if (restoreGeneration.get() != generation) return@withTransaction false
                     val before = app.dao.currentSettings().petTapCount
                     app.dao.recordPetTap()
-                    before == PebbleStyles.SECRET_PET_TAPS - 1
+                    before == RonumiStyles.SECRET_PET_TAPS - 1
                 }
                 if (unlocked && restoreGeneration.get() == generation) reveal.value = true
             } catch (error: Exception) {
                 if (error is kotlinx.coroutines.CancellationException) throw error
-                Log.w("PebblePets", "Could not save Pebble tap", error)
+                Log.w("RonumiPets", "Could not save Ronumi tap", error)
             }
         }
     }

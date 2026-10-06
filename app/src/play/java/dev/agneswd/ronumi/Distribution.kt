@@ -7,7 +7,7 @@ import dev.agneswd.ronumi.plus.PlayPlus
 import dev.agneswd.ronumi.plus.createStore
 
 object Distribution {
-    fun createPlus(app: StillpointApp): Plus = PlayPlus(app, createStore(app))
+    fun createPlus(app: RonumiApp): Plus = PlayPlus(app, createStore(app))
 
     /** Play does not show the Ronumi notice. */
     @Composable

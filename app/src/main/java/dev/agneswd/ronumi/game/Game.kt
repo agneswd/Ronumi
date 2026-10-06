@@ -60,7 +60,7 @@ data class GameState(
     val week: List<Pair<LocalDate, Int>>,
     val totalMinutes: Int,
     val sessions: Int,
-    val disposition: PebbleDisposition = PebbleDisposition(),
+    val disposition: RonumiDisposition = RonumiDisposition(),
 )
 
 fun day(millis: Long): LocalDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()

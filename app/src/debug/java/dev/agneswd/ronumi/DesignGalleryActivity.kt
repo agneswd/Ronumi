@@ -26,9 +26,9 @@ class DesignGalleryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val page = intent.getStringExtra("page") ?: "pebble"
+        val page = intent.getStringExtra("page") ?: "ronumi"
         setContent {
-            StillpointTheme {
+            RonumiTheme {
                 Column(
                     Modifier.fillMaxSize().background(Sp.colors.background).systemBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -101,7 +101,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
                 SetupNudge(Modifier.padding(horizontal = ScreenPadding).appear(0)) { navigator.push(Route.Settings) }
             }
             val (mood, line) = greeting(game)
-            PebbleSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60), pebbleSize = 96.dp)
+            RonumiSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60), ronumiSize = 96.dp)
             Text(
                 stringResource(R.string.home_pebble_wardrobe),
                 Modifier.align(Alignment.End).clip(RoundedCornerShape(12.dp)).clickable { navigator.push(Route.Wardrobe) }
@@ -158,18 +158,18 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
     }
 }
 
-/** Pebble's mood and line for the home screen. It reacts to the streak, the goal and the time. */
+/** Ronumi's mood and line for the home screen. It reacts to the streak, the goal and the time. */
 @Composable
 private fun greeting(game: GameState?): Pair<Mood, String> {
     val hour = LocalTime.now().hour
     val feeling = game?.disposition?.feeling
     return when {
         game == null -> Mood.IDLE to stringResource(R.string.home_greeting_initial)
-        feeling == dev.agneswd.ronumi.game.PebbleFeeling.CELEBRATE -> Mood.CELEBRATE to stringResource(R.string.home_greeting_goal)
-        feeling == dev.agneswd.ronumi.game.PebbleFeeling.PROUD -> Mood.PROUD to stringResource(R.string.home_greeting_steady)
-        feeling == dev.agneswd.ronumi.game.PebbleFeeling.HAPPY -> Mood.HAPPY to stringResource(R.string.home_greeting_progress, formatMinutes(game.goalMinutes - game.todayMinutes))
-        feeling == dev.agneswd.ronumi.game.PebbleFeeling.DOWN -> Mood.SAD to stringResource(R.string.home_greeting_absent)
-        feeling == dev.agneswd.ronumi.game.PebbleFeeling.QUIET -> Mood.THINK to stringResource(R.string.home_greeting_return)
+        feeling == dev.agneswd.ronumi.game.RonumiFeeling.CELEBRATE -> Mood.CELEBRATE to stringResource(R.string.home_greeting_goal)
+        feeling == dev.agneswd.ronumi.game.RonumiFeeling.PROUD -> Mood.PROUD to stringResource(R.string.home_greeting_steady)
+        feeling == dev.agneswd.ronumi.game.RonumiFeeling.HAPPY -> Mood.HAPPY to stringResource(R.string.home_greeting_progress, formatMinutes(game.goalMinutes - game.todayMinutes))
+        feeling == dev.agneswd.ronumi.game.RonumiFeeling.DOWN -> Mood.SAD to stringResource(R.string.home_greeting_absent)
+        feeling == dev.agneswd.ronumi.game.RonumiFeeling.QUIET -> Mood.THINK to stringResource(R.string.home_greeting_return)
         hour >= 22 -> Mood.SLEEPY to stringResource(R.string.home_greeting_late)
         game.streak > 0 -> Mood.IDLE to pluralStringResource(R.plurals.home_greeting_streak, game.streak, game.streak)
         hour < 11 -> Mood.WAVE to stringResource(R.string.home_greeting_morning)

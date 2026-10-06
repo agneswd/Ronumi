@@ -24,7 +24,7 @@ class PlusCheckReceiver : BroadcastReceiver() {
                 val store = plus.store as FakeStore
                 val scenario = intent.getStringExtra("scenario")
                 if (scenario == "backup") {
-                    val uri = Uri.fromFile(File(context.cacheDir, "plus-check.stillpoint"))
+                    val uri = Uri.fromFile(File(context.cacheDir, "plus-check.ronumi"))
                     val password = "debug plus backup password".toCharArray()
                     store.set("unlocked")
                     refresh(plus)

@@ -71,7 +71,7 @@ import dev.agneswd.ronumi.ui.design.Flame
 import dev.agneswd.ronumi.ui.design.Medal
 import dev.agneswd.ronumi.ui.design.companionMood
 import dev.agneswd.ronumi.ui.design.Mood
-import dev.agneswd.ronumi.ui.design.Pebble
+import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.ScreenTitle
 import dev.agneswd.ronumi.insights.Report
 import dev.agneswd.ronumi.ui.design.Sp
@@ -122,7 +122,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
 
         // Level and XP.
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp).appear(0), verticalAlignment = Alignment.CenterVertically) {
-            Pebble(game.companionMood(), size = 100.dp)
+            Ronumi(game.companionMood(), size = 100.dp)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.progress_level, g.level.number), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.brand)

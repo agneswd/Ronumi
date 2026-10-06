@@ -50,14 +50,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.data.currentSettings
-import dev.agneswd.ronumi.ui.PebbleSays
+import dev.agneswd.ronumi.ui.RonumiSays
 import dev.agneswd.ronumi.ui.design.ButtonKind
 import dev.agneswd.ronumi.ui.design.ChunkyButton
 import dev.agneswd.ronumi.ui.design.ChunkyProgress
 import dev.agneswd.ronumi.ui.design.FloatingDots
 import dev.agneswd.ronumi.ui.design.Mood
 import dev.agneswd.ronumi.ui.design.Sp
-import dev.agneswd.ronumi.ui.design.StillpointTheme
+import dev.agneswd.ronumi.ui.design.RonumiTheme
 import dev.agneswd.ronumi.ui.design.appear
 import dev.agneswd.ronumi.ui.design.popIn
 import kotlinx.coroutines.Dispatchers
@@ -95,7 +95,7 @@ class BlockActivity : ComponentActivity() {
         val detail = intent.getStringExtra(EXTRA_DETAIL).orEmpty()
         val gentle = intent.getBooleanExtra(EXTRA_GENTLE, false)
         // The E2E test reads this line. UI dumps would pause the guard, so it cannot read the screen.
-        Log.i("Stillpoint", "block shown: $title")
+        Log.i("Ronumi", "block shown: $title")
         Sfx.play(Sound.BLOCK)
         // App and schedule blocks go to the phone home screen.
         // Content blocks recover within the current app task.
@@ -109,7 +109,7 @@ class BlockActivity : ComponentActivity() {
         setContent {
             val settings by app.dao.settings().collectAsState(null)
             val themeMode = settings?.themeMode ?: return@setContent
-            StillpointTheme(themeMode = themeMode) {
+            RonumiTheme(themeMode = themeMode) {
                 // The guard's cover stays up until this screen has drawn. decorView.post is too early.
                 LaunchedEffect(title) {
                     withFrameNanos { }
@@ -125,9 +125,9 @@ class BlockActivity : ComponentActivity() {
                 }
                 val sessions by app.dao.sessions().collectAsState(emptyList())
                 val style = settings?.let {
-                    dev.agneswd.ronumi.game.PebbleStyles.resolve(it.pebbleItems, dev.agneswd.ronumi.game.gameState(sessions, it).level.number, it.petTapCount)
+                    dev.agneswd.ronumi.game.RonumiStyles.resolve(it.pebbleItems, dev.agneswd.ronumi.game.gameState(sessions, it).level.number, it.petTapCount)
                 }.orEmpty()
-                androidx.compose.runtime.CompositionLocalProvider(dev.agneswd.ronumi.ui.design.LocalPebbleStyle provides style) {
+                androidx.compose.runtime.CompositionLocalProvider(dev.agneswd.ronumi.ui.design.LocalRonumiStyle provides style) {
                 BackHandler(onBack = leave)
                 BlockScreen(
                     kind = kind,
@@ -226,9 +226,9 @@ class BlockActivity : ComponentActivity() {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(Modifier.weight(0.5f))
-                PebbleSays(stringResource(line), mood, Modifier.fillMaxWidth().appear(0), side = false, pebbleSize = 150.dp)
+                RonumiSays(stringResource(line), mood, Modifier.fillMaxWidth().appear(0), side = false, ronumiSize = 150.dp)
                 if (icon != null) {
-                    // The blocked app sits on Pebble's shoulder with a stop badge.
+                    // The blocked app sits on Ronumi's shoulder with a stop badge.
                     Box(Modifier.offset(x = 70.dp, y = (-46).dp).popIn(300)) {
                         Image(icon.asImageBitmap(), null, Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).border(3.dp, Sp.colors.background, RoundedCornerShape(14.dp)))
                         Box(
@@ -278,7 +278,7 @@ class BlockActivity : ComponentActivity() {
     }
 }
 
-/** What Pebble says on the block screen. A few lines per kind keep it fresh. */
+/** What Ronumi says on the block screen. A few lines per kind keep it fresh. */
 private fun pebbleLine(kind: BlockKind): Pair<Mood, Int> {
     val (mood, lines) = when (kind) {
         BlockKind.FOCUS -> Mood.GUARD to listOf(R.string.block_pebble_focus_1, R.string.block_pebble_focus_2, R.string.block_pebble_focus_3)

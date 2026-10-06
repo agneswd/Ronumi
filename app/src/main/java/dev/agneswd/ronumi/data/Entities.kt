@@ -164,7 +164,7 @@ data class Settings(
     /** Local minutes after midnight, written as decimal strings. */
     val notificationDeliveryTimes: Set<String> = emptySet(),
     val productivePackages: Set<String> = emptySet(),
-    /** Equipped Pebble item IDs. An empty set uses the original appearance. */
+    /** Equipped item ids. The column name pebbleItems is the Stillpoint name and stays so old backups restore. */
     val pebbleItems: Set<String> = emptySet(),
     val notifyFocusEvents: Boolean = true,
     val notifyPlanReminders: Boolean = true,

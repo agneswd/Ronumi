@@ -35,13 +35,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    val releaseKeystore = providers.environmentVariable("STILLPOINT_KEYSTORE").orNull
+    val releaseKeystore = providers.environmentVariable("RONUMI_KEYSTORE").orNull
     signingConfigs {
         if (releaseKeystore != null) create("release") {
             storeFile = file(releaseKeystore)
-            storePassword = providers.environmentVariable("STILLPOINT_STORE_PASSWORD").get()
-            keyAlias = providers.environmentVariable("STILLPOINT_KEY_ALIAS").orElse("stillpoint").get()
-            keyPassword = providers.environmentVariable("STILLPOINT_KEY_PASSWORD").get()
+            storePassword = providers.environmentVariable("RONUMI_STORE_PASSWORD").get()
+            keyAlias = providers.environmentVariable("RONUMI_KEY_ALIAS").orElse("ronumi").get()
+            keyPassword = providers.environmentVariable("RONUMI_KEY_PASSWORD").get()
         }
     }
     buildTypes {
