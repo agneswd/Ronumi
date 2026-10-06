@@ -58,6 +58,61 @@ fun AccessibilityNodeInfo.browserAddressBar(): AccessibilityNodeInfo? {
     return best
 }
 
+/** A URL bar read from the changed node, or from one of its four parents. */
+data class NearbyAddress(val inBar: Boolean, val host: String?)
+
+/**
+ * Reads the address when this node is the URL bar or a close child of it.
+ * Returns [NearbyAddress.inBar] false when the change is somewhere else.
+ * A focused bar returns no host, because the user is still editing it.
+ */
+fun AccessibilityNodeInfo.nearbyAddress(): NearbyAddress {
+    var current = this
+    var recycleCurrent = false
+    var steps = 0
+    try {
+        while (steps++ < 5) {
+            val id = current.viewIdResourceName?.substringAfterLast('/')
+            if (id != null && id in addressIds) {
+                if (current.isFocused) return NearbyAddress(inBar = true, host = null)
+                val text = current.text?.toString().orEmpty()
+                val address = if (text.isBlank() && id == "ADDRESSBAR_URL_BOX") {
+                    current.contentDescription?.toString()?.trim()?.substringBefore(' ')?.trimEnd('.').orEmpty()
+                } else text
+                return NearbyAddress(inBar = true, host = hostOf(address))
+            }
+            val parent = current.parent ?: return NearbyAddress(inBar = false, host = null)
+            if (recycleCurrent) current.recycle()
+            current = parent
+            recycleCurrent = true
+        }
+        return NearbyAddress(inBar = false, host = null)
+    } finally {
+        if (recycleCurrent) current.recycle()
+    }
+}
+
+/** True when this node is a scrollable list and not a web page. */
+fun AccessibilityNodeInfo.inAppList(): Boolean {
+    var current = this
+    var recycleCurrent = false
+    var steps = 0
+    try {
+        while (steps++ < 8) {
+            val type = current.className?.toString().orEmpty()
+            if ("WebView" in type || "GeckoView" in type) return false
+            if (current.isScrollable || current.collectionInfo != null) return true
+            val parent = current.parent ?: return false
+            if (recycleCurrent) current.recycle()
+            current = parent
+            recycleCurrent = true
+        }
+        return false
+    } finally {
+        if (recycleCurrent) current.recycle()
+    }
+}
+
 fun AccessibilityNodeInfo.browserHost(): String? {
     val bar = browserAddressBar() ?: return null
     // Editing is a safe exit from a block. Never act on a half-typed address.

@@ -273,14 +273,17 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
     val context = LocalContext.current
     val app = context.app
     var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
-    LaunchedEffect(focus) {
+    // A paused clock does not change. Ticking it would redraw a still screen.
+    LaunchedEffect(focus.running) {
+        if (!focus.running) return@LaunchedEffect
         while (true) {
             now = android.os.SystemClock.elapsedRealtime()
             delay(200)
         }
     }
     var tip by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(focus.running) {
+        if (!focus.running) return@LaunchedEffect
         while (true) {
             delay(12_000)
             tip = (tip + 1) % tips.size
@@ -299,7 +302,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
     val firstBlocked = focus.packages.firstOrNull()
 
     Box(Modifier.fillMaxSize()) {
-        FocusBackdrop(themeOf(focus.theme), Modifier.fillMaxSize())
+        FocusBackdrop(themeOf(focus.theme), Modifier.fillMaxSize(), animated = focus.running)
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val dialSize = (maxHeight * 0.40f).coerceIn(160.dp, 270.dp)
@@ -353,6 +356,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                             else -> Mood.CALM
                         },
                         size = pebbleSize,
+                        animated = focus.running,
                     )
                     Spacer(Modifier.height(12.dp))
                 }
@@ -636,7 +640,7 @@ fun FocusChip(focus: ActiveFocus, onOpen: () -> Unit, modifier: Modifier = Modif
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Pebble(Mood.CALM, size = 28.dp)
+        Pebble(Mood.CALM, size = 28.dp, animated = false)
         Spacer(Modifier.width(8.dp))
         Text(
             stringResource(if (focus.phase == FocusPhase.BREAK) R.string.focus_minimized_break else R.string.focus_minimized_running, clockText(shown)),

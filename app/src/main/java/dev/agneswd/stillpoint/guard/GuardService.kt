@@ -71,13 +71,30 @@ class GuardService : AccessibilityService() {
     private var returnStep = 0
     private var stepStarted = 0L
     private var lastTapAt = 0L
-    private var pendingContentPackage: String? = null
     /** Packages that showed a screen other than their feed during this visit. Back then stays in the app. */
     private val feedFreeScreen = HashSet<String>()
     /** When each feed started to show a video without a readable title. */
     private val untitledSince = HashMap<String, Long>()
-    private val contentCheck = Runnable {
-        pendingContentPackage?.let { checkContent(it, force = true) }
+    /** One content check per window. A newer event for a queued window replaces the hint. */
+    private val contentWindows = HashMap<Int, ContentWindow>()
+    private val contentOrder = ArrayDeque<Int>()
+    private val queuedHints = HashMap<Int, ContentHint>()
+    private val queuedPackages = HashMap<Int, String>()
+    private var contentPumpPosted = false
+    private var titlePackage: String? = null
+    private var titleWindow = -1
+    private val titleCheck = Runnable {
+        titlePackage?.let { checkContent(it, force = true, windowId = titleWindow) }
+    }
+    private val contentPump = Runnable {
+        contentPumpPosted = false
+        val windowId = if (contentOrder.isEmpty()) return@Runnable else contentOrder.removeFirst()
+        val state = contentWindows[windowId]
+        if (state != null) state.queued = false
+        val pkg = queuedPackages.remove(windowId)
+        val hint = queuedHints.remove(windowId)
+        if (pkg != null) checkContent(pkg, force = false, windowId = windowId, hint = hint)
+        postContentPump()
     }
 
     /**
@@ -272,6 +289,15 @@ class GuardService : AccessibilityService() {
 
     override fun onInterrupt() = Unit
 
+    /**
+     * Event paths. The service XML still requests every type below.
+     * TYPE_WINDOW_STATE_CHANGED: immediate full check. This path needs the new window.
+     * TYPE_VIEW_SCROLLED: one check per window, at least 80 ms apart. A repeat scroll
+     * of a window that was already checked does not walk the protected-screen tree.
+     * TYPE_WINDOW_CONTENT_CHANGED: same coalesce. An address-bar change reads that node.
+     * A list change skips the protected-screen tree. Any other change walks the tree.
+     * TYPE_VIEW_CLICKED and TYPE_VIEW_SELECTED: immediate full check. Shorts uses the click.
+     */
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val pkg = event.packageName?.toString() ?: return
         when (event.eventType) {
@@ -282,10 +308,12 @@ class GuardService : AccessibilityService() {
                     setForeground(front)
                     evaluate()
                 }
-                checkContent(pkg, force = true)
+                noteWindowState(event.windowId)
+                checkContent(pkg, force = true, windowId = event.windowId)
             }
 
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED, AccessibilityEvent.TYPE_VIEW_SCROLLED -> checkContent(pkg, force = false)
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED, AccessibilityEvent.TYPE_VIEW_SCROLLED ->
+                scheduleContent(pkg, event)
 
             // The Shorts tab click arrives before the player draws. Cover it now.
             AccessibilityEvent.TYPE_VIEW_CLICKED, AccessibilityEvent.TYPE_VIEW_SELECTED -> {
@@ -296,7 +324,7 @@ class GuardService : AccessibilityService() {
                     handler.removeCallbacks(coverTimeout)
                     handler.postDelayed(coverTimeout, 700)
                 }
-                checkContent(pkg, force = true)
+                checkContent(pkg, force = true, windowId = event.windowId)
             }
         }
     }
@@ -405,17 +433,14 @@ class GuardService : AccessibilityService() {
         runCatching { getSystemService(NotificationManager::class.java).notify(30, notification) }
     }
 
-    private fun checkContent(pkg: String, force: Boolean) {
+    private fun checkContent(pkg: String, force: Boolean, windowId: Int = -1, hint: ContentHint? = null) {
         if (returnInProgress || blockVisible && appInFront() == packageName) return
         if (pkg !in watchedPackages && pkg !in browsers && !rules.settings.blockMultiWindow) return
         val elapsed = SystemClock.elapsedRealtime()
         if (!force && elapsed - lastContentCheck < CONTENT_THROTTLE_MILLIS) {
-            pendingContentPackage = pkg
-            handler.removeCallbacks(contentCheck)
-            handler.postDelayed(contentCheck, CONTENT_THROTTLE_MILLIS - (elapsed - lastContentCheck))
+            scheduleContent(pkg, windowId, hint ?: ContentHint(unscopedContent = true, addressInBar = false, addressHost = null))
             return
         }
-        handler.removeCallbacks(contentCheck)
         lastContentCheck = elapsed
         val now = System.currentTimeMillis()
         val current = rules
@@ -450,8 +475,10 @@ class GuardService : AccessibilityService() {
                         // A title can draw after the player. Wait a moment, then block a video without one.
                         val since = untitledSince.getOrPut(pkg) { elapsed }
                         if (elapsed - since < TITLE_WAIT_MILLIS) {
-                            pendingContentPackage = pkg
-                            handler.postDelayed(contentCheck, TITLE_WAIT_MILLIS - (elapsed - since))
+                            titlePackage = pkg
+                            titleWindow = windowId
+                            handler.removeCallbacks(titleCheck)
+                            handler.postDelayed(titleCheck, TITLE_WAIT_MILLIS - (elapsed - since))
                             return
                         }
                     } else {
@@ -482,19 +509,132 @@ class GuardService : AccessibilityService() {
             }
         }
 
-        roots.takeIf { pkg in browsers }?.firstNotNullOfOrNull { it.browserHost() }?.let { host ->
-            if (!contentEnabled) return@let
-            val site = blockedSite(host, current) ?: return@let
-            block(pkg, BlockReason(BlockKind.SITE, textResource(R.string.block_site_title, site), textResource(R.string.block_site_detail)))
-            return
+        val cached = if (windowId >= 0) contentWindows.getOrPut(windowId) { ContentWindow() } else null
+        val sameWindow = cached != null && cached.checkedEpoch == cached.epoch
+        if (contentEnabled && pkg in browsers) {
+            val host = browserHostFor(roots, cached, sameWindow, force, hint)
+            if (host != null) {
+                val site = blockedSite(host, current)
+                if (site != null) {
+                    markChecked(cached)
+                    block(pkg, BlockReason(BlockKind.SITE, textResource(R.string.block_site_title, site), textResource(R.string.block_site_detail)))
+                    return
+                }
+            }
         }
 
-        if (current.settings.protection && pkg in protectedScreens && current.locked(LocalDateTime.now()) &&
+        // A scroll or a list change keeps the previous full check. A window change clears it.
+        val skipProtected = !force && sameWindow && hint != null && !hint.unscopedContent
+        if (!skipProtected && current.settings.protection && pkg in protectedScreens && current.locked(LocalDateTime.now()) &&
             roots.any { it.containsText(app.catalog.label(packageName)) }
         ) {
+            markChecked(cached)
             block(pkg, BlockReason(BlockKind.PROTECTION, textResource(R.string.block_settings_title), textResource(R.string.block_settings_detail)))
+            return
+        }
+        markChecked(cached)
+    }
+
+    private fun markChecked(cached: ContentWindow?) {
+        if (cached != null) cached.checkedEpoch = cached.epoch
+    }
+
+    /**
+     * Uses the changed address node when that node is enough.
+     * A scroll of the same window reuses the host from the last full check.
+     */
+    private fun browserHostFor(
+        roots: List<AccessibilityNodeInfo>,
+        cached: ContentWindow?,
+        sameWindow: Boolean,
+        force: Boolean,
+        hint: ContentHint?,
+    ): String? {
+        if (!force && hint?.addressInBar == true) {
+            if (cached != null) {
+                cached.host = hint.addressHost
+                cached.hostKnown = true
+            }
+            return hint.addressHost
+        }
+        if (!force && sameWindow && cached != null && cached.hostKnown && hint?.unscopedContent != true) return cached.host
+        val found = roots.firstNotNullOfOrNull { it.browserHost() }
+        if (cached != null) {
+            cached.host = found
+            cached.hostKnown = true
+        }
+        return found
+    }
+
+    private fun noteWindowState(windowId: Int) {
+        if (contentWindows.size > 40) contentWindows.clear()
+        val state = contentWindows.getOrPut(windowId) { ContentWindow() }
+        state.epoch++
+        state.hostKnown = false
+        state.checkedEpoch = -1
+        dropQueued(windowId)
+    }
+
+    private fun scheduleContent(pkg: String, event: AccessibilityEvent) {
+        scheduleContent(pkg, event.windowId, hintOf(event))
+    }
+
+    private fun scheduleContent(pkg: String, windowId: Int, hint: ContentHint) {
+        if (contentWindows.size > 40) contentWindows.clear()
+        val state = contentWindows.getOrPut(windowId) { ContentWindow() }
+        queuedPackages[windowId] = pkg
+        queuedHints[windowId] = mergeHint(queuedHints[windowId], hint)
+        if (state.queued) return
+        state.queued = true
+        contentOrder.addLast(windowId)
+        postContentPump()
+    }
+
+    private fun dropQueued(windowId: Int) {
+        contentOrder.remove(windowId)
+        contentWindows[windowId]?.let { it.queued = false }
+        queuedHints.remove(windowId)
+        queuedPackages.remove(windowId)
+    }
+
+    private fun postContentPump() {
+        if (contentPumpPosted || contentOrder.isEmpty()) return
+        val wait = (CONTENT_THROTTLE_MILLIS - (SystemClock.elapsedRealtime() - lastContentCheck)).coerceAtLeast(0)
+        contentPumpPosted = true
+        handler.postDelayed(contentPump, wait)
+    }
+
+    private fun hintOf(event: AccessibilityEvent): ContentHint {
+        val scrolled = event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED
+        val source = event.source ?: return ContentHint(unscopedContent = !scrolled, addressInBar = false, addressHost = null)
+        return try {
+            val address = source.nearbyAddress()
+            val inList = source.inAppList()
+            ContentHint(
+                unscopedContent = !scrolled && !inList && !address.inBar,
+                addressInBar = address.inBar,
+                addressHost = address.host,
+            )
+        } finally {
+            source.recycle()
         }
     }
+
+    private fun mergeHint(old: ContentHint?, new: ContentHint) = ContentHint(
+        unscopedContent = old?.unscopedContent == true || new.unscopedContent,
+        addressInBar = old?.addressInBar == true || new.addressInBar,
+        addressHost = if (new.addressInBar) new.addressHost else old?.addressHost,
+    )
+
+    private class ContentWindow {
+        var epoch = 0
+        var checkedEpoch = -1
+        var host: String? = null
+        var hostKnown = false
+        var queued = false
+    }
+
+    private data class ContentHint(val unscopedContent: Boolean, val addressInBar: Boolean, val addressHost: String?)
 
     /**
      * Every window of [pkg] on screen. A dialog can be the active window,

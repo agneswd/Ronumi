@@ -94,7 +94,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         onPauseOrDispose { }
     }
     val days by produceState(emptyList<DayUsage>(), refresh) {
-        value = withContext(Dispatchers.IO) { app.usage.recentDays(7) }
+        value = withContext(Dispatchers.IO) { app.usageRefresh.refresh(7) }
     }
     var badgeFilter by remember { mutableStateOf("All") }
     var openBadge by remember { mutableStateOf<Badge?>(null) }

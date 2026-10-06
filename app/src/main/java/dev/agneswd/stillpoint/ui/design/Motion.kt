@@ -1,5 +1,10 @@
 package dev.agneswd.stillpoint.ui.design
 
+import android.animation.ValueAnimator
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -13,9 +18,11 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
@@ -26,6 +33,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
@@ -165,4 +173,29 @@ fun loop(periodMillis: Int, label: String = "loop"): Float {
         0f, 1f, infiniteRepeatable(tween(periodMillis, easing = LinearEasing)), label = "${label}Value",
     )
     return t
+}
+
+/**
+ * True when the system animator duration scale is above 0.
+ * A change to the setting updates this value.
+ */
+@Composable
+fun systemAnimationsEnabled(): Boolean {
+    val context = LocalContext.current
+    var enabled by remember { mutableStateOf(ValueAnimator.areAnimatorsEnabled()) }
+    DisposableEffect(context) {
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                enabled = ValueAnimator.areAnimatorsEnabled()
+            }
+        }
+        context.contentResolver.registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE),
+            false,
+            observer,
+        )
+        enabled = ValueAnimator.areAnimatorsEnabled()
+        onDispose { context.contentResolver.unregisterContentObserver(observer) }
+    }
+    return enabled
 }

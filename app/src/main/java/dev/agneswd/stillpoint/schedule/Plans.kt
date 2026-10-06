@@ -19,6 +19,7 @@ import dev.agneswd.stillpoint.focus.Focus
 import dev.agneswd.stillpoint.guard.dayBit
 import dev.agneswd.stillpoint.notify.Delivery
 import dev.agneswd.stillpoint.ui.MainActivity
+import dev.agneswd.stillpoint.widget.Widgets
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,6 +31,13 @@ object Plans {
     private const val PLAN = "plan"
     private const val DELIVERY = "delivery"
     private const val PHASE = "phase"
+    private val alarms = HashMap<String, ArmedAlarm>()
+    private var invalidated = false
+
+    /** The next refresh registers every alarm again. Use this after boot, clock, zone, or permission changes. */
+    suspend fun invalidate() = lock.withLock { invalidated = true }
+
+    private suspend fun forget(kind: String) = lock.withLock { alarms[kind] = forgetAlarm() }
 
     fun exactAllowed(context: Context): Boolean = Build.VERSION.SDK_INT < 31 || context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
 
@@ -44,6 +52,8 @@ object Plans {
     }
 
     suspend fun refresh(context: Context) = lock.withLock {
+        // Backup and other data changes call this before they redraw widgets.
+        Widgets.invalidateContent()
         val dao = context.app.dao
         val manager = context.getSystemService(AlarmManager::class.java)
         val preferences = context.getSharedPreferences("plans", Context.MODE_PRIVATE)
@@ -56,13 +66,28 @@ object Plans {
         val plan = candidates.minByOrNull { it.second }
         val delivery = nextTime(s.notificationDeliveryTimes.mapNotNull(String::toIntOrNull).toSet())
         val focus = dao.activeFocus()?.takeIf { it.running }
-        // AlarmManager replaces a matching PendingIntent. A process kill must not leave a cancel/set gap.
-        if (plan == null) manager.cancel(pending(context, PLAN))
-        else schedule(context, PLAN, plan.second, plan.first.id)
-        if (delivery == null) manager.cancel(pending(context, DELIVERY))
-        else schedule(context, DELIVERY, delivery)
-        if (focus == null) manager.cancel(pending(context, PHASE))
-        else schedule(context, PHASE, System.currentTimeMillis() + focus.remainingMillis().coerceAtLeast(100), focus.startedAt)
+        val exact = exactAllowed(context)
+        val dirty = invalidated
+        applyAlarm(context, manager, PLAN, plan?.let { AlarmTarget(it.second, it.first.id, exact) }, dirty)
+        applyAlarm(context, manager, DELIVERY, delivery?.let { AlarmTarget(it, 0, exact) }, dirty)
+        applyAlarm(
+            context,
+            manager,
+            PHASE,
+            focus?.let { AlarmTarget(System.currentTimeMillis() + it.remainingMillis().coerceAtLeast(100), it.startedAt, exact) },
+            dirty,
+        )
+        invalidated = false
+    }
+
+    private fun applyAlarm(context: Context, manager: AlarmManager, kind: String, desired: AlarmTarget?, dirty: Boolean) {
+        val (step, next) = alarmStep(alarms[kind] ?: ArmedAlarm(), desired, dirty)
+        alarms[kind] = next
+        when (step) {
+            AlarmStep.Keep -> Unit
+            AlarmStep.Cancel -> manager.cancel(pending(context, kind))
+            AlarmStep.Schedule -> schedule(context, kind, desired!!.atMillis, desired.id)
+        }
     }
 
     private fun pending(context: Context, kind: String, at: Long = 0, id: Long = 0): PendingIntent {
@@ -84,6 +109,7 @@ object Plans {
             PHASE -> {
                 val focus = dao.activeFocus()
                 if (focus?.startedAt == intent.getLongExtra("id", -1)) Focus.advance(context)
+                forget(PHASE)
             }
             PLAN -> {
                 val plan = dao.allSchedules().firstOrNull { it.id == intent.getLongExtra("id", -1) && it.enabled && it.startFocus }
@@ -94,8 +120,12 @@ object Plans {
                             .onFailure { remind(context, plan.name, plan.id) }
                     } else remind(context, plan.name, plan.id)
                 }
+                forget(PLAN)
             }
-            DELIVERY -> Delivery.release(context)
+            DELIVERY -> {
+                Delivery.release(context)
+                forget(DELIVERY)
+            }
             SNOOZE -> {
                 val id = intent.getLongExtra("id", 0)
                 context.getSharedPreferences("plans", Context.MODE_PRIVATE).edit().putLong("snooze-$id", System.currentTimeMillis() + 10 * 60_000).apply()
@@ -128,6 +158,7 @@ class PlanReceiver : BroadcastReceiver() {
                 if (intent.action in setOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED,
                         Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED, AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED)) {
                     Focus.checkpoint(context)
+                    Plans.invalidate()
                     Plans.refresh(context)
                 } else Plans.fire(context, intent)
             } finally { pending.finish() }

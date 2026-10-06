@@ -31,10 +31,34 @@ A two-second equal-power crossfade joins each loop's end and start.
 Brief loud splashes receive smooth peak compression before volume matching.
 No new audio is synthesized. No playback speed or pitch changes are applied.
 
-Output files are mono, 22,050 Hz, signed 16-bit little-endian PCM.
+The importer writes mono, 22,050 Hz, signed 16-bit little-endian PCM.
 Each loop lasts 44 seconds, except pink noise, which lasts 26 seconds.
-The player adds a 250 ms start fade and a 180 ms stop fade.
+White, brown, rain, and waves are 970,200 samples. Pink is 573,300 samples.
+Do not ship those PCM files. Delete them from `app/src/main/assets/focus/` after the Ogg encode.
+
+The packaged files are Ogg Vorbis quality 4.
+Encode each PCM file with ffmpeg 6.1.1-3ubuntu5 and libvorbis:
+
+`ffmpeg -v error -y -f s16le -ar 22050 -ac 1 -i NAME.pcm -af volume=-0.3dB -c:a libvorbis -q:a 4 NAME.ogg`
+
+The -0.3 dB gain keeps every octave from 63 Hz through 8 kHz within 1 dB of the PCM.
+Quality 4 without that gain is about 1.1 dB high at 8 kHz.
+The 16 kHz octave starts near 11,314 Hz. These files use 22,050 Hz, so Nyquist is 11,025 Hz.
+That band has no energy. Do not upsample the loops to measure it.
+
+The player decodes each Ogg once, off the main thread, into the same 16-bit PCM buffer it loops.
+It adds a 250 ms start fade and a 180 ms stop fade.
 Sound changes fade the old recording out before the new recording starts.
+
+## Packaged Ogg files
+
+| Sound | Samples | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| White | 970200 | 246895 | `c0f9607429ee5099b88c38ee17a4cacc5bdb6a4a275f723e50f59e70ee71c5ea` |
+| Pink | 573300 | 145923 | `5d358ecce87eec9dee94a1f109c4bfdc9531c11ef724cff48b69d3dbc24fa043` |
+| Brown | 970200 | 239952 | `2eadb57cd1d258c7d42dabed545a534d8fb2d9392faaa86c42a46ff21e9fd37f` |
+| Rain | 970200 | 248306 | `1efaad3144350e0cfc2fc7cb537e7f6aa1e5341136e5af935a884e9e5ce73ded` |
+| Waves | 970200 | 254232 | `c0b0dd324e9528c089750eea5f0497bd56087d86dc147c39509f5e7ebdf1eca0` |
 
 ## Source checksums
 
