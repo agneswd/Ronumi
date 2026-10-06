@@ -14,7 +14,7 @@ import numpy as np
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "app/src/main/res/raw"
-CACHE = pathlib.Path.home() / ".cache/stillpoint-vcsl"
+CACHE = pathlib.Path.home() / ".cache/ronumi-vcsl"
 # A fixed commit, so the same script always builds the same sounds.
 COMMIT = "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e"
 BASE = f"https://raw.githubusercontent.com/sgossner/VCSL/{COMMIT}/"
