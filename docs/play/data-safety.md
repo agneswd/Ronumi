@@ -15,7 +15,7 @@ See [Data safety definitions and payment-service guidance](https://support.googl
 Use **Yes, Purchase history only** for collection in this launch pack.
 This is a conservative interpretation for Billing purchase tokens and acknowledgement exchanged with Google Play.
 Google's payment exception excludes card information the app never accesses. It is not a blanket exemption for purchase history.
-The no-INTERNET manifest does not establish that Billing has no data exchange; the Google Play app uses its own connection.
+The Play build declares `INTERNET` and `ACCESS_NETWORK_STATE` only because the Billing library bundles a Google diagnostics library (`com.google.android.datatransport`). Stillpoint code makes no network requests. That library can send billing diagnostics to Google. Check Google's Play Billing Library data disclosure and add any data types it lists before submission.
 
 Use **No** for sharing. The purchase flow is user-requested and limited to providing the purchase and entitlement.
 Do not treat Google as a service provider for every independent purpose without evidence.

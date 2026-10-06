@@ -25,6 +25,7 @@ class StillpointApp : Application() {
     val dao get() = database.dao()
     val usage by lazy { UsageReader(this, catalog) }
     val catalog by lazy { AppCatalog(this) }
+    val plus: dev.agneswd.stillpoint.plus.Plus by lazy { Distribution.createPlus(this) }
 
     /** For work that must finish even when the screen that started it closes. */
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -39,11 +40,7 @@ class StillpointApp : Application() {
                 NotificationChannel(CHANNEL_EVENTS, "Focus events", NotificationManager.IMPORTANCE_DEFAULT),
             ),
         )
-        scope.launch {
-            dao.settings().map { it.autoUpdateChecks }.distinctUntilChanged().collect { enabled ->
-                dev.agneswd.stillpoint.update.UpdateScheduler.schedule(this@StillpointApp, enabled)
-            }
-        }
+        plus
         scope.launch {
             combine(dao.settings().map { it.notificationDeliveryTimes }.distinctUntilChanged(), dao.schedules(), dao.activeFocusFlow()) { _, _, _ -> Unit }.collect {
                 Plans.refresh(this@StillpointApp)

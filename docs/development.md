@@ -2,14 +2,21 @@
 
 ## Build
 
-Use JDK 17 and Android SDK 37. Set `JAVA_HOME` for your installation.
+Use JDK 17, Android SDK 37, and Build Tools 37.0.0. Set `JAVA_HOME` for your installation.
 Set `sdk.dir` in an untracked `local.properties`, or set `ANDROID_HOME`.
 
 ```sh
-./gradlew assembleDebug assembleRelease lintRelease
+# GitHub APKs, with the self-updater and all Plus features available.
+./gradlew assembleGithubDebug assembleGithubRelease lintGithubDebug lintGithubRelease
+# Play APKs for checks, and the Play release bundle for upload.
+./gradlew assemblePlayDebug assemblePlayRelease bundlePlayRelease lintPlayDebug lintPlayRelease
 ```
 
-Debug APKs use the Android debug key. Release APKs are unsigned unless these environment variables are set:
+Both distributions use application ID `dev.agneswd.stillpoint` and the same version code.
+APKs are in `app/build/outputs/apk/<flavor>/<buildType>/`.
+The Play bundle is `app/build/outputs/bundle/playRelease/app-play-release.aab`.
+
+Debug APKs use the Android debug key. Release builds are unsigned unless these environment variables are set:
 
 ```text
 STILLPOINT_KEYSTORE
@@ -19,6 +26,13 @@ STILLPOINT_KEY_PASSWORD
 ```
 
 Keep the release keystore and passwords outside the repository. Keep a private backup of both.
+Use the GitHub release key for `assembleGithubRelease`.
+Play uses Play App Signing. The owner supplies the Play upload key through the same environment variables for `bundlePlayRelease`.
+Build each signed distribution separately with its intended key. Google signs delivered Play APKs with the Play app signing key.
+
+The GitHub APK and delivered Play build use different signing keys. Android cannot install one over the other.
+To switch distributions, export an encrypted backup, uninstall the old app, install the other distribution, and restore the backup.
+A backup never transfers or changes Plus ownership. Restore purchases from Google Play after switching to Play.
 
 ## Device checks
 
@@ -27,7 +41,7 @@ A complete blocking run needs Chrome, Clock, Contacts, and a compatible YouTube 
 The browser matrix also runs Brave, Brave Beta, and Firefox when they are installed. Finish their welcome pages first.
 
 ```sh
-./gradlew assembleDebug
+./gradlew assembleGithubDebug :e2e-driver:assembleDebug
 ANDROID_SERIAL=emulator-5554 python3 e2e/e2e.py
 ```
 
@@ -35,7 +49,68 @@ Each run saves screenshots, a report, storage-check results, and the crash log i
 The Android reader module reads animated Compose screens without waiting for all animations to stop.
 The reader preserves accessibility services. The test reconnects the guard after deliberate process stops.
 CI checks first launch, schema upgrades, backup restore, notifications, and planned focus on Android 9 and Android 16.
-It also builds the minified release and runs release lint.
+It builds and lints debug and minified release variants for both distributions.
+It also runs the Play fake-store workflow on each CI emulator, without extra apps.
+
+## Plus foundation
+
+`context.app.plus` is the process-wide `Plus` service in `dev.agneswd.stillpoint.plus`.
+Compose screens can collect `plus.state` with `collectAsStateWithLifecycle()`.
+Services can read `plus.state.value` or `plus.has(feature)` synchronously without I/O.
+
+```kotlin
+interface Plus {
+    val state: StateFlow<PlusState>
+    fun has(feature: PlusFeature): Boolean
+    fun purchase(activity: Activity)
+    fun restore()
+}
+```
+
+`PlusState` contains `entitlement: Entitlement`, `price: String?`, and `status: PlusStatus`.
+Entitlement is `UNLOCKED`, `LOCKED`, or `PENDING`. Only `UNLOCKED` grants access.
+The price comes from Google Play, formatted for the buyer. It is null until known.
+Status is `IDLE`, `BUSY`, `CANCELED`, `UNAVAILABLE`, or `ERROR`.
+Purchase and restore return immediately. Their results arrive through `state`.
+A successful billing-flow launch stays busy until a purchase callback or a foreground ownership query resolves it.
+
+`PlusFeature` defines `UNLIMITED_FOCUS_APPS`, `UNLIMITED_SCHEDULES`, `UNLIMITED_APP_LIMITS`, `WEBSITES`, `SHORT_VIDEOS`,
+`STRICT_MODE`, `YOUTUBE_STUDY`, `NOTIFICATION_INBOX`, `FULL_REPORTS`, `PLUS_WARDROBE`, and `PLUS_SCENES`.
+`FreeLimits` defines `FOCUS_APPS = 5`, `SCHEDULES = 1`, `APP_LIMITS = 1`, and `REPORT_DAYS = 7`.
+This foundation does not enforce limits, gate features, or show a paywall.
+
+GitHub always reports unlocked. Its purchase and restore methods do nothing. Its dependency graph contains no billing library.
+Play uses Billing Library 9.1.0 and the non-consumable product `stillpoint_plus`.
+The Play build keeps the Internet and network-state permissions that the library's diagnostic transport dependency adds. Removing them can crash that library when it checks the network in the background. Stillpoint code makes no network requests in the Play build.
+Billing uses the Play Store service. The billing AAR supplies its own consumer R8 rules.
+Configure one permanent buy option, without rental or preorder offers, in Play Console.
+Purchases are acknowledged after `PURCHASED`, including purchases recovered at startup.
+Pending purchases never unlock Plus. Failed acknowledgements retry and are retried again on a later ownership query.
+
+Play queries purchases at process startup and when an activity resumes.
+A successful full query without a purchased Plus product removes cached access, including after a refund.
+Failed queries preserve the cached entitlement. Purchase callbacks cannot revoke it because their lists can be partial.
+The `plus_entitlement` SharedPreferences file holds the last confirmed access state.
+Encrypted backups read and restore Room records, never this file. Android automatic backup is disabled.
+An offline app cannot discover a refund until a successful store query.
+
+Run the pure entitlement cases and device workflow:
+
+```sh
+./gradlew testGithubDebugUnitTest testPlayDebugUnitTest assemblePlayDebug :e2e-driver:assembleDebug
+ANDROID_SERIAL=emulator-5554 python3 e2e/e2e.py --flavor play --only plus_workflow
+```
+
+The fake store exists only in `playDebug`. By default, even Play debug uses real billing.
+The driver enables the fake with a `no_backup/plus-fake-store` marker through `run-as`, then restarts the app.
+The shell-protected receiver uses the existing broadcast and result-file protocol.
+The workflow covers locked, pending, purchased, refunded, offline restart, cancellation, errors, already-owned purchases, and backup isolation.
+It writes `plus-states.json`, a screenshot, a report, and a crash log under `e2e/artifacts/<run>/`.
+After building all four variants, run `python3 .github/scripts/verify_distributions.py`.
+It compares merged and packaged permissions and inspects dex classes with `apkanalyzer` and each release R8 mapping.
+It confirms that only `playDebug` contains the fake store and saves evidence in `app/build/reports/distributions/`.
+CI runs this check and uploads its reports.
+These checks do not validate Google Play checkout. A Play test-track install and license tester must verify real checkout and pending completion.
 
 ## Progression and appearance checks
 
@@ -72,7 +147,8 @@ python3 e2e/demo.py --scrcpy /path/to/scrcpy --output /path/to/demo.mp4
 
 The demo resets app data and uses debug-only sample history for rewards.
 Back up an existing device first. Keep the recording and chapter file outside the repository unless publication is approved.
-Do not upload `e2e/artifacts/`. Capture promotional screenshots separately and remove private data before publication.
+Do not upload the full `e2e/artifacts/` directory. CI uploads only selected text reports and Plus state results.
+Capture promotional screenshots separately and remove private data before publication.
 
 ## Schema 5
 
@@ -149,7 +225,7 @@ Older backups omit the field and restore as `SYSTEM`.
 
 ## Built-in updates
 
-The app now declares Internet access for its optional GitHub updater. Focus, blocking, reports, and audio remain local.
+The GitHub flavor uses Internet access only for its optional updater. The Play flavor declares it only through the Billing library's diagnostics dependency and makes no network requests of its own. Focus, blocking, reports, and audio remain local.
 Update requests contain no focus history, held messages, or other app data.
 Android's persisted job scheduler checks roughly daily when a network is available. It does not promise an exact delivery time.
 Disabling automatic checks cancels the job. Manual checks remain available.

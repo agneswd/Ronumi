@@ -5,7 +5,7 @@ End-to-end test for Stillpoint on a running emulator or phone.
 It installs the debug APK, grants the permissions with adb, and drives the real UI.
 Each check saves a screenshot. The run writes e2e/artifacts/<run>/report.md.
 
-Usage: ./gradlew assembleDebug && python3 e2e/e2e.py [--only name,name]
+Usage: ./gradlew assembleGithubDebug && python3 e2e/e2e.py [--only name,name]
 """
 import argparse
 import datetime
@@ -23,7 +23,7 @@ import sqlite3
 SERIAL = os.environ.get("ANDROID_SERIAL", "emulator-5554")
 PKG = "dev.agneswd.stillpoint"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-APK = ROOT / "app/build/outputs/apk/debug/app-debug.apk"
+APK = ROOT / "app/build/outputs/apk/github/debug/app-github-debug.apk"
 RUN = ROOT / "e2e/artifacts" / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 CLOCK = "com.google.android.deskclock"
 CHROME = "com.android.chrome"
@@ -151,23 +151,25 @@ def home():
     time.sleep(1)
 
 
+def disable_guard():
+    # Android 9 can retain a dead binding if an APK update or data reset interrupts a bind.
+    # Wait for Android to release the connection before stopping or replacing the app.
+    # The wait is best effort: after a crash, newer Android versions keep a restarting record
+    # of the service. rebind() checks the real binding afterwards.
+    sh("settings delete secure enabled_accessibility_services")
+    end = time.time() + 10
+    while "GuardService" in sh(f"dumpsys activity services {PKG}/.guard.GuardService") and time.time() < end:
+        time.sleep(0.2)
+
+
 def fresh_install():
+    disable_guard()
     adb("install", "-r", "-t", str(APK))
     adb("install", "-r", "-t", str(ROOT / "e2e-driver/build/outputs/apk/debug/e2e-driver-debug.apk"))
-    # Android 9 rebinds an updated service after a few seconds. Clearing data during that leaves it unbound.
-    end = time.time() + 15
-    while PKG in sh("settings get secure enabled_accessibility_services") and \
-            "label=Stillpoint" not in sh("dumpsys accessibility") and time.time() < end:
-        time.sleep(1)
     sh(f"pm clear {PKG}")
     sh(f"appops set {PKG} GET_USAGE_STATS allow")
     sh(f"pm grant {PKG} android.permission.POST_NOTIFICATIONS")
     sh(f"pm grant {CONTACTS} android.permission.POST_NOTIFICATIONS")
-    # pm clear kills the bound service, and Android marks it as crashed. Turning it off and on rebinds it.
-    sh("settings delete secure enabled_accessibility_services")
-    time.sleep(1)
-    sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
-    sh("settings put secure accessibility_enabled 1")
     sh(f"cmd notification allow_listener {PKG}/{PKG}.notify.HoldListener")
     # Skip the Chrome welcome pages so the address bar shows at once.
     sh(f"am set-debug-app --persistent {CHROME}")
@@ -175,7 +177,7 @@ def fresh_install():
     sh(f"am force-stop {CHROME}")
     sh(f"pm grant {CHROME} android.permission.POST_NOTIFICATIONS")
     sh("logcat -c")
-    time.sleep(2)
+    rebind()
 
 
 # Checks. Each one starts from the state the one before it left.
@@ -185,15 +187,18 @@ def fresh_install():
 # Enforcement checks use dumpsys and the block log instead of changing app state.
 
 def rebind():
-    sh("settings delete secure enabled_accessibility_services")
-    time.sleep(1)
-    sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
-    time.sleep(3)
-    # Android can keep a crashed service unbound although the setting lists it.
-    end = time.time() + 10
-    while "label=Stillpoint" not in sh("dumpsys accessibility"):
-        assert time.time() < end, "Android did not bind the guard. Reboot the emulator."
-        time.sleep(1)
+    # Android can keep a crashed service unbound although the setting lists it, and a slow
+    # emulator can take long to bind after boot. Toggle the setting once more before failing.
+    for attempt in range(2):
+        disable_guard()
+        sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
+        sh("settings put secure accessibility_enabled 1")
+        end = time.time() + 20
+        while time.time() < end:
+            if "label=Stillpoint" in sh("dumpsys accessibility"):
+                return
+            time.sleep(1)
+    raise AssertionError("Android did not bind the guard. Reboot the emulator.")
 
 
 def top_activity() -> str:
@@ -270,10 +275,10 @@ def today_screen():
     return shot("home")
 
 
-def device_workflow(scenario: str, extras: str = ""):
+def device_workflow(scenario: str, extras: str = "", receiver: str = ".StorageCheckReceiver"):
     sh(f"run-as {PKG} rm -f files/device-check.txt")
-    sh(f"am broadcast -f 0x20 -n {PKG}/.StorageCheckReceiver --es scenario {scenario} {extras}")
-    end = time.time() + (120 if scenario == "storage" else 30)
+    sh(f"am broadcast -f 0x20 -n {PKG}/{receiver} --es scenario {scenario} {extras}")
+    end = time.time() + (120 if scenario in ("storage", "backup") else 30)
     while time.time() < end:
         result = sh(f"run-as {PKG} cat files/device-check.txt")
         if result.startswith(("PASS", "FAIL")):
@@ -309,6 +314,7 @@ def schema_upgrade():
         db.execute("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
         db.execute("INSERT INTO room_master_table VALUES (42, ?)", (schema["identityHash"],))
         db.execute("PRAGMA user_version=1")
+    disable_guard()
     sh(f"pm clear {PKG}")
     adb("push", str(fixture), "/data/local/tmp/stillpoint-schema-1.db")
     sh(f"run-as {PKG} mkdir -p databases")
@@ -722,6 +728,49 @@ def progression_workflow():
     return "progression-workflow-check.txt"
 
 
+def plus_workflow():
+    """Drive playDebug through real entitlement policy without a Play Store installation."""
+    sh(f"am force-stop {PKG}")
+    sh(f"run-as {PKG} mkdir -p no_backup")
+    sh(f"run-as {PKG} touch no_backup/plus-fake-store")
+    open_stillpoint("settings")
+    evidence = []
+
+    def expect(mode, entitlement, status="IDLE"):
+        lines = device_workflow(mode, receiver=".plus.PlusCheckReceiver")
+        assert lines[0] == entitlement, (mode, lines)
+        assert lines[1] == status, (mode, lines)
+        assert lines[2] == "$4.99", (mode, lines)
+        assert lines[4] == f"allFeatures={str(entitlement == 'UNLOCKED').lower()}", lines
+        if mode == "unlocked":
+            assert lines[3] == "acknowledged=true", lines
+        evidence.append({"mode": mode, "state": lines})
+
+    expect("locked", "LOCKED")
+    expect("canceled", "LOCKED", "CANCELED")
+    expect("purchase-error", "LOCKED", "ERROR")
+    expect("already-owned", "UNLOCKED")
+    expect("refunded", "LOCKED")
+    expect("purchase-pending", "PENDING")
+    expect("pending-offline", "PENDING", "ERROR")
+    expect("complete-pending", "UNLOCKED")
+    expect("unlocked", "UNLOCKED")
+    expect("offline", "UNLOCKED", "ERROR")
+    sh(f"am force-stop {PKG}")
+    open_stillpoint("settings")
+    expect("read", "UNLOCKED", "ERROR")
+    expect("unlocked", "UNLOCKED")
+    expect("refund-on-foreground", "UNLOCKED")
+    home()
+    open_stillpoint("HOME")
+    expect("read", "LOCKED")
+    sh(f"am force-stop {PKG}")
+    open_stillpoint("settings")
+    expect("read", "LOCKED")
+    expect("backup", "UNLOCKED")
+    (RUN / "plus-states.json").write_text(json.dumps(evidence, indent=2) + "\n")
+    return "plus-states.json; " + shot("plus-workflow")
+
 CHECKS = [
     schema_upgrade,
     onboarding,
@@ -754,11 +803,18 @@ def main():
     global APK
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", help="comma-separated check names")
+    parser.add_argument("--flavor", choices=("github", "play"), default="github")
     parser.add_argument("--apk", type=pathlib.Path, help="APK to install, such as a signed release build")
     args = parser.parse_args()
+    APK = ROOT / f"app/build/outputs/apk/{args.flavor}/debug/app-{args.flavor}-debug.apk"
     if args.apk:
         APK = args.apk.resolve()
-    checks = [c for c in CHECKS if not args.only or c.__name__ in args.only.split(",")]
+    available = CHECKS if args.flavor == "github" else [plus_workflow]
+    requested = set(args.only.split(",")) if args.only else {c.__name__ for c in available}
+    unknown = requested - {c.__name__ for c in available}
+    if unknown:
+        parser.error("Unknown checks for this flavor: " + ", ".join(sorted(unknown)))
+    checks = [c for c in available if c.__name__ in requested]
 
     RUN.mkdir(parents=True, exist_ok=True)
     fresh_install()

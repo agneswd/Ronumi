@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run device checks and print failure diagnostics from the disposable CI device."""
+"""Run githubDebug checks by default; use --flavor play for the playDebug fake store."""
 import pathlib
 import sys
 
@@ -16,6 +16,7 @@ except SystemExit as result:
         print("Foreground window:", flush=True)
         print(e2e.front(), flush=True)
         print("Accessibility state:", e2e.sh("dumpsys accessibility"), flush=True)
+        print("Guard connections:", e2e.sh(f"dumpsys activity services {e2e.PKG}/.guard.GuardService"), flush=True)
         print("Device time:", e2e.sh("date"), flush=True)
         alarm_lines = e2e.sh("dumpsys alarm").splitlines()
         selected = set()

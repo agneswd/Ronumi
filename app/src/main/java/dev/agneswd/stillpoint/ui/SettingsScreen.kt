@@ -143,13 +143,13 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
                 }) { Chevron() }
             }
 
-            UpdateSettings(s)
+            dev.agneswd.stillpoint.Distribution.UpdateSettings(s)
 
             BackupSettings(restoreLocked = locked || focus != null)
 
             SectionTitle("About")
             PebbleSays(
-                "Focus works offline. No account or ads. GitHub is used only to check for and download app updates.",
+                androidx.compose.ui.res.stringResource(dev.agneswd.stillpoint.R.string.distribution_privacy),
                 Mood.WAVE,
                 Modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
                 pebbleSize = 80.dp,

@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.agneswd.stillpoint.app
@@ -32,6 +33,9 @@ import dev.agneswd.stillpoint.update.UpdateCheck
 import dev.agneswd.stillpoint.update.UpdateClient
 import dev.agneswd.stillpoint.update.UpdateRelease
 import java.io.File
+import dev.agneswd.stillpoint.R
+import dev.agneswd.stillpoint.update.UpdateException
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -43,6 +47,7 @@ private val ReleaseSaver = listSaver<UpdateRelease?, String>(
 @Composable
 fun UpdateSettings(settings: Settings, showTitle: Boolean = true) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var status by rememberSaveable { mutableStateOf<String?>(null) }
@@ -50,13 +55,13 @@ fun UpdateSettings(settings: Settings, showTitle: Boolean = true) {
     var downloadedPath by rememberSaveable { mutableStateOf<String?>(null) }
     var progress by remember { mutableStateOf(0) }
 
-    if (showTitle) SectionTitle("App updates")
+    if (showTitle) SectionTitle(stringResource(R.string.update_title))
     else Spacer(Modifier.height(12.dp))
     Group {
-        SwitchRow("Check for updates automatically", "Checks GitHub about once a day. Downloads start only when you choose.", settings.autoUpdateChecks) { on ->
+        SwitchRow(stringResource(R.string.update_auto), stringResource(R.string.update_auto_detail), settings.autoUpdateChecks) { on ->
             context.app.scope.launch { context.app.dao.updateSettings { it.copy(autoUpdateChecks = on) } }
         }
-        ListRow("Check for updates", if (busy) "Please wait..." else "Get new releases from agneswd/Stillpoint on GitHub.",
+        ListRow(stringResource(R.string.update_check), if (busy) stringResource(R.string.update_wait) else stringResource(R.string.update_source),
             onClick = if (busy) null else ({
                 scope.launch {
                     busy = true
@@ -65,10 +70,10 @@ fun UpdateSettings(settings: Settings, showTitle: Boolean = true) {
                             is UpdateCheck.Available -> {
                                 release = result.release
                                 downloadedPath = null
-                                status = "Version ${result.release.tag} is available."
+                                status = resources.getString(R.string.update_available, result.release.tag)
                             }
-                            UpdateCheck.UpToDate -> { release = null; downloadedPath = null; status = "You have the latest release." }
-                            UpdateCheck.NoRelease -> { release = null; downloadedPath = null; status = "No public release is available yet." }
+                            UpdateCheck.UpToDate -> { release = null; downloadedPath = null; status = resources.getString(R.string.update_current) }
+                            UpdateCheck.NoRelease -> { release = null; downloadedPath = null; status = resources.getString(R.string.update_no_release) }
                             is UpdateCheck.Failed -> { release = null; downloadedPath = null; status = result.message }
                         }
                     } finally { busy = false }
@@ -80,7 +85,7 @@ fun UpdateSettings(settings: Settings, showTitle: Boolean = true) {
                 release?.let { available ->
                     Spacer(Modifier.height(12.dp))
                     ChunkyButton(
-                        if (busy) "Working... $progress%" else if (downloadedPath != null) "Install update" else "Download update",
+                        if (busy) stringResource(R.string.update_progress, progress) else if (downloadedPath != null) stringResource(R.string.update_install) else stringResource(R.string.update_download),
                         modifier = Modifier.fillMaxWidth(), enabled = !busy,
                         onClick = {
                             scope.launch {
@@ -90,9 +95,9 @@ fun UpdateSettings(settings: Settings, showTitle: Boolean = true) {
                                     if (ready == null) {
                                         progress = 0
                                         downloadedPath = UpdateClient.download(context, available) { percent -> scope.launch { progress = percent } }.absolutePath
-                                        status = "Download verified. Select Install update to continue."
+                                        status = resources.getString(R.string.update_verified)
                                     } else if (!UpdateClient.canInstall(context)) {
-                                        status = "Allow app installs on the next screen, then return here and select Install update."
+                                        status = resources.getString(R.string.update_allow_installs)
                                         context.startActivity(UpdateClient.unknownSourcesIntent(context))
                                     } else {
                                         context.startActivity(UpdateClient.installIntent(context, ready))
@@ -101,7 +106,7 @@ fun UpdateSettings(settings: Settings, showTitle: Boolean = true) {
                                     throw error
                                 } catch (error: Exception) {
                                     downloadedPath = null
-                                    status = error.message ?: "The update could not finish. Try again."
+                                    status = resources.getString((error as? UpdateException)?.messageRes ?: R.string.update_failed)
                                 } finally { busy = false }
                             }
                         },
@@ -117,7 +122,7 @@ fun UpdatesScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val settings by context.app.dao.settings().collectAsState(null)
     Column(Modifier.fillMaxSize()) {
-        TopBar("App updates", onClose)
+        TopBar(stringResource(R.string.update_title), onClose)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             settings?.let { UpdateSettings(it, showTitle = false) }
         }

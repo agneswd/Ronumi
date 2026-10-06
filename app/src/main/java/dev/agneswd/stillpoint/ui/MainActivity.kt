@@ -91,7 +91,6 @@ sealed interface Route {
     data object Wardrobe : Route
     data object Held : Route
     data object Settings : Route
-    data object Updates : Route
     data object FocusSetup : Route
     data object ShortVideos : Route
     data object Websites : Route
@@ -162,12 +161,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openFrom(intent: Intent) {
-        if (intent.getBooleanExtra(dev.agneswd.stillpoint.update.UpdateScheduler.SHOW_UPDATES, false)) {
-            navigator.focusMinimized = true
-            navigator.stack.clear()
-            navigator.push(Route.Updates)
-            return
-        }
         when (val target = intent.getStringExtra(EXTRA_TAB)) {
             null -> Unit
             FOCUS -> {
@@ -313,7 +306,6 @@ private fun App(navigator: Navigator) {
                                         Route.Wardrobe -> Page { game?.let { WardrobeScreen(it, navigator::pop) } }
                                         Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
                                         Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
-                                        Route.Updates -> Page { UpdatesScreen(onClose = navigator::pop) }
                                         Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
                                         Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
                                         Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }

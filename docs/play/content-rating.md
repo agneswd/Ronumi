@@ -36,7 +36,7 @@ See [Google's rating questionnaire guidance](https://support.google.com/googlepl
 | Generative content | No | Pebble uses authored text and local rules. |
 
 The notification inbox is the main rating ambiguity.
-Do not answer a broad external-content question No merely because the app has no INTERNET permission.
+Do not answer a broad external-content question No merely because the app makes no network requests of its own.
 If IARC groups private notification display with messaging or unfiltered user content, use that branch and explain the local-only behavior.
 Use this note when seeking a rating clarification:
 

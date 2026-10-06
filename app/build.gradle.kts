@@ -8,6 +8,7 @@ plugins {
 android {
     namespace = "dev.agneswd.stillpoint"
     compileSdk = 37
+    buildToolsVersion = "37.0.0"
 
     defaultConfig {
         applicationId = "dev.agneswd.stillpoint"
@@ -16,6 +17,12 @@ android {
         targetSdk = 36
         versionCode = 3
         versionName = "0.1.2"
+    }
+
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("github") { dimension = "distribution" }
+        create("play") { dimension = "distribution" }
     }
 
     buildFeatures {
@@ -52,6 +59,8 @@ ksp {
 }
 
 dependencies {
+    "playImplementation"("com.android.billingclient:billing:9.1.0")
+    testImplementation("junit:junit:4.13.2")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

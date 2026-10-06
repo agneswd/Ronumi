@@ -73,8 +73,8 @@ Short interaction sounds use quiet CC0 library recordings. See [UI audio sources
 - Verify onboarding on smaller manufacturer viewports. CI uses Pixel 2 at 1080x1920 and tests the visible skip button.
 - Verify report categories against real app use on a physical phone. JVM checks confirm that categories sum to the same-period total.
 
-CI runs on the backend branch and the PR. It uploads APKs and lint reports only.
-It prints crash, alarm, clock, and screen diagnostics from the disposable CI device. It does not upload e2e/artifacts/.
+CI runs on the backend branch and the PR. It uploads APKs, lint and JVM reports, E2E reports, crash logs, and Plus state results.
+It prints alarm, clock, and screen diagnostics from the disposable CI device. Other device artifacts stay local.
 
 The device driver posts real notifications on Android 9 and later. The workflow no longer depends on a shell notification command.
 It checks capture, content updates, process restart, and duplicate delivery. The fixture waits for Android's asynchronous notification post.
@@ -123,6 +123,11 @@ The UI reader preserves other accessibility services. Onboarding checks each sli
 The complete selected workflow also passed locally on Android 14 after these driver changes.
 The full demo includes all five focus recordings, rewards, wardrobe, dark theme, and launcher widgets.
 A chapter file identifies sample-history sections. Partial recordings are not release evidence.
+
+The fixture waits for the guard to bind before setup completes.
+Before replacing the APK or clearing app data, it disables the guard and waits for its connection to disappear.
+Android 9 can retain an interrupted binding after either operation, even with no app crash.
+Changing the enabled-service setting cannot recover that pending connection. Onboarding still checks that the guard is bound.
 
 The completion summary fits a 1080x1920 display at density 420 without scrolling.
 Continue and Add a note also stay visible at 1080x1640 with font scale 1.2.
@@ -199,3 +204,16 @@ These checks do not substitute for device lifecycle checks. Remaining manual che
 
 The new crypto JVM result does not prove Android provider behavior, file-picker access, or lifecycle handling.
 Local artifacts are in `e2e/artifacts/20261002-175503/`. They are not uploaded or committed.
+
+## Distribution and Plus foundation
+
+The entitlement JVM cases cover pending purchases, unacknowledged purchases, failed queries, refunds, duplicate tokens,
+completed or canceled pending purchases, unrelated products, and partial purchase callbacks.
+The Play debug workflow checks the same app-wide service used by future feature gates.
+It checks cache survival after an offline restart, acknowledgement, purchase errors, cancellation, already-owned recovery,
+and encrypted backup restore in both directions. Each run saves `plus-states.json` and the normal report and crash log.
+The fake store and its receiver exist only in `playDebug`.
+Real Google Play checkout, pending completion, refunds, and service reconnects still need a Play test-track install.
+
+CI builds and lints both flavors. Existing emulator checks use `githubDebug`; Plus checks use `playDebug`.
+CI uploads the Plus state artifact and text reports with APKs, JVM results, and lint reports.
