@@ -110,7 +110,7 @@ After building all four variants, run `python3 .github/scripts/verify_distributi
 It compares merged and packaged permissions and inspects dex classes with `apkanalyzer` and each release R8 mapping.
 It confirms that only `playDebug` contains the fake store and saves evidence in `app/build/reports/distributions/`.
 CI runs this check and uploads its reports.
-The fake store does not run a Google Play checkout.
+The fake store does not run a Google Play checkout. Test real checkout and pending purchases on a Play test track with a license tester.
 
 ## Progression and appearance checks
 

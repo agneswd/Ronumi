@@ -62,6 +62,7 @@ Short-video blocks close YouTube Shorts, Instagram Reels, Snapchat Spotlight, an
 A Short you open from YouTube search goes back to your results.
 
 Detection depends on what other apps show to Android's accessibility service. An app update can change that.
+Chrome, Brave, Firefox, and YouTube are tested on devices. The other browsers, Instagram, Snapchat, and Facebook are supported but less tested.
 
 Blocking needs Android permissions to work. Strict mode cannot prevent force-stop, safe mode, or every uninstall method.
 
