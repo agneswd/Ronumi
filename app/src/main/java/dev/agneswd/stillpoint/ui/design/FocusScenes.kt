@@ -8,12 +8,16 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -64,14 +68,20 @@ fun FocusBackdrop(theme: FocusTheme, modifier: Modifier, center: Offset = Offset
             secondary = scenePhase(motion, 5_000, "mid")
         }
     }
-    Spacer(modifier.drawWithCache {
-        // Read the theme and the size here. Do not read the phases here.
-        // A phase read in this block would rebuild the paths on every frame.
-        val scene = sceneCache(theme, size, center)
-        onDrawBehind {
-            scene.draw(this, primary.value, secondary.value)
-        }
-    })
+    // The fraction, not DrawScope.center. A draw lambda would hide this parameter.
+    val anchor = center
+    var size by remember { mutableStateOf(Size.Zero) }
+    // Recomposition and a new draw lambda must not build the paths again.
+    val scene = remember(theme, size, anchor) {
+        if (size.width == 0f || size.height == 0f) null else sceneCache(theme, size, anchor)
+    }
+    Spacer(
+        modifier
+            .onSizeChanged { size = Size(it.width.toFloat(), it.height.toFloat()) }
+            .drawBehind {
+                scene?.draw(this, primary.value, secondary.value)
+            },
+    )
 }
 
 /** A still phase, or one endless ramp. The caller reads [State.value] while drawing. */
