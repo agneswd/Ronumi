@@ -799,6 +799,11 @@ CHECKS = [
 ]
 
 
+def bridge_workflow():
+    from bridge.workflow import run
+    return run(sys.modules[__name__])
+
+
 def main():
     global APK
     parser = argparse.ArgumentParser()
@@ -809,8 +814,8 @@ def main():
     APK = ROOT / f"app/build/outputs/apk/{args.flavor}/debug/app-{args.flavor}-debug.apk"
     if args.apk:
         APK = args.apk.resolve()
-    available = CHECKS if args.flavor == "github" else [plus_workflow]
-    requested = set(args.only.split(",")) if args.only else {c.__name__ for c in available}
+    available = CHECKS + [bridge_workflow] if args.flavor == "github" else [plus_workflow]
+    requested = set(args.only.split(",")) if args.only else {c.__name__ for c in available if c != bridge_workflow}
     unknown = requested - {c.__name__ for c in available}
     if unknown:
         parser.error("Unknown checks for this flavor: " + ", ".join(sorted(unknown)))
