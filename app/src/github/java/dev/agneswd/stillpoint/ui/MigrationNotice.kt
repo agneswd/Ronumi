@@ -33,6 +33,15 @@ import dev.agneswd.stillpoint.ui.design.Sp
  */
 const val RONUMI_RELEASE_URL = "https://github.com/agneswd/Stillpoint/releases/tag/v1.0.0"
 
+/** Opens the fixed Ronumi release page. */
+fun Context.openRonumiRelease() {
+    try {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(RONUMI_RELEASE_URL)))
+    } catch (_: ActivityNotFoundException) {
+        Toast.makeText(this, R.string.bridge_no_browser, Toast.LENGTH_SHORT).show()
+    }
+}
+
 /** Remains dismissed across launches. This preference does not belong in the migrated backup. */
 @Composable
 fun MigrationNotice() {
@@ -49,13 +58,7 @@ fun MigrationNotice() {
                     preferences.edit().putBoolean("notice_dismissed", true).apply()
                     dismissed = true
                 }) { Text(stringResource(R.string.bridge_dismiss)) }
-                TextButton(onClick = {
-                    try {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(RONUMI_RELEASE_URL)))
-                    } catch (_: ActivityNotFoundException) {
-                        Toast.makeText(context, R.string.bridge_no_browser, Toast.LENGTH_SHORT).show()
-                    }
-                }) { Text(stringResource(R.string.bridge_get_ronumi)) }
+                TextButton(onClick = { context.openRonumiRelease() }) { Text(stringResource(R.string.bridge_get_ronumi)) }
             }
         }
     }

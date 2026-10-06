@@ -75,7 +75,7 @@ ANDROID_SERIAL=emulator-5554 python3 e2e/e2e.py --only bridge_workflow
 /home/elias/Projects/DevSoftware/Stillpoint-wt/emu.sh stop 5554
 ```
 
-The opt-in fixture adds a DUMP-protected receiver only to this GitHub debug build.
+The opt-in fixture adds a DUMP-protected receiver and a debug provider only to this GitHub debug build.
 Normal builds and every release build exclude it. The two client APKs stay in ignored artifacts.
 The check seeds the demo wardrobe history, rules, usage, and a held-message sentinel.
 It saves the provider document, encrypted reference, decrypted reference, client results, screenshot, and crash log.
@@ -89,8 +89,15 @@ The workflow then captures matching before and after Home screenshots.
 ## Notice link
 
 The Home button opens `https://github.com/agneswd/Stillpoint/releases/tag/v1.0.0`.
+Settings shows the same text and a GET RONUMI button. It does not offer an update check.
 This bridge release stays the latest GitHub release, so older apps can still update to it.
 Ronumi 1.0.0 is published at the same time and is not the latest release.
 After the repository is renamed to Ronumi, GitHub redirects that URL in the browser.
 
-The workflow also checks the v1.0.0 release URL and persistent dismissal.
+Version 0.1.3 does not schedule update checks.
+At startup it cancels a daily job left by an older build.
+The debug provider schedules job 64021 before application startup.
+The workflow reads `dumpsys jobscheduler` and confirms that the job is gone after start.
+It also saves a screenshot of the Settings section.
+
+The workflow also checks the v1.0.0 release URL, persistent dismissal, the Settings notice, and job 64021.

@@ -5,6 +5,65 @@ import subprocess
 import time
 
 
+def job_sections(dump: str) -> str:
+    """Registered, pending, and active JobScheduler rows. History is excluded."""
+    markers = ("Registered jobs:", "Pending queue:", "Active jobs:")
+    lines = dump.splitlines()
+    keep = []
+    capture = False
+    found = False
+    for line in lines:
+        stripped = line.strip()
+        if any(stripped.startswith(marker) for marker in markers):
+            capture = True
+            found = True
+            keep.append(line)
+            continue
+        if capture and line and not line[0].isspace() and stripped.endswith(":"):
+            capture = False
+        if capture:
+            keep.append(line)
+    if not found:
+        preview = "\n".join(lines[:80])
+        raise AssertionError("dumpsys jobscheduler did not include the job sections:\n" + preview)
+    return "\n".join(keep) + "\n"
+
+
+def settings_update_section(e):
+    e.open_stillpoint("PROGRESS")
+    e.tap("Settings", exact=True)
+    e.wait_for("Daily goal")
+    e.scroll_to("GET RONUMI")
+    tree = "\n".join(
+        (node.get("text") or "") + "\n" + (node.get("content-desc") or "")
+        for node in e.screen().iter("node")
+    )
+    (e.RUN / "settings-update-text.txt").write_text(tree)
+    for banned in ("Check for updates", "App updates", "Check for updates automatically"):
+        if banned in tree:
+            raise AssertionError(f"Retired updater text is still on screen: {banned}")
+    if "Stillpoint is now Ronumi." not in tree or "GET RONUMI" not in tree:
+        raise AssertionError("Settings does not show the Ronumi notice")
+    shot = e.shot("settings-update")
+    e.tap("GET RONUMI", exact=True)
+    activities = e.sh("dumpsys activity activities")
+    if "https://github.com/agneswd/Stillpoint/releases/tag/v1.0.0" not in activities:
+        raise AssertionError("Settings opened the wrong page")
+    (e.RUN / "settings-download-intent.txt").write_text(activities)
+    e.sh(f"am force-stop {e.PKG}")
+    e.open_stillpoint("HOME")
+    e.wait_for("Daily quests")
+    sections = job_sections(e.sh("dumpsys jobscheduler"))
+    (e.RUN / "jobscheduler-after-start.txt").write_text(sections)
+    if "UpdateJob" in sections or "/64021" in sections:
+        raise AssertionError("Update job is scheduled after start:\n" + sections[:2000])
+    plant = e.sh(f"run-as {e.PKG} cat files/update-job-plant.txt")
+    (e.RUN / "update-job-plant.txt").write_text(plant)
+    if not plant.startswith("scheduled=1"):
+        raise AssertionError("The debug fixture did not plant job 64021:\n" + plant)
+    return shot
+
+
 def run(e):
     e.device_workflow("demo-wardrobe")
     e.device_workflow("backup", "--ez seed true", receiver=".BridgeFixture")
@@ -67,4 +126,5 @@ def run(e):
     e.wait_for("Daily quests")
     assert not e.find("Stillpoint is now Ronumi."), "Dismissal was lost after process restart"
     e.shot("bridge-dismissed-after-restart")
-    return after_shot
+    settings_shot = settings_update_section(e)
+    return after_shot + "; " + settings_shot
