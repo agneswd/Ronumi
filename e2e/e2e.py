@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-End-to-end test for Stillpoint on a running emulator or phone.
+End-to-end test for Ronumi on a running emulator or phone.
 
 It installs the debug APK, grants the permissions with adb, and drives the real UI.
 Each check saves a screenshot. The run writes e2e/artifacts/<run>/report.md.
@@ -141,7 +141,7 @@ def open_app(pkg: str):
     time.sleep(2)
 
 
-def open_stillpoint(tab: str):
+def open_ronumi(tab: str):
     sh(f"am start -n {PKG}/.ui.MainActivity --es tab {tab} >/dev/null")
     time.sleep(1.5)
 
@@ -205,7 +205,7 @@ def rebind():
         sh("settings put secure accessibility_enabled 1")
         end = time.time() + 20
         while time.time() < end:
-            if "label=Stillpoint" in sh("dumpsys accessibility"):
+            if "label=Ronumi" in sh("dumpsys accessibility"):
                 return
             time.sleep(1)
     raise AssertionError("Android did not bind the guard. Reboot the emulator.")
@@ -244,9 +244,9 @@ def stays_open(fragment: str, seconds: float):
 
 
 def onboarding():
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     tap("Get started")
-    wait_for("Hi! I'm Pebble")
+    wait_for("Hi! I'm Ronumi")
     tap("Continue")
     wait_for("First, a few quick questions")
     tap("Continue")
@@ -268,7 +268,7 @@ def onboarding():
     # Rebind it, then resume the app so its permission snapshot reads the new state.
     rebind()
     home()
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     print("Accessibility services:", sh("settings get secure enabled_accessibility_services").strip(), flush=True)
     wait_for("All set! I can protect your focus now.")
     tap("Continue", exact=True)
@@ -278,7 +278,7 @@ def onboarding():
 
 
 def today_screen():
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     wait_for("Daily quests")
     if find("Finish setup"):
         raise AssertionError("Setup prompt shows although permissions are granted")
@@ -339,7 +339,7 @@ def schema_upgrade():
 def storage_workflow():
     home()
     details = device_workflow("storage")
-    open_stillpoint("PROGRESS")
+    open_ronumi("PROGRESS")
     wait_for("Progress", exact=True)
     shot("progress-after-storage-check")
     return f"storage-check.txt, {len(details)} device checks"
@@ -357,13 +357,13 @@ def active_focus_snapshot(name: str):
 def active_focus_controls():
     before = active_focus_snapshot("focus-before")
     assert before.get("startedAt", 0) > 0, "Expected one active session"
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     wait_for("Return to focus", exact=True)
     assert not find("Start focus", exact=True), "Home offers a second session"
     shot("active-focus-home")
     tap("Return to focus", exact=True)
     tap("Pause", exact=True)
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     wait_for("Return to focus", exact=True)
     assert not find("Start focus", exact=True), "Paused focus offers a second session"
     tap("Return to focus", exact=True)
@@ -383,14 +383,14 @@ def plan_intent_from_other_app():
     assert active_focus_snapshot("focus-after-foreign-intent") == {}, "Another app started a planned focus"
     shot("foreign-plan-intent-ignored")
     # Android lets an app open its own activity only from the foreground, as a notification tap does.
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     device_workflow("plan-notification", f"--el planId {plan}")
     end = time.time() + 15
     while active_focus_snapshot("focus-after-plan-notification").get("tag") != "Plan intent check":
         assert time.time() < end, "The plan notification did not start its focus"
         time.sleep(1)
     name = shot("plan-notification-started-focus")
-    open_stillpoint("FOCUS")
+    open_ronumi("FOCUS")
     tap("GIVE UP", exact=True)
     tap("End session", exact=True)
     home()
@@ -402,7 +402,7 @@ def plan_intent_from_other_app():
 def focus_survives_restart():
     sh(f"am force-stop {PKG}")
     time.sleep(2)
-    open_stillpoint("FOCUS")
+    open_ronumi("FOCUS")
     wait_for("Pause", exact=True)
     rebind()
     open_app(CONTACTS)
@@ -419,7 +419,7 @@ def notification_workflow():
     sh(f"am instrument -w -e notificationTitle 'Updated test' {PKG}.e2e/{PKG}.e2e.E2eDriver")
     time.sleep(2)
     sh(f"am force-stop {PKG}")
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     wait_for("Daily quests")
     device_workflow("notifications-check")
     return "notifications-check-check.txt"
@@ -439,7 +439,7 @@ def planned_focus_workflow():
         time.sleep(1)
     else:
         raise AssertionError("Planned focus did not start through the Android alarm")
-    open_stillpoint("FOCUS")
+    open_ronumi("FOCUS")
     wait_for("Device alarm check", exact=True)
     shot("focus-started-by-alarm")
     rebind()
@@ -460,7 +460,7 @@ def planned_focus_workflow():
 
 
 def set_up_blocks_in_ui():
-    open_stillpoint("BLOCKS")
+    open_ronumi("BLOCKS")
     tap("Add app limit")
     tap("Search")
     type_text("Clock")
@@ -485,14 +485,14 @@ def set_up_blocks_in_ui():
     sh("input keyevent BACK")
     scroll_to("Strict mode")
     tap("Strict mode", exact=True)
-    tap("Lock Stillpoint")
+    tap("Lock Ronumi")
     sh("input keyevent BACK")
     rebind()
     return name
 
 
 def start_focus_in_ui():
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     tap("Start focus")
     wait_for("Focus setup")
     scroll_to("Blocked apps")
@@ -674,26 +674,26 @@ def home_lock_returns_to_focus():
 
 def strict_mode_protects_settings():
     sh(f"am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:{PKG} >/dev/null")
-    wait_block("Stillpoint settings are locked")
+    wait_block("Ronumi settings are locked")
     name = shot("protection-blocks-app-info")
     sh("input keyevent KEYCODE_BACK")
     # The block goes home, and the home lock then brings focus back. Wait for it, or it covers the Blocks tab.
     wait_for("Pause", exact=True)
-    open_stillpoint("BLOCKS")
+    open_ronumi("BLOCKS")
     wait_for("Blocks are locked")
     shot("blocks-tab-locked")
     return name
 
 
 def pause_resume():
-    open_stillpoint("FOCUS")
+    open_ronumi("FOCUS")
     tap("Pause", exact=True)
     wait_for("PAUSED", exact=True)
     rebind()
     open_app(CONTACTS)
     stays_open("contacts", 5)
     shot("paused-allows-contacts")
-    open_stillpoint("FOCUS")
+    open_ronumi("FOCUS")
     tap("Resume", exact=True)
     rebind()
     open_app(CONTACTS)
@@ -702,12 +702,12 @@ def pause_resume():
 
 
 def ending_focus_frees_app():
-    open_stillpoint("FOCUS")
+    open_ronumi("FOCUS")
     tap("GIVE UP", exact=True)
     tap("End session", exact=True)
     if find("Nice effort!"):
         tap("Continue", exact=True)
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     wait_for("Start focus")
     rebind()
     open_app(CONTACTS)
@@ -743,7 +743,7 @@ def plus_workflow():
     sh(f"am force-stop {PKG}")
     sh(f"run-as {PKG} mkdir -p no_backup")
     sh(f"run-as {PKG} touch no_backup/plus-fake-store")
-    open_stillpoint("settings")
+    open_ronumi("settings")
     evidence = []
 
     def expect(mode, entitlement, status="IDLE"):
@@ -767,15 +767,15 @@ def plus_workflow():
     expect("unlocked", "UNLOCKED")
     expect("offline", "UNLOCKED", "ERROR")
     sh(f"am force-stop {PKG}")
-    open_stillpoint("settings")
+    open_ronumi("settings")
     expect("read", "UNLOCKED", "ERROR")
     expect("unlocked", "UNLOCKED")
     expect("refund-on-foreground", "UNLOCKED")
     home()
-    open_stillpoint("HOME")
+    open_ronumi("HOME")
     expect("read", "LOCKED")
     sh(f"am force-stop {PKG}")
-    open_stillpoint("settings")
+    open_ronumi("settings")
     expect("read", "LOCKED")
     expect("backup", "UNLOCKED")
     (RUN / "plus-states.json").write_text(json.dumps(evidence, indent=2) + "\n")
@@ -856,7 +856,7 @@ def main():
 
     crashes = adb("logcat", "-d", "-b", "crash", check=False).strip()
     (RUN / "crash.log").write_text(crashes or "No crashes.\n")
-    lines = [f"# Stillpoint E2E {RUN.name}", "", "| Check | Result | Detail |", "|---|---|---|"]
+    lines = [f"# Ronumi E2E {RUN.name}", "", "| Check | Result | Detail |", "|---|---|---|"]
     lines += [f"| {n} | {r} | {d} |" for n, r, d in results]
     lines += ["", "Crash buffer: " + ("empty" if not crashes else "see crash.log")]
     (RUN / "report.md").write_text("\n".join(lines) + "\n")

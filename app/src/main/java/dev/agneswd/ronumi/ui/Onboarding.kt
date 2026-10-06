@@ -231,7 +231,7 @@ fun Onboarding(onDone: () -> Unit) {
         ) { current ->
             when (current) {
                 Step.WELCOME -> Welcome(::next)
-                Step.HELLO -> Chat(stringResource(R.string.onboarding_pebble_intro), Mood.WAVE, ::next)
+                Step.HELLO -> Chat(stringResource(R.string.onboarding_intro), Mood.WAVE, ::next)
                 Step.ASK -> Chat(stringResource(R.string.onboarding_questions_intro), Mood.THINK, ::next)
                 Step.PURPOSE -> Question(stringResource(R.string.onboarding_purpose_question), purposes, setOf(purpose), multi = false, onPick = { purpose = it }, onNext = ::next)
                 Step.GOAL -> Question(stringResource(R.string.onboarding_goal_question), goals, setOf(goal), multi = false, onPick = { goal = it }, onNext = ::next)

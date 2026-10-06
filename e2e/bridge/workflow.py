@@ -40,7 +40,7 @@ def job_sections(dump: str) -> str:
 
 
 def settings_update_section(e):
-    e.open_stillpoint("PROGRESS")
+    e.open_ronumi("PROGRESS")
     e.tap("Settings", exact=True)
     e.wait_for("Daily goal")
     e.scroll_to("GET RONUMI", tries=14)
@@ -61,7 +61,7 @@ def settings_update_section(e):
         raise AssertionError("Settings opened the wrong page")
     (e.RUN / "settings-download-intent.txt").write_text(activities)
     e.sh(f"am force-stop {e.PKG}")
-    e.open_stillpoint("HOME")
+    e.open_ronumi("HOME")
     e.wait_for("Daily quests")
     sections = job_sections(e.sh("dumpsys jobscheduler"))
     (e.RUN / "jobscheduler-after-start.txt").write_text(sections)
@@ -119,23 +119,23 @@ def run(e):
     if baseline:
         e.sh(f"am force-stop {e.PKG}")
         e.adb("install", "-r", "-t", baseline)
-        e.open_stillpoint("HOME")
+        e.open_ronumi("HOME")
         e.wait_for("Daily quests")
         e.shot("bridge-before")
         e.sh(f"am force-stop {e.PKG}")
         e.adb("install", "-r", "-t", str(e.APK))
-    e.open_stillpoint("HOME")
+    e.open_ronumi("HOME")
     e.wait_for("Stillpoint is now Ronumi.")
     after_shot = e.shot("bridge-after")
     e.tap("GET RONUMI", exact=True)
     activities = e.sh("dumpsys activity activities")
     assert "https://github.com/agneswd/Stillpoint/releases/tag/v1.0.0" in activities, "Wrong download destination"
     (e.RUN / "bridge-download-intent.txt").write_text(activities)
-    e.open_stillpoint("HOME")
+    e.open_ronumi("HOME")
     e.tap("Dismiss", exact=True)
     e.gone("Stillpoint is now Ronumi.")
     e.sh(f"am force-stop {e.PKG}")
-    e.open_stillpoint("HOME")
+    e.open_ronumi("HOME")
     e.wait_for("Daily quests")
     assert not e.find("Stillpoint is now Ronumi."), "Dismissal was lost after process restart"
     e.shot("bridge-dismissed-after-restart")

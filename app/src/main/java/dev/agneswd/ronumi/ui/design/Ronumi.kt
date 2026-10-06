@@ -72,7 +72,7 @@ private val Spark = Color(0xFFFFC53D)
 val ThoughtDot = Color(0xFF9AA6FF).copy(alpha = 0.7f)
 
 /**
- * Ronumi, the Stillpoint mascot: a round stone with a sprout on top.
+ * Ronumi: a round stone with a sprout on top.
  * It is drawn in code, so it scales to any size and animates without image files.
  * [look] moves the pupils, from -1 to 1 on each axis.
  * [thoughtDots] is false when a speech bubble beside Ronumi draws its own thought trail.
@@ -108,8 +108,8 @@ fun Ronumi(
         }
     }
     val interaction = remember { MutableInteractionSource() }
-    val pebbleName = stringResource(R.string.pebble_name)
-    val petLabel = stringResource(R.string.pebble_pet_action)
+    val ronumiName = stringResource(R.string.ronumi_name)
+    val petLabel = stringResource(R.string.pet_action)
     // Breath and blink stay on every large Ronumi. Hop, wave, and drift run only for moods that draw them.
     val breath: State<Float>
     val blink: State<Float>
@@ -157,7 +157,7 @@ fun Ronumi(
 
     Canvas(
         modifier.size(size, size * 1.1f)
-            .semantics { contentDescription = pebbleName }
+            .semantics { contentDescription = ronumiName }
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = petLabel) {
                 dev.agneswd.ronumi.game.RonumiPets.pet(context)
                 pet.tap(SystemClock.uptimeMillis())

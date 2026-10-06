@@ -16,7 +16,7 @@ data class RonumiDisposition(
 )
 
 /** Rest and frozen days do not reduce the mood. Even partial focus breaks an absence. */
-fun pebbleDisposition(
+fun ronumiDisposition(
     sessions: List<FocusSession>,
     settings: Settings,
     today: LocalDate,

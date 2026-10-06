@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <application android:label="Stillpoint E2E reader" />
+    <application android:label="Ronumi E2E reader" />
     <instrumentation android:name=".E2eDriver" android:targetPackage="dev.agneswd.ronumi.e2e" />
 </manifest>

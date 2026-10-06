@@ -59,7 +59,7 @@ import dev.agneswd.ronumi.ui.design.Sp
 import dev.agneswd.ronumi.ui.design.appear
 import kotlinx.coroutines.launch
 
-/** The short-video apps that Stillpoint can close the feed of. */
+/** The short-video apps that Ronumi can close the feed of. */
 data class ShortsApp(val pkg: String, @param:androidx.annotation.StringRes val nameRes: Int, val logo: Int, val get: (Settings) -> Boolean, val set: (Settings, Boolean) -> Settings)
 
 val shortsApps = listOf(

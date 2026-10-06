@@ -137,7 +137,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
             }
         }
 
-        ListRow(stringResource(R.string.progress_pebble_wardrobe), stringResource(R.string.progress_wardrobe_description),
+        ListRow(stringResource(R.string.progress_wardrobe), stringResource(R.string.progress_wardrobe_description),
             onClick = { navigator.push(Route.Wardrobe) },
             trailing = { Chevron() })
 

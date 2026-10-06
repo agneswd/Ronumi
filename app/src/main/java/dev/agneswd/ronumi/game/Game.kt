@@ -122,7 +122,7 @@ fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate
         week = (6 downTo 0).map { today.minusDays(it.toLong()) }.map { it to (minutesByDay[it] ?: 0) },
         totalMinutes = total,
         sessions = sessions.size,
-        disposition = pebbleDisposition(sessions, settings, today),
+        disposition = ronumiDisposition(sessions, settings, today),
     )
 }
 

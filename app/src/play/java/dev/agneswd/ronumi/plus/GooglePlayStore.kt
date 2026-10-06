@@ -72,7 +72,7 @@ internal class GooglePlayStore(context: Context) : Store {
         }
     }
 
-    // Stillpoint Plus has one permanent buy option. Do not select rental or preorder offers.
+    // Ronumi Plus has one permanent buy option. Do not select rental or preorder offers.
     private fun ProductDetails.buyOffer() = oneTimePurchaseOfferDetailsList?.firstOrNull {
         it.rentalDetails == null && it.preorderDetails == null
     }

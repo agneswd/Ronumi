@@ -11,7 +11,7 @@ internal class FakeStore(context: Context) : Store {
     override var onPurchases: (StoreQuery) -> Unit = {}
 
     private var resumed = WeakReference<Activity>(null)
-    val activity: Activity get() = checkNotNull(resumed.get()) { "Open Stillpoint before the purchase check" }
+    val activity: Activity get() = checkNotNull(resumed.get()) { "Open Ronumi before the purchase check" }
 
     init {
         (context.applicationContext as Application).registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {

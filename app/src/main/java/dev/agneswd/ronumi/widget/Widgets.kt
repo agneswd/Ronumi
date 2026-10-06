@@ -185,7 +185,7 @@ object Widgets {
         val views = RemoteViews(context.packageName, R.layout.widget_focus)
         if (focus == null) {
             views.setImageViewBitmap(R.id.widget_art, artwork(ArtKey("ronumi", Mood.IDLE.name, style, 0, 220, 220, night, "")) {
-                pebbleArt(context, Mood.IDLE, style = style)
+                ronumiArt(context, Mood.IDLE, style = style)
             })
             views.setTextViewText(R.id.widget_value, context.getString(R.string.widget_focus_title))
             views.setTextViewText(R.id.widget_detail, context.getString(R.string.widget_session_length, formatMinutes(context, settings.focusMinutes)))
@@ -195,7 +195,7 @@ object Widgets {
         } else {
             val mood = if (!focus.running) Mood.SLEEPY else if (focus.phase == FocusPhase.FOCUS) Mood.CALM else Mood.HAPPY
             views.setImageViewBitmap(R.id.widget_art, artwork(ArtKey("ronumi", mood.name, style, 0, 220, 220, night, "")) {
-                pebbleArt(context, mood, style = style)
+                ronumiArt(context, mood, style = style)
             })
             views.setTextViewText(R.id.widget_value, if (!focus.running) context.getString(R.string.widget_paused_title) else if (focus.phase == FocusPhase.FOCUS) context.getString(R.string.widget_running_title) else context.getString(R.string.widget_break_title))
             views.setTextViewText(R.id.widget_detail, if (!focus.running) context.getString(R.string.widget_resume_hint) else context.getString(R.string.widget_end_time, time(System.currentTimeMillis() + focus.remainingMillis(), context.uses24HourClock(settings.clockFormat))))

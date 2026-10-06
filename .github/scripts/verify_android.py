@@ -23,7 +23,7 @@ except SystemExit as result:
         for index, line in enumerate(alarm_lines):
             if e2e.PKG in line:
                 selected.update(range(max(0, index - 4), min(len(alarm_lines), index + 9)))
-        print("Stillpoint alarms:", flush=True)
+        print("Ronumi alarms:", flush=True)
         print("\n".join(alarm_lines[index] for index in sorted(selected)) or "No matching alarms", flush=True)
         print("Recent device warnings:", flush=True)
         print(e2e.sh("logcat -d -t 200 -v brief '*:W'"), flush=True)

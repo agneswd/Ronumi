@@ -15,7 +15,7 @@ import dev.agneswd.ronumi.widget.UsageWidget
 import dev.agneswd.ronumi.widget.Widgets
 
 /**
- * Debug builds only: hosts every Stillpoint widget like a launcher does, so a screenshot shows them.
+ * Debug builds only: hosts every Ronumi widget like a launcher does, so a screenshot shows them.
  * First run: adb shell appwidget grantbind --package dev.agneswd.ronumi
  * Then: adb shell am start -S -n dev.agneswd.ronumi/.WidgetPreviewActivity
  */

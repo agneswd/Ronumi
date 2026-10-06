@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stillpoint code never uses the network in the Play build. The Billing library talks to the
+<!-- Ronumi code never uses the network in the Play build. The Billing library talks to the
      Play Store app, and its bundled diagnostics library declares INTERNET and ACCESS_NETWORK_STATE.
      Keep both: removing them can crash that library when it checks the network in the background. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" />

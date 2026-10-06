@@ -1,15 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Preserve existing English punctuation. Level numbers and clock values are not plural counts. -->
     <!-- Application -->
-    <string name="app_name" translatable="false">Stillpoint</string>
+    <string name="app_name" translatable="false">Ronumi</string>
 
     <!-- Accessibility service -->
-    <string name="guard_description">Stillpoint sees which app is open so it can block apps, short video feeds and sites you chose. It does not read your messages. Your app activity stays on this phone. Only app updates use the internet.</string>
+    <string name="guard_description">Ronumi sees which app is open so it can block apps, short video feeds and sites you chose. It does not read your messages. Your app activity stays on this phone. Only app updates use the internet.</string>
 
     <!-- Widgets -->
     <string name="widget_goal_title">Focus goal</string>
     <string name="widget_usage_description">Today\'s screen time and unlocks</string>
-    <string name="widget_goal_description">Pebble and your daily focus goal</string>
+    <string name="widget_goal_description">Ronumi and your daily focus goal</string>
     <string name="widget_calendar_description">Your focus days and streak</string>
     <string name="widget_focus_description">Start a focus session with one tap</string>
     <string name="widget_focus_title">Focus</string>
@@ -48,7 +48,7 @@
     <string name="permissions_usage_access">Usage access</string>
     <string name="permissions_usage_description">Shows screen time and checks app limits.</string>
     <string name="permissions_accessibility">Accessibility</string>
-    <string name="permissions_accessibility_description">Sees which app is open so Stillpoint can block it. If the switch is grey, open App info, tap the menu, then allow restricted settings.</string>
+    <string name="permissions_accessibility_description">Sees which app is open so Ronumi can block it. If the switch is grey, open App info, tap the menu, then allow restricted settings.</string>
     <string name="permissions_alarms_and_reminders">Alarms and reminders</string>
     <string name="permissions_alarms_description">Starts planned focus and ends timer rounds while the phone sleeps.</string>
     <string name="permissions_notifications">Notifications</string>
@@ -66,7 +66,7 @@
     <string name="apps_overflow_count" translatable="false">+%1$d</string>
 
     <!-- Backups -->
-    <string name="backup_default_filename" translatable="false">stillpoint-%1$s.stillpoint</string>
+    <string name="backup_default_filename" translatable="false">ronumi-%1$s.ronumi</string>
     <string name="backup_export_success">Encrypted backup saved.</string>
     <string name="backup_restore_success">Backup restored.</string>
     <string name="backup_failure_message">The backup could not finish. Try again.</string>
@@ -79,7 +79,7 @@
     <string name="backup_working_on_your_backup" tools:ignore="TypographyEllipsis">Working on your backup...</string>
     <string name="backup_protect_your_backup">Protect your backup</string>
     <string name="backup_unlock_your_backup">Unlock your backup</string>
-    <string name="backup_password_create_help">Use at least 12 characters. Keep this password safe. Stillpoint cannot recover it.</string>
+    <string name="backup_password_create_help">Use at least 12 characters. Keep this password safe. Ronumi cannot recover it.</string>
     <string name="backup_password_restore_help">Enter the password used when this backup was saved. Unencrypted JSON backups are not accepted.</string>
     <string name="backup_password">Password</string>
     <string name="backup_repeat_password">Repeat password</string>
@@ -98,8 +98,8 @@
     <string name="backup_error_settings">Invalid focus or game settings</string>
     <string name="backup_error_theme">Invalid theme mode</string>
     <string name="backup_error_clock">Invalid clock format</string>
-    <string name="backup_error_pet_count">Invalid Pebble tap count</string>
-    <string name="backup_error_items">Invalid Pebble items</string>
+    <string name="backup_error_pet_count">Invalid tap count</string>
+    <string name="backup_error_items">Invalid wardrobe items</string>
     <string name="backup_error_delivery_time">Invalid notification delivery time</string>
     <string name="backup_error_freeze_reward">Invalid freeze reward date</string>
     <string name="backup_error_streak_date">Invalid streak date</string>
@@ -109,7 +109,7 @@
     <string name="backup_error_focus_history">Invalid focus history</string>
     <string name="backup_error_usage_history">Invalid usage history</string>
     <string name="backup_error_authentication">Wrong password or damaged backup</string>
-    <string name="backup_error_format">Use an encrypted Stillpoint backup. Plaintext and other formats are not supported.</string>
+    <string name="backup_error_format">Use an encrypted Ronumi backup. Plaintext and other formats are not supported.</string>
     <string name="backup_error_encrypted_version">Unsupported encrypted backup version</string>
     <string name="backup_error_password_length">Use a password with 1 to 1024 characters</string>
 
@@ -172,7 +172,7 @@
     <string name="badge_notes1_detail">Add a note to a completed session</string>
     <string name="badge_notes10_title">Learning as you go</string>
     <string name="badge_notes10_detail">Add notes to 10 completed sessions</string>
-    <string name="badge_quests10_title">Curious Pebble</string>
+    <string name="badge_quests10_title">Curious Ronumi</string>
     <string name="badge_quests10_detail">Complete 10 daily quests</string>
     <string name="badge_quests50_title">Quest companion</string>
     <string name="badge_quests50_detail">Complete 50 daily quests</string>
@@ -219,7 +219,7 @@
     <string name="blocks_notifications">Notifications</string>
     <string name="blocks_inbox_description">I keep them in a box until you finish.</string>
     <string name="blocks_allow_notification_access">Allow notification access</string>
-    <string name="blocks_listener_description">Stillpoint needs it to hold notifications.</string>
+    <string name="blocks_listener_description">Ronumi needs it to hold notifications.</string>
     <string name="blocks_hold_notifications_from">Hold notifications from</string>
     <string name="blocks_no_apps">No apps</string>
     <string name="blocks_hold_all_day">Hold all day</string>
@@ -237,7 +237,7 @@
     <string name="blocks_delivery_times_description">At these times you get one quiet summary of what waited.</string>
     <string name="blocks_strict_mode">Strict mode</string>
     <string name="blocks_protection_description">When strict mode is on, nobody can switch me off in a weak moment. Not even you.</string>
-    <string name="blocks_protection_switch">Lock Stillpoint while blocks run</string>
+    <string name="blocks_protection_switch">Lock Ronumi while blocks run</string>
     <string name="blocks_protection_switch_description">Locks the Blocks tab and supported settings pages during focus and schedules.</string>
     <string name="blocks_block_split_screen">Block split screen</string>
     <string name="blocks_windows_description">Closes split screen and floating windows during focus and schedules.</string>
@@ -500,7 +500,7 @@
     <string name="focus_clock_hours" translatable="false">%1$d:%2$02d:%3$02d</string>
 
     <!-- Home -->
-    <string name="home_pebble_wardrobe">Pebble wardrobe</string>
+    <string name="home_wardrobe">Wardrobe</string>
     <string name="home_daily_quests">Daily quests</string>
     <string name="home_resets_at_midnight">Resets at midnight</string>
     <string name="home_screen_time">Screen time</string>
@@ -522,7 +522,7 @@
     <string name="home_greeting_morning">Good morning! A short focus now makes the whole day easier.</string>
     <string name="home_greeting_ready">Ready when you are. One session at a time.</string>
     <string name="home_finish_setup">Finish setup</string>
-    <string name="home_permissions_missing">Stillpoint can\'t block anything yet. Tap to allow the permissions.</string>
+    <string name="home_permissions_missing">Ronumi can\'t block anything yet. Tap to allow the permissions.</string>
     <string name="home_goal_target">of %1$s</string>
     <string name="home_goal_title">Today\'s focus</string>
     <string name="home_show_quest_details">Show quest details</string>
@@ -568,20 +568,20 @@
     <string name="onboarding_games">Games</string>
     <string name="onboarding_distraction_start">I can\'t get started</string>
     <string name="onboarding_back">Back</string>
-    <string name="onboarding_pebble_intro">Hi! I\'m Pebble. I help you scroll less and focus more.</string>
+    <string name="onboarding_intro">Hi! I\'m Ronumi. I help you scroll less and focus more.</string>
     <string name="onboarding_questions_intro">First, a few quick questions. Then I\'ll build a plan just for you.</string>
     <string name="onboarding_purpose_question">What do you want help with?</string>
     <string name="onboarding_goal_question">Pick a daily focus goal</string>
     <string name="onboarding_distractions_question">What pulls you away the most?</string>
     <string name="onboarding_shorts_title">Scrolling Shorts?</string>
-    <string name="onboarding_shorts_description">Pebble closes the feed. The rest of the app still works.</string>
+    <string name="onboarding_shorts_description">Ronumi closes the feed. The rest of the app still works.</string>
     <string name="onboarding_inbox_title">Buzz, buzz, buzz?</string>
     <string name="onboarding_inbox_description">Notifications wait in a box until you finish.</string>
     <string name="onboarding_strict_title">Want to quit early?</string>
     <string name="onboarding_strict_description">Strict mode won\'t let you. Future you says thanks.</string>
     <string name="onboarding_build_a_streak">Build a streak</string>
     <string name="onboarding_streak_description">Focus a little every day. Keep the flame alive.</string>
-    <string name="onboarding_app_name" translatable="false">Stillpoint</string>
+    <string name="onboarding_app_name" translatable="false">Ronumi</string>
     <string name="onboarding_welcome_tagline">Less scrolling. More living.</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_continue">Continue</string>
@@ -636,7 +636,7 @@
     <string name="progress_settings">Settings</string>
     <string name="progress_level">Level %1$d</string>
     <string name="progress_xp_to_level">%1$d / %2$d XP to level %3$d</string>
-    <string name="progress_pebble_wardrobe">Pebble wardrobe</string>
+    <string name="progress_wardrobe">Wardrobe</string>
     <string name="progress_wardrobe_description">Clothes, colors, hats, and accessories. Unlock more as you level up.</string>
     <string name="progress_streak_complete">Today\'s streak step is complete.</string>
     <string name="progress_rest_streak_active">Rest day. Your streak stays active.</string>
@@ -804,7 +804,7 @@
     <!-- Wardrobe -->
     <string name="wardrobe_secret_secret_found">Secret found!</string>
     <string name="wardrobe_secret_star_guardian">Star guardian</string>
-    <string name="wardrobe_secret_description">A thousand pats! Pebble has never felt so loved. This outfit is yours to keep.</string>
+    <string name="wardrobe_secret_description">A thousand pats! Ronumi has never felt so loved. This outfit is yours to keep.</string>
     <string name="wardrobe_secret_wear_it_now">Wear it now</string>
     <string name="wardrobe_secret_later">Later</string>
     <string name="wardrobe_item_color_mint">Mint</string>
@@ -846,8 +846,8 @@
     <string name="wardrobe_item_accessory_star">Pocket star</string>
     <string name="wardrobe_hidden_message">This item is still hidden.</string>
     <string name="wardrobe_locked_message">This item unlocks at level %1$d.</string>
-    <string name="wardrobe_save_failure">Could not save Pebble\'s look. Try again.</string>
-    <string name="wardrobe_title">Pebble\'s wardrobe</string>
+    <string name="wardrobe_save_failure">Could not save Ronumi\'s look. Try again.</string>
+    <string name="wardrobe_title">Ronumi\'s wardrobe</string>
     <string name="wardrobe_preview_level_required" tools:ignore="PluralsCandidate">Preview - level %1$d required</string>
     <string name="wardrobe_wearing_now">Wearing now</string>
     <string name="wardrobe_ready_to_wear">Ready to wear</string>
@@ -904,7 +904,7 @@
     <string name="settings_live_focus_timer">Live focus timer</string>
     <string name="settings_live_timer_help">Shows the time left in the status bar while you focus.</string>
     <string name="settings_allow_live_updates">Allow live updates</string>
-    <string name="settings_live_timer_permission_help">Android turned off live updates for Stillpoint. Tap to allow them.</string>
+    <string name="settings_live_timer_permission_help">Android turned off live updates for Ronumi. Tap to allow them.</string>
     <string name="settings_planned_focus_reminders">Planned focus reminders</string>
     <string name="settings_plan_reminders_help">Reminders for scheduled focus. Automatic starts stay enabled.</string>
     <string name="settings_inbox_summaries">Inbox summaries</string>
@@ -913,7 +913,7 @@
     <string name="settings_system_notifications_help">Control notification sound and visibility.</string>
     <string name="settings_about">About</string>
     <string name="settings_source_code">Source code</string>
-    <string name="settings_repository_name" translatable="false">github.com/agneswd/Stillpoint</string>
+    <string name="settings_repository_name" translatable="false">github.com/agneswd/Ronumi</string>
     <string name="settings_source_description">GPLv3 at %1$s</string>
     <string name="settings_version">Version</string>
     <string name="settings_licenses_description">Nunito uses the SIL Open Font License. UI sounds from the Versilian Community Sample Library and focus recordings from Freesound use CC0. License texts are included in this app.</string>
@@ -951,22 +951,22 @@
         <item quantity="one">%1$d passes left today.</item>
         <item quantity="other">%1$d passes left today.</item>
     </plurals>
-    <string name="block_pebble_focus_1">Not now. You\'re focusing!</string>
-    <string name="block_pebble_focus_2">Back to it. I believe in you.</string>
-    <string name="block_pebble_focus_3">Nice try! Your focus comes first.</string>
-    <string name="block_pebble_schedule_1">It\'s not time for this yet.</string>
-    <string name="block_pebble_schedule_2">Your plan says no. I agree.</string>
-    <string name="block_pebble_limit_1">That\'s enough for today.</string>
-    <string name="block_pebble_limit_2">Your time is used up. See you tomorrow!</string>
-    <string name="block_pebble_shorts_1">No endless scrolling!</string>
-    <string name="block_pebble_shorts_2">Shorts are closed. The rest is yours.</string>
-    <string name="block_pebble_study_1">Study mode is on.</string>
-    <string name="block_pebble_study_2">Let\'s find something useful.</string>
-    <string name="block_pebble_site_1">Hmm, not this site.</string>
-    <string name="block_pebble_site_2">This site is on your list.</string>
-    <string name="block_pebble_protection_1">Nice try. Your blocks stay on.</string>
-    <string name="block_pebble_protection_2">Not today. Strict mode is on.</string>
-    <string name="block_pebble_multi_window_1">One app at a time.</string>
+    <string name="block_line_focus_1">Not now. You\'re focusing!</string>
+    <string name="block_line_focus_2">Back to it. I believe in you.</string>
+    <string name="block_line_focus_3">Nice try! Your focus comes first.</string>
+    <string name="block_line_schedule_1">It\'s not time for this yet.</string>
+    <string name="block_line_schedule_2">Your plan says no. I agree.</string>
+    <string name="block_line_limit_1">That\'s enough for today.</string>
+    <string name="block_line_limit_2">Your time is used up. See you tomorrow!</string>
+    <string name="block_line_shorts_1">No endless scrolling!</string>
+    <string name="block_line_shorts_2">Shorts are closed. The rest is yours.</string>
+    <string name="block_line_study_1">Study mode is on.</string>
+    <string name="block_line_study_2">Let\'s find something useful.</string>
+    <string name="block_line_site_1">Hmm, not this site.</string>
+    <string name="block_line_site_2">This site is on your list.</string>
+    <string name="block_line_protection_1">Nice try. Your blocks stay on.</string>
+    <string name="block_line_protection_2">Not today. Strict mode is on.</string>
+    <string name="block_line_multi_window_1">One app at a time.</string>
     <string name="block_focus_title">%1$s is blocked during focus</string>
     <string name="block_focus_detail">Your focus round ends at %1$s.</string>
     <string name="block_schedule_title">%1$s is blocked during %2$s</string>
@@ -984,7 +984,7 @@
     <string name="block_channel_detail">Only your chosen channels work in study mode.</string>
     <string name="block_site_title">%1$s is blocked</string>
     <string name="block_site_detail">Going back opens a blank page in this tab.</string>
-    <string name="block_settings_title">Stillpoint settings are locked</string>
+    <string name="block_settings_title">Ronumi settings are locked</string>
     <string name="block_settings_detail">You can change them when the focus round or schedule ends.</string>
 
     <!-- Limit -->
@@ -1008,9 +1008,9 @@
         <item quantity="other">%1$dh %2$dm</item>
     </plurals>
 
-    <!-- Pebble -->
-    <string name="pebble_pet_action">Pet Pebble</string>
-    <string name="pebble_name" translatable="false">Pebble</string>
+    <!-- Ronumi -->
+    <string name="pet_action">Pet Ronumi</string>
+    <string name="ronumi_name" translatable="false">Ronumi</string>
 
     <!-- Notification channels -->
     <string name="notification_channel_focus">Focus timer</string>

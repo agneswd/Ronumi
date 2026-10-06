@@ -5,7 +5,7 @@
     <string name="update_auto_detail">Checks GitHub about once a day. Downloads start only when you choose.</string>
     <string name="update_check">Check for updates</string>
     <string name="update_wait">Please wait...</string>
-    <string name="update_source">Get new releases from agneswd/Stillpoint on GitHub.</string>
+    <string name="update_source">Get new releases from agneswd/Ronumi on GitHub.</string>
     <string name="update_current">You have the latest release.</string>
     <string name="update_no_release">No public release is available yet.</string>
     <string name="update_install">Install update</string>
@@ -15,7 +15,7 @@
     <string name="update_failed">The update could not finish. Try again.</string>
     <string name="update_available">Version %1$s is available.</string>
     <string name="update_progress">Working... %1$d%%</string>
-    <string name="update_notification_title">Stillpoint %1$s is available</string>
+    <string name="update_notification_title">Ronumi %1$s is available</string>
     <string name="update_notification_detail">Tap to review the update. Nothing downloads until you choose.</string>
     <string name="update_error_unknown_version">This build has an unknown version. Check GitHub for updates.</string>
     <string name="update_error_rate_limit">GitHub is limiting update checks. Try again later.</string>

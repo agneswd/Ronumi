@@ -103,7 +103,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
             val (mood, line) = greeting(game)
             RonumiSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60), ronumiSize = 96.dp)
             Text(
-                stringResource(R.string.home_pebble_wardrobe),
+                stringResource(R.string.home_wardrobe),
                 Modifier.align(Alignment.End).clip(RoundedCornerShape(12.dp)).clickable { navigator.push(Route.Wardrobe) }
                     .padding(horizontal = ScreenPadding, vertical = 12.dp),
                 style = MaterialTheme.typography.labelLarge, color = Sp.colors.brand,

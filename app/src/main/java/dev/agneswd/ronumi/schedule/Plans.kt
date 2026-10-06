@@ -92,7 +92,7 @@ object Plans {
 
     private fun pending(context: Context, kind: String, at: Long = 0, id: Long = 0): PendingIntent {
         val intent = Intent(context, PlanReceiver::class.java).setAction(kind)
-            .setData(Uri.parse("stillpoint://alarm/$kind")).putExtra("at", at).putExtra("id", id)
+            .setData(Uri.parse("ronumi://alarm/$kind")).putExtra("at", at).putExtra("id", id)
         return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
@@ -138,7 +138,7 @@ object Plans {
     private suspend fun remind(context: Context, title: String, id: Long) {
         if (!context.app.dao.currentSettings().notifyPlanReminders) return
         val snooze = PendingIntent.getBroadcast(context, id.toInt(), Intent(context, PlanReceiver::class.java)
-            .setAction(SNOOZE).setData(Uri.parse("stillpoint://snooze/$id")).putExtra("id", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            .setAction(SNOOZE).setData(Uri.parse("ronumi://snooze/$id")).putExtra("id", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val notification = NotificationCompat.Builder(context, RonumiApp.CHANNEL_EVENTS)
             .addAction(0, context.getString(R.string.plan_notification_snooze), snooze)
             .setSmallIcon(R.drawable.ic_stat).setContentTitle(title.displayName(context)).setContentText(context.getString(R.string.plan_notification_body))

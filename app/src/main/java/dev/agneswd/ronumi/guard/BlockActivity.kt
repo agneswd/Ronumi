@@ -218,7 +218,7 @@ class BlockActivity : ComponentActivity() {
                 (dao.currentSettings().emergencyPassesPerDay - dao.passesUsed(LocalDate.now().toString())).coerceAtLeast(0)
             }
         }
-        val (mood, line) = remember(kind, title) { pebbleLine(kind) }
+        val (mood, line) = remember(kind, title) { blockLine(kind) }
         Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
             FloatingDots(Modifier.fillMaxSize())
             Column(
@@ -279,16 +279,16 @@ class BlockActivity : ComponentActivity() {
 }
 
 /** What Ronumi says on the block screen. A few lines per kind keep it fresh. */
-private fun pebbleLine(kind: BlockKind): Pair<Mood, Int> {
+private fun blockLine(kind: BlockKind): Pair<Mood, Int> {
     val (mood, lines) = when (kind) {
-        BlockKind.FOCUS -> Mood.GUARD to listOf(R.string.block_pebble_focus_1, R.string.block_pebble_focus_2, R.string.block_pebble_focus_3)
-        BlockKind.SCHEDULE -> Mood.GUARD to listOf(R.string.block_pebble_schedule_1, R.string.block_pebble_schedule_2)
-        BlockKind.LIMIT -> Mood.SLEEPY to listOf(R.string.block_pebble_limit_1, R.string.block_pebble_limit_2)
-        BlockKind.SHORTS -> Mood.GUARD to listOf(R.string.block_pebble_shorts_1, R.string.block_pebble_shorts_2)
-        BlockKind.STUDY -> Mood.THINK to listOf(R.string.block_pebble_study_1, R.string.block_pebble_study_2)
-        BlockKind.SITE -> Mood.THINK to listOf(R.string.block_pebble_site_1, R.string.block_pebble_site_2)
-        BlockKind.PROTECTION -> Mood.STRICT to listOf(R.string.block_pebble_protection_1, R.string.block_pebble_protection_2)
-        BlockKind.MULTI_WINDOW -> Mood.GUARD to listOf(R.string.block_pebble_multi_window_1)
+        BlockKind.FOCUS -> Mood.GUARD to listOf(R.string.block_line_focus_1, R.string.block_line_focus_2, R.string.block_line_focus_3)
+        BlockKind.SCHEDULE -> Mood.GUARD to listOf(R.string.block_line_schedule_1, R.string.block_line_schedule_2)
+        BlockKind.LIMIT -> Mood.SLEEPY to listOf(R.string.block_line_limit_1, R.string.block_line_limit_2)
+        BlockKind.SHORTS -> Mood.GUARD to listOf(R.string.block_line_shorts_1, R.string.block_line_shorts_2)
+        BlockKind.STUDY -> Mood.THINK to listOf(R.string.block_line_study_1, R.string.block_line_study_2)
+        BlockKind.SITE -> Mood.THINK to listOf(R.string.block_line_site_1, R.string.block_line_site_2)
+        BlockKind.PROTECTION -> Mood.STRICT to listOf(R.string.block_line_protection_1, R.string.block_line_protection_2)
+        BlockKind.MULTI_WINDOW -> Mood.GUARD to listOf(R.string.block_line_multi_window_1)
     }
     return mood to lines.random()
 }

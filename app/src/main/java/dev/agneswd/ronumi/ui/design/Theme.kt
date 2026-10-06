@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import dev.agneswd.ronumi.R
 
 /**
- * The Stillpoint palette. Bright and playful like a game, with periwinkle as the brand color.
+ * The Ronumi palette. Bright and playful like a game, with periwinkle as the brand color.
  * Each fill color has a darker "lip" for the 3D edge under buttons and cards.
  */
 @Immutable

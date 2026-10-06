@@ -40,7 +40,7 @@ private fun render(width: Int, height: Int, draw: DrawScope.() -> Unit): Bitmap 
 }
 
 /** Ronumi in a square, with no ring. */
-fun pebbleArt(context: Context, mood: Mood, sizePx: Int = 220, style: Set<String> = emptySet()): Bitmap = render(sizePx, sizePx) {
+fun ronumiArt(context: Context, mood: Mood, sizePx: Int = 220, style: Set<String> = emptySet()): Bitmap = render(sizePx, sizePx) {
     val w = size.width * 0.86f
     inset((size.width - w) / 2, size.height - w * 1.1f, (size.width - w) / 2, 0f) { drawRonumi(mood, style = style) }
 }
