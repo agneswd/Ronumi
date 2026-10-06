@@ -49,7 +49,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import dev.agneswd.ronumi.Distribution
 import dev.agneswd.ronumi.R
 import dev.agneswd.ronumi.app
 import dev.agneswd.ronumi.game.GameState
@@ -96,7 +95,6 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 110.dp)) {
             GameBar(game, onOpen = { navigator.tab = Tab.PROGRESS })
-            Distribution.MigrationNotice()
             if (!access.ready) {
                 SetupNudge(Modifier.padding(horizontal = ScreenPadding).appear(0)) { navigator.push(Route.Settings) }
             }

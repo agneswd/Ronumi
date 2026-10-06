@@ -25,9 +25,6 @@ object Distribution {
     }
 
     @Composable
-    fun MigrationNotice() = dev.agneswd.ronumi.ui.MigrationNotice()
-
-    @Composable
     fun UpdateSettings(settings: Settings) = dev.agneswd.ronumi.ui.UpdateSettings(settings)
 }
 

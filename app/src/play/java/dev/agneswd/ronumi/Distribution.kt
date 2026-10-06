@@ -9,10 +9,6 @@ import dev.agneswd.ronumi.plus.createStore
 object Distribution {
     fun createPlus(app: RonumiApp): Plus = PlayPlus(app, createStore(app))
 
-    /** Play does not show the Ronumi notice. */
-    @Composable
-    fun MigrationNotice() {}
-
     @Composable
     fun UpdateSettings(settings: Settings) = Unit
 }
