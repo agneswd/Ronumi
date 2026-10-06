@@ -75,6 +75,9 @@ def settings_update_section(e):
 
 
 def run(e):
+    # fresh_install hides the notice for the other checks. This check needs it.
+    e.sh(f"am force-stop {e.PKG}")
+    e.sh(f"run-as {e.PKG} rm -f shared_prefs/ronumi_bridge.xml")
     e.device_workflow("demo-wardrobe")
     e.device_workflow("backup", "--ez seed true", receiver=".BridgeFixture")
     e.home()

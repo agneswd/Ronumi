@@ -176,8 +176,18 @@ def fresh_install():
     sh("echo 'chrome --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line")
     sh(f"am force-stop {CHROME}")
     sh(f"pm grant {CHROME} android.permission.POST_NOTIFICATIONS")
+    hide_bridge_notice()
     sh("logcat -c")
     rebind()
+
+
+def hide_bridge_notice():
+    # The github build shows a Ronumi notice on Home. Only bridge_workflow checks it, so other checks start without it.
+    prefs = RUN / "ronumi_bridge.xml"
+    prefs.write_text('<?xml version="1.0" encoding="utf-8"?>\n<map><boolean name="notice_dismissed" value="true" /></map>\n')
+    adb("push", str(prefs), "/data/local/tmp/ronumi_bridge.xml")
+    sh(f"run-as {PKG} mkdir -p shared_prefs")
+    sh(f"run-as {PKG} cp /data/local/tmp/ronumi_bridge.xml shared_prefs/ronumi_bridge.xml")
 
 
 # Checks. Each one starts from the state the one before it left.
