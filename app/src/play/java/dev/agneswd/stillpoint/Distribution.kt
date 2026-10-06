@@ -9,6 +9,10 @@ import dev.agneswd.stillpoint.plus.createStore
 object Distribution {
     fun createPlus(app: StillpointApp): Plus = PlayPlus(app, createStore(app))
 
+    /** Play does not show the Ronumi notice. */
+    @Composable
+    fun MigrationNotice() {}
+
     @Composable
     fun UpdateSettings(settings: Settings) = Unit
 }

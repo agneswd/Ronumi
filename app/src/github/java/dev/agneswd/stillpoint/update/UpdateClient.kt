@@ -43,7 +43,7 @@ sealed interface UpdateCheck {
     data class Failed(val message: String) : UpdateCheck
 }
 
-/** Requests public release metadata and APKs. Never uploads app activity or account data. */
+/** Requests public release metadata and APKs. Version 0.1.3 does not call this object. */
 object UpdateClient {
     private val downloads = Mutex()
 

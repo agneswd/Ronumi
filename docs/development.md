@@ -6,7 +6,7 @@ Use JDK 17, Android SDK 37, and Build Tools 37.0.0. Set `JAVA_HOME` for your ins
 Set `sdk.dir` in an untracked `local.properties`, or set `ANDROID_HOME`.
 
 ```sh
-# GitHub APKs, with the self-updater and all Plus features available.
+# GitHub APKs. Version 0.1.3 does not check for updates. Plus features stay available.
 ./gradlew assembleGithubDebug assembleGithubRelease lintGithubDebug lintGithubRelease
 # Play APKs for checks, and the Play release bundle for upload.
 ./gradlew assemblePlayDebug assemblePlayRelease bundlePlayRelease lintPlayDebug lintPlayRelease
@@ -225,15 +225,16 @@ Older backups omit the field and restore as `SYSTEM`.
 
 ## Built-in updates
 
-The GitHub flavor uses Internet access only for its optional updater. The Play flavor declares it only through the Billing library's diagnostics dependency and makes no network requests of its own. Focus, blocking, reports, and audio remain local.
-Update requests contain no focus history, held messages, or other app data.
-Android's persisted job scheduler checks roughly daily when a network is available. It does not promise an exact delivery time.
-Disabling automatic checks cancels the job. Manual checks remain available.
-
-The updater accepts stable numeric release tags and APK assets from this repository.
-Downloads require a user action. Installation requires another action and Android confirmation.
-The app checks the APK's size, digest when supplied by GitHub, package name, version, and signing certificate.
-Debug installations cannot install release APKs signed with a different key.
-
-Test offline failures, unavailable releases, rejected APKs, background-check settings, and the Android install permission flow.
-The full signed update path needs a real compatible release asset. A metadata check alone does not prove installation.
+Version 0.1.3 retires the GitHub updater.
+This is the last release of package `dev.agneswd.stillpoint`.
+The github build does not schedule the daily update job.
+At startup, the app cancels JobScheduler job 64021 from an older build.
+Settings shows the Ronumi notice and the GET RONUMI button.
+The app does not call GitHub.
+The download code stays in the github source set.
+Removing it would be a large change.
+This release does not call the download code.
+`UpdateJob` stays registered and returns without a network call.
+After the repository rename, the old updater would reject the GitHub redirect and report an error on every check.
+The Play build has no updater.
+Focus, blocking, reports, and audio remain local.

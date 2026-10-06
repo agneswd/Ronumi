@@ -103,7 +103,7 @@ Only encrypted Stillpoint backups are accepted; older unencrypted JSON files can
 | Notification access, optional | Holds notifications from apps you select. |
 | Notifications | Shows focus status, reminders, and summaries. |
 | Alarms and reminders | Starts planned focus on time. Android may delay reminders without this access. |
-| Install unknown apps, when updating | Opens an update you chose in Android's installer. You still confirm each installation. |
+| Install unknown apps | The github APK still declares this permission. Version 0.1.3 does not download or install an update. |
 
 On Android 13 and later, open Stillpoint's **App info** menu and select **Allow restricted settings**
 if Android blocks you from enabling accessibility.
@@ -112,11 +112,8 @@ if Android blocks you from enabling accessibility.
 
 ## Updates
 
-Open **Settings > App updates** to check for a release. Automatic checks are on by default and run about once a day,
-when Android permits. You can turn them off.
-
-Choose **Download**, then **Install**. Stillpoint checks the APK's identity, version, and signing key before opening Android's installer.
-Nothing downloads or installs automatically.
+Version 0.1.3 is the last Stillpoint release. It does not check GitHub and it does not download an APK.
+Open Settings and select GET RONUMI. Ronumi brings your progress with it.
 
 ## Help and contribute
 

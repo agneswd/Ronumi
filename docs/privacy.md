@@ -1,6 +1,6 @@
 # Stillpoint privacy policy
 
-Last updated: 2026-10-05
+Last updated: 2026-10-06
 
 Stillpoint is developed by agneswd. This policy covers the Google Play version and the APK from GitHub.
 Contact: `SUPPORT_EMAIL`.
@@ -62,15 +62,10 @@ Google Play uses its own connection to process purchases and deliver app updates
 ## GitHub updates
 
 The GitHub APK includes every feature for free. It does not use Google Play Billing.
-It can check GitHub for updates and download an APK when you choose Download.
-Automatic update checks are on by default and run about once a day when Android permits.
-You can turn them off in Settings > App updates.
-
-Requests go to GitHub's release API and download hosts over HTTPS.
-GitHub receives your IP address, request time, requested resource, and normal connection information.
-Stillpoint sends the user-agent value `Stillpoint-Updater` and headers for GitHub's API or APK downloads.
-It does not attach your settings, focus history, app usage, held messages, or a Stillpoint account identifier.
-GitHub handles request information under the [GitHub General Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
+Version 0.1.3 is the last release of this package.
+It does not check GitHub for updates and it does not download an APK.
+Settings shows how to install Ronumi. That page opens in your browser when you select GET RONUMI.
+This build does not send an update request to GitHub.
 
 ## Support and changes
 

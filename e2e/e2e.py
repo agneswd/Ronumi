@@ -176,8 +176,18 @@ def fresh_install():
     sh("echo 'chrome --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line")
     sh(f"am force-stop {CHROME}")
     sh(f"pm grant {CHROME} android.permission.POST_NOTIFICATIONS")
+    hide_bridge_notice()
     sh("logcat -c")
     rebind()
+
+
+def hide_bridge_notice():
+    # The github build shows a Ronumi notice on Home. Only bridge_workflow checks it, so other checks start without it.
+    prefs = RUN / "ronumi_bridge.xml"
+    prefs.write_text('<?xml version="1.0" encoding="utf-8"?>\n<map><boolean name="notice_dismissed" value="true" /></map>\n')
+    adb("push", str(prefs), "/data/local/tmp/ronumi_bridge.xml")
+    sh(f"run-as {PKG} mkdir -p shared_prefs")
+    sh(f"run-as {PKG} cp /data/local/tmp/ronumi_bridge.xml shared_prefs/ronumi_bridge.xml")
 
 
 # Checks. Each one starts from the state the one before it left.
@@ -799,6 +809,11 @@ CHECKS = [
 ]
 
 
+def bridge_workflow():
+    from bridge.workflow import run
+    return run(sys.modules[__name__])
+
+
 def main():
     global APK
     parser = argparse.ArgumentParser()
@@ -809,8 +824,8 @@ def main():
     APK = ROOT / f"app/build/outputs/apk/{args.flavor}/debug/app-{args.flavor}-debug.apk"
     if args.apk:
         APK = args.apk.resolve()
-    available = CHECKS if args.flavor == "github" else [plus_workflow]
-    requested = set(args.only.split(",")) if args.only else {c.__name__ for c in available}
+    available = CHECKS + [bridge_workflow] if args.flavor == "github" else [plus_workflow]
+    requested = set(args.only.split(",")) if args.only else {c.__name__ for c in available if c != bridge_workflow}
     unknown = requested - {c.__name__ for c in available}
     if unknown:
         parser.error("Unknown checks for this flavor: " + ", ".join(sorted(unknown)))
