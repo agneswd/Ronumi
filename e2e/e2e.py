@@ -947,7 +947,9 @@ def import_workflow():
     wait_for("Welcome back", timeout=25)
     fresh_ask = shot("import-ask-again")
     tap("Start fresh")
-    wait_for("Hi! I'm Ronumi", timeout=20)
+    wait_for("Get started", timeout=20)
+    if find("Welcome back"):
+        raise AssertionError("Start fresh returned to the import screen")
     fresh = shot("import-fresh")
     untouched = RUN / "previous-after-fresh.db"
     load_database(OLD_PKG, "stillpoint.db", untouched)
