@@ -43,7 +43,7 @@ sealed interface UpdateCheck {
     data class Failed(val message: String) : UpdateCheck
 }
 
-/** Requests public release metadata and APKs. Version 0.1.3 does not call this object. */
+/** Requests public release metadata and APKs. Downloads start only after a user action. */
 object UpdateClient {
     private val downloads = Mutex()
 
@@ -54,11 +54,11 @@ object UpdateClient {
                 ?: return@withContext UpdateCheck.Failed(context.getString(R.string.update_error_unknown_version))
             val connection = connect(UpdatePolicy.RELEASE_API, metadata = true)
             val json = try {
-                when (connection.responseCode) {
-                    404 -> return@withContext UpdateCheck.NoRelease
-                    403, 429 -> return@withContext UpdateCheck.Failed(context.getString(R.string.update_error_rate_limit))
-                    200 -> JSONObject(readSmallBody(connection))
-                    else -> return@withContext UpdateCheck.Failed(context.getString(R.string.update_error_release_unavailable))
+                when (UpdatePolicy.releaseLookup(connection.responseCode)) {
+                    ReleaseLookup.UpToDate -> return@withContext UpdateCheck.UpToDate
+                    ReleaseLookup.RateLimited -> return@withContext UpdateCheck.Failed(context.getString(R.string.update_error_rate_limit))
+                    ReleaseLookup.Unavailable -> return@withContext UpdateCheck.Failed(context.getString(R.string.update_error_release_unavailable))
+                    ReleaseLookup.ReadBody -> JSONObject(readSmallBody(connection))
                 }
             } finally {
                 connection.disconnect()
@@ -187,7 +187,11 @@ object UpdateClient {
         val candidate = context.packageManager.getPackageArchiveInfo(file.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES)
             ?: throw UpdateException(R.string.update_error_invalid_apk)
         val current = installed(context)
-        if (candidate.packageName != context.packageName) throw UpdateException(R.string.update_error_wrong_package)
+        when (UpdatePolicy.apkPackageDecision(candidate.packageName, context.packageName)) {
+            ApkPackageDecision.LegacyApp -> throw UpdateException(R.string.update_error_legacy_package)
+            ApkPackageDecision.OtherApp -> throw UpdateException(R.string.update_error_wrong_package)
+            ApkPackageDecision.CurrentApp -> Unit
+        }
         if (candidate.longVersionCode <= current.longVersionCode) throw UpdateException(R.string.update_error_not_newer)
         if ((candidate.applicationInfo?.minSdkVersion ?: Int.MAX_VALUE) > Build.VERSION.SDK_INT) throw UpdateException(R.string.update_error_android_version)
         fun signers(info: PackageInfo): Set<String> = info.signingInfo?.apkContentsSigners.orEmpty()
@@ -225,7 +229,7 @@ object UpdateClient {
             connection.connectTimeout = 15_000
             connection.readTimeout = 30_000
             connection.useCaches = false
-            connection.setRequestProperty("User-Agent", "Stillpoint-Updater")
+            connection.setRequestProperty("User-Agent", "Ronumi-Updater")
             connection.setRequestProperty("Accept", if (metadata) "application/vnd.github+json" else "application/octet-stream")
             if (metadata) connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
             try {

@@ -42,6 +42,7 @@
     <string name="update_error_file_missing">The update APK is missing or too large.</string>
     <string name="update_error_invalid_apk">The download is not a valid Android APK.</string>
     <string name="update_error_wrong_package">The APK is for a different app.</string>
+    <string name="update_error_legacy_package">This release is for Stillpoint. Ronumi does not install it.</string>
     <string name="update_error_not_newer">The APK is not newer than this installation.</string>
     <string name="update_error_android_version">This update requires a newer Android version.</string>
     <string name="update_error_signer_mismatch">The update signing key does not match this installation.</string>

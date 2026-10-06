@@ -15,10 +15,32 @@ data class ReleaseVersion(val major: Long, val minor: Long, val patch: Long) : C
     }
 }
 
+/** What a release-API status means before the body is read. */
+internal enum class ReleaseLookup { ReadBody, UpToDate, RateLimited, Unavailable }
+
+/** Which installed package an APK belongs to. The old package is never installed. */
+internal enum class ApkPackageDecision { CurrentApp, LegacyApp, OtherApp }
+
 internal object UpdatePolicy {
     const val MAX_APK_BYTES = 128L * 1024 * 1024
-    const val RELEASE_API = "https://api.github.com/repos/agneswd/Stillpoint/releases/latest"
-    private const val ASSET_PATH = "/agneswd/Stillpoint/releases/download/"
+    const val LEGACY_PACKAGE = "dev.agneswd.stillpoint"
+    const val RELEASE_API = "https://api.github.com/repos/agneswd/Ronumi/releases/latest"
+    private const val ASSET_PATH = "/agneswd/Ronumi/releases/download/"
+
+    /** A 404 means the Ronumi repository has no public release yet. That is not an error. */
+    fun releaseLookup(status: Int): ReleaseLookup = when (status) {
+        200 -> ReleaseLookup.ReadBody
+        404 -> ReleaseLookup.UpToDate
+        403, 429 -> ReleaseLookup.RateLimited
+        else -> ReleaseLookup.Unavailable
+    }
+
+    /** The package name is known only after the APK is downloaded. */
+    fun apkPackageDecision(candidatePackage: String, installedPackage: String): ApkPackageDecision = when (candidatePackage) {
+        LEGACY_PACKAGE -> ApkPackageDecision.LegacyApp
+        installedPackage -> ApkPackageDecision.CurrentApp
+        else -> ApkPackageDecision.OtherApp
+    }
 
     fun isAssetUrl(url: String): Boolean = safeUri(url)?.let {
         it.host == "github.com" && it.rawPath.startsWith(ASSET_PATH) && it.rawQuery == null &&
