@@ -5,10 +5,15 @@ import dev.agneswd.stillpoint.ui.design.Sfx
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import dev.agneswd.stillpoint.data.StillpointDatabase
 import dev.agneswd.stillpoint.usage.AppCatalog
 import dev.agneswd.stillpoint.usage.UsageReader
+import dev.agneswd.stillpoint.usage.UsageRefresher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,6 +29,7 @@ class StillpointApp : Application() {
     val database by lazy { StillpointDatabase.open(this) }
     val dao get() = database.dao()
     val usage by lazy { UsageReader(this, catalog) }
+    val usageRefresh by lazy { UsageRefresher(this) }
     val catalog by lazy { AppCatalog(this) }
     val plus: dev.agneswd.stillpoint.plus.Plus by lazy { Distribution.createPlus(this) }
 
@@ -33,6 +39,7 @@ class StillpointApp : Application() {
     override fun onCreate() {
         super.onCreate()
         Sfx.init(this)
+        watchClock()
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannels(
             listOf(
@@ -46,6 +53,21 @@ class StillpointApp : Application() {
                 Plans.refresh(this@StillpointApp)
             }
         }
+    }
+
+    private fun watchClock() {
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_TIME_CHANGED)
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            addAction(Intent.ACTION_DATE_CHANGED)
+        }
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                usageRefresh.bumpClock()
+            }
+        }
+        if (Build.VERSION.SDK_INT >= 33) registerReceiver(receiver, filter, RECEIVER_NOT_EXPORTED)
+        else registerReceiver(receiver, filter)
     }
 
     companion object {

@@ -149,9 +149,7 @@ class MainActivity : ComponentActivity() {
             applyStreakFreezes(app.dao)
             dev.agneswd.stillpoint.focus.Focus.recover(this@MainActivity)
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                if (app.usage.hasAccess()) app.usage.recentDays(7) else emptyList()
-            }.forEach { usage ->
-                app.dao.recordUsage(dev.agneswd.stillpoint.data.UsageDay(usage.date.toString(), usage.perApp.toMap(), usage.unlocks))
+                app.usageRefresh.refresh(7)
             }
         }
     }
