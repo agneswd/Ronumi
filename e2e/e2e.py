@@ -154,10 +154,11 @@ def home():
 def disable_guard():
     # Android 9 can retain a dead binding if an APK update or data reset interrupts a bind.
     # Wait for Android to release the connection before stopping or replacing the app.
+    # The wait is best effort: after a crash, newer Android versions keep a restarting record
+    # of the service. rebind() checks the real binding afterwards.
     sh("settings delete secure enabled_accessibility_services")
     end = time.time() + 10
-    while "GuardService" in sh(f"dumpsys activity services {PKG}/.guard.GuardService"):
-        assert time.time() < end, "Android did not release the guard connection before reset."
+    while "GuardService" in sh(f"dumpsys activity services {PKG}/.guard.GuardService") and time.time() < end:
         time.sleep(0.2)
 
 
