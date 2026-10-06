@@ -187,15 +187,18 @@ def fresh_install():
 # Enforcement checks use dumpsys and the block log instead of changing app state.
 
 def rebind():
-    disable_guard()
-    sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
-    sh("settings put secure accessibility_enabled 1")
-    time.sleep(3)
-    # Android can keep a crashed service unbound although the setting lists it.
-    end = time.time() + 10
-    while "label=Stillpoint" not in sh("dumpsys accessibility"):
-        assert time.time() < end, "Android did not bind the guard. Reboot the emulator."
-        time.sleep(1)
+    # Android can keep a crashed service unbound although the setting lists it, and a slow
+    # emulator can take long to bind after boot. Toggle the setting once more before failing.
+    for attempt in range(2):
+        disable_guard()
+        sh(f"settings put secure enabled_accessibility_services {PKG}/{PKG}.guard.GuardService")
+        sh("settings put secure accessibility_enabled 1")
+        end = time.time() + 20
+        while time.time() < end:
+            if "label=Stillpoint" in sh("dumpsys accessibility"):
+                return
+            time.sleep(1)
+    raise AssertionError("Android did not bind the guard. Reboot the emulator.")
 
 
 def top_activity() -> str:
