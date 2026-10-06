@@ -356,6 +356,7 @@ fun FocusSession(focus: ActiveFocus, onMinimize: () -> Unit) {
                             else -> Mood.CALM
                         },
                         size = pebbleSize,
+                        animated = focus.running,
                     )
                     Spacer(Modifier.height(12.dp))
                 }
@@ -639,7 +640,7 @@ fun FocusChip(focus: ActiveFocus, onOpen: () -> Unit, modifier: Modifier = Modif
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Pebble(Mood.CALM, size = 28.dp)
+        Pebble(Mood.CALM, size = 28.dp, animated = false)
         Spacer(Modifier.width(8.dp))
         Text(
             stringResource(if (focus.phase == FocusPhase.BREAK) R.string.focus_minimized_break else R.string.focus_minimized_running, clockText(shown)),

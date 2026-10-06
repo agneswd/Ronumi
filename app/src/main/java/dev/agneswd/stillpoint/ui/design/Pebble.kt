@@ -15,8 +15,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.withFrameNanos
@@ -83,46 +85,75 @@ fun Pebble(
     look: Offset = Offset.Zero,
     style: Set<String> = LocalPebbleStyle.current,
     thoughtDots: Boolean = true,
+    animated: Boolean = true,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val pet = remember { PetMotion() }
     val taps = remember { Channel<Unit>(Channel.CONFLATED) }
     var petFrame by remember { mutableIntStateOf(0) }
-    LaunchedEffect(pet) {
-        // A single frame loop consumes all taps. Each tap adds momentum before it sends a wake-up signal.
-        for (ignored in taps) {
-            var previous = withFrameNanos { it }
-            while (pet.active) {
-                val now = withFrameNanos { it }
-                val durationScale = currentCoroutineContext()[MotionDurationScale]?.scaleFactor ?: 1f
-                if (durationScale <= 0f) pet.clear()
-                else pet.advance(((now - previous) / 1_000_000_000f / durationScale).coerceIn(0f, 0.04f))
-                previous = now
-                petFrame++
+    if (animated) {
+        LaunchedEffect(pet) {
+            // A single frame loop consumes all taps. Each tap adds momentum before it sends a wake-up signal.
+            for (ignored in taps) {
+                var previous = withFrameNanos { it }
+                while (pet.active) {
+                    val now = withFrameNanos { it }
+                    val durationScale = currentCoroutineContext()[MotionDurationScale]?.scaleFactor ?: 1f
+                    if (durationScale <= 0f) pet.clear()
+                    else pet.advance(((now - previous) / 1_000_000_000f / durationScale).coerceIn(0f, 0.04f))
+                    previous = now
+                    petFrame++
+                }
             }
         }
     }
     val interaction = remember { MutableInteractionSource() }
     val pebbleName = stringResource(R.string.pebble_name)
     val petLabel = stringResource(R.string.pebble_pet_action)
-    val time = rememberInfiniteTransition(label = "pebble")
-    val breath by time.animateFloat(0f, 1f, infiniteRepeatable(tween(2600, easing = LinearEasing)), label = "breath")
-    val blink by time.animateFloat(
-        1f, 1f,
-        infiniteRepeatable(
-            keyframes {
-                durationMillis = 3600
-                1f at 0
-                1f at 3300
-                0.08f at 3400
-                1f at 3550
-            },
-        ),
-        label = "blink",
-    )
-    val hop by time.animateFloat(0f, 1f, infiniteRepeatable(tween(700, easing = LinearEasing)), label = "hop")
-    val wave by time.animateFloat(-1f, 1f, infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wave")
-    val drift by time.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing)), label = "drift")
+    // Breath and blink stay on every large Pebble. Hop, wave, and drift run only for moods that draw them.
+    val breath: State<Float>
+    val blink: State<Float>
+    val hop: State<Float>
+    val wave: State<Float>
+    val drift: State<Float>
+    if (animated) {
+        val time = rememberInfiniteTransition(label = "pebble")
+        breath = time.animateFloat(0f, 1f, infiniteRepeatable(tween(2600, easing = LinearEasing)), label = "breath")
+        blink = time.animateFloat(
+            1f, 1f,
+            infiniteRepeatable(
+                keyframes {
+                    durationMillis = 3600
+                    1f at 0
+                    1f at 3300
+                    0.08f at 3400
+                    1f at 3550
+                },
+            ),
+            label = "blink",
+        )
+        hop = if (mood.usesHop) {
+            time.animateFloat(0f, 1f, infiniteRepeatable(tween(700, easing = LinearEasing)), label = "hop")
+        } else {
+            stillPhase(0.5f)
+        }
+        wave = if (mood.usesWave) {
+            time.animateFloat(-1f, 1f, infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wave")
+        } else {
+            stillPhase(0f)
+        }
+        drift = if (mood.usesDrift) {
+            time.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing)), label = "drift")
+        } else {
+            stillPhase(0.3f)
+        }
+    } else {
+        breath = stillPhase(0f)
+        blink = stillPhase(1f)
+        hop = stillPhase(0.5f)
+        wave = stillPhase(0f)
+        drift = stillPhase(0.3f)
+    }
 
     Canvas(
         modifier.size(size, size * 1.1f)
@@ -130,10 +161,15 @@ fun Pebble(
             .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClickLabel = petLabel) {
                 dev.agneswd.stillpoint.game.PebblePets.pet(context)
                 pet.tap(SystemClock.uptimeMillis())
-                taps.trySend(Unit)
+                if (animated) taps.trySend(Unit)
             },
     ) {
-        // Read one state value in the draw phase. The physics model does not recompose the screen.
+        // Read the phases here so the rest of the screen does not recompose every frame.
+        val breathNow = breath.value
+        val blinkNow = blink.value
+        val hopNow = hop.value
+        val waveNow = wave.value
+        val driftNow = drift.value
         @Suppress("UNUSED_VARIABLE") val frame = petFrame
         val gentle = when (mood) {
             Mood.SLEEPY -> 0.22f
@@ -144,19 +180,30 @@ fun Pebble(
         }
         val u = this.size.width / 100f
         val pivot = Offset(this.size.width * 0.5f, this.size.height * 0.9f)
-        val petBlink = blink * (1f - pet.warmth * 0.5f * gentle)
+        val petBlink = blinkNow * (1f - pet.warmth * 0.5f * gentle)
         val petLook = Offset((look.x + pet.lean * 0.045f).coerceIn(-1f, 1f), look.y)
         translate(top = -pet.lift.coerceAtLeast(0f) * gentle * u) {
             rotate(pet.lean * gentle, pivot) {
                 scale(1f + pet.press * 0.065f * gentle, 1f - pet.press * 0.065f * gentle, pivot) {
-                    drawPebble(mood, breath, petBlink, hop, wave + pet.lean * 0.035f * gentle, drift, petLook, style, thoughtDots)
+                    drawPebble(mood, breathNow, petBlink, hopNow, waveNow + pet.lean * 0.035f * gentle, driftNow, petLook, style, thoughtDots)
                 }
             }
         }
         drawPetParticles(pet, gentle)
-
     }
 }
+
+/** A phase that never changes. Widgets and a static Pebble use the same still values. */
+@Composable
+private fun stillPhase(value: Float): State<Float> = remember(value) { mutableFloatStateOf(value) }
+
+private val Mood.usesHop: Boolean get() = this == Mood.CELEBRATE || this == Mood.PROUD
+
+private val Mood.usesWave: Boolean get() = this == Mood.CELEBRATE || this == Mood.WAVE
+
+private val Mood.usesDrift: Boolean
+    get() = this == Mood.IDLE || this == Mood.THINK || this == Mood.HAPPY || this == Mood.SAD ||
+        this == Mood.WAVE || this == Mood.PROUD || this == Mood.SLEEPY
 
 /**
  * Draws one frame of Pebble that fills the width of the draw area. The height is 1.1 times the width.
