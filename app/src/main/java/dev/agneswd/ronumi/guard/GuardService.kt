@@ -1,5 +1,7 @@
 package dev.agneswd.ronumi.guard
 
+import dev.agneswd.ronumi.plus.Entitlement
+
 import dev.agneswd.ronumi.ui.textResource
 import android.accessibilityservice.AccessibilityService
 import android.content.BroadcastReceiver
@@ -315,9 +317,11 @@ class GuardService : AccessibilityService() {
         }
         val dao = app.dao
         scope.launch {
-            combine(dao.settings(), dao.limits(), dao.schedules(), dao.sites(), dao.activeFocusFlow()) { settings, limits, schedules, sites, focus ->
+            val saved = combine(dao.settings(), dao.limits(), dao.schedules(), dao.sites(), dao.activeFocusFlow()) { settings, limits, schedules, sites, focus ->
                 Rules(settings, limits.associateBy { it.packageName }, schedules, sites.map { it.domain }.toSet(), focus)
-            }.collect {
+            }
+            // Without Plus, only the free part of the saved rules applies. A refund takes effect at once.
+            combine(saved, app.plus.state) { rules, plus -> rules.forPlus(plus.entitlement == Entitlement.UNLOCKED) }.collect {
                 rules = it
                 if (!accessibilityAllowed()) return@collect
                 evaluate()

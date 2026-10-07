@@ -1,5 +1,8 @@
 package dev.agneswd.ronumi.schedule
 
+import dev.agneswd.ronumi.guard.freeSchedules
+import dev.agneswd.ronumi.plus.PlusFeature
+
 import dev.agneswd.ronumi.ui.displayName
 import dev.agneswd.ronumi.focus.remainingMillis
 import android.app.AlarmManager
@@ -57,7 +60,7 @@ object Plans {
         val dao = context.app.dao
         val manager = context.getSystemService(AlarmManager::class.java)
         val preferences = context.getSharedPreferences("plans", Context.MODE_PRIVATE)
-        val candidates = dao.allSchedules().filter { it.enabled && it.startFocus }.mapNotNull { s ->
+        val candidates = freeSchedules(dao.allSchedules(), context.app.plus.has(PlusFeature.UNLIMITED_SCHEDULES)).filter { it.enabled && it.startFocus }.mapNotNull { s ->
             val snoozed = preferences.getLong("snooze-${s.id}", 0)
             val at = if (snoozed > System.currentTimeMillis()) snoozed else nextTime(setOf(s.startMinute), s.days)
             at?.let { s to it }
@@ -112,7 +115,7 @@ object Plans {
                 forget(PHASE)
             }
             PLAN -> {
-                val plan = dao.allSchedules().firstOrNull { it.id == intent.getLongExtra("id", -1) && it.enabled && it.startFocus }
+                val plan = freeSchedules(dao.allSchedules(), context.app.plus.has(PlusFeature.UNLIMITED_SCHEDULES)).firstOrNull { it.id == intent.getLongExtra("id", -1) && it.enabled && it.startFocus }
                 if (plan != null) {
                     // Only an exact alarm permits a background foreground-service start.
                     if (exactAllowed(context) && System.currentTimeMillis() - intent.getLongExtra("at", 0) < 60_000) {
