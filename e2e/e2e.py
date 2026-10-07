@@ -530,8 +530,15 @@ def browser_recovery(pkg: str):
     shot(f"{pkg}-after-site-block")
     tree = screen()
     (RUN / f"{pkg}-recovered.xml").write_text(ET.tostring(tree, encoding="unicode"))
-    visible = " ".join((n.get("text", "") + " " + n.get("content-desc", "")) for n in tree.iter("node"))
-    assert "Example Domain" not in visible, "The blocked page is still visible"
+    # Chrome keeps a stale "Example Domain" web view in its accessibility tree after the page changes,
+    # so check the address bar, which shows what the tab really holds.
+    bars = [n for n in tree.iter("node") if n.get("resource-id", "").endswith(("/url_bar", "/mozac_browser_toolbar_url_view"))]
+    if bars:
+        address = bars[0].get("text", "")
+        assert "example.com" not in address, f"The tab still shows the blocked address: {address}"
+    else:
+        visible = " ".join((n.get("text", "") + " " + n.get("content-desc", "")) for n in tree.iter("node"))
+        assert "Example Domain" not in visible, "The blocked page is still visible"
     assert not any(n.get("visible") == "true" and n.get("resource-id", "").endswith(
         ("/omnibox_results_container", "/omnibox_suggestions_dropdown", "ADDRESSBAR_SEARCH_BOX"))
         for n in tree.iter("node")), "The browser is still editing instead of showing the cleared page"
@@ -581,6 +588,13 @@ def require_shorts():
     version = re.search(r"versionName=(\d+)", sh(f"dumpsys package {YOUTUBE}"))
     if not version or int(version.group(1)) < 16:
         raise Skip(f"YouTube {version.group(1) if version else 'is not installed'} on this device has no Shorts")
+    # An old YouTube build can refuse to open until Play updates it, which needs a signed-in account.
+    sh(f"monkey -p {YOUTUBE} -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1")
+    time.sleep(4)
+    forced = find("Update your app")
+    home()
+    if forced:
+        raise Skip("YouTube on this device requires an update from Google Play before it opens")
 
 
 def youtube_state(name: str):
