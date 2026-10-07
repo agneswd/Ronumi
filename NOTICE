@@ -15,6 +15,11 @@ to convey the resulting work. Corresponding Source for a non-source form of
 such a combination shall not include the source code for the parts of the
 Google Play Billing Library used as well as that of the covered work.
 
+The same additional permission applies to linking or combining this Program
+with the Google Mobile Ads SDK (com.google.android.gms:play-services-ads) and the
+Google User Messaging Platform SDK (com.google.android.ump:user-messaging-platform),
+or modified versions of them, under the Google terms that cover those SDKs.
+
 Nunito font
 Copyright 2014 The Nunito Project Authors
 Licensed under the SIL Open Font License, Version 1.1.
@@ -23,6 +28,8 @@ See licenses/Nunito-OFL.txt for the font license and copyright notice.
 Android and Kotlin libraries retain their respective licenses.
 The Google Play version links the Google Play Billing Library, which is covered by the
 Android Software Development Kit License (https://developer.android.com/studio/terms.html).
+It also links the Google Mobile Ads SDK and the User Messaging Platform SDK, which are
+covered by Google's terms (https://developers.google.com/admob/terms).
 Dependency coordinates and versions are listed in gradle/libs.versions.toml.
 
 Versilian Community Sample Library (VCSL) by Versilian Studios
