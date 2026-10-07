@@ -4,7 +4,7 @@
     <string name="app_name" translatable="false">Ronumi</string>
 
     <!-- Accessibility service -->
-    <string name="guard_description">Ronumi sees which app is open so it can block apps, short video feeds and sites you chose. It does not read your messages. Your app activity stays on this phone. Only app updates use the internet.</string>
+    <string name="guard_description">Ronumi sees which app is open so it can block apps, short video feeds and sites you chose. It does not read your messages. Your app activity stays on this phone.</string>
 
     <!-- Widgets -->
     <string name="widget_goal_title">Focus goal</string>
@@ -20,6 +20,7 @@
     <string name="widget_break_title">On a break</string>
     <string name="widget_resume_hint">Tap to resume</string>
     <string name="widget_streak_empty">Start a streak today</string>
+    <!-- How many times the phone was unlocked today. Not a purchase. -->
     <plurals name="widget_unlock_count">
         <item quantity="one">%1$d unlock today</item>
         <item quantity="other">%1$d unlocks today</item>
@@ -60,7 +61,7 @@
 
     <!-- App selection -->
     <plurals name="apps_more_apps">
-        <item quantity="one">%1$d more apps</item>
+        <item quantity="one">%1$d more app</item>
         <item quantity="other">%1$d more apps</item>
     </plurals>
     <string name="apps_overflow_count" translatable="false">+%1$d</string>
@@ -118,12 +119,15 @@
     <string name="badge_first_detail">Finish your first focus session</string>
     <string name="badge_streak3_title">Warming up</string>
     <string name="badge_streak3_detail">Keep a 3 day streak</string>
+    <!-- Badge for a 7 day focus streak. "On fire" means doing very well, not danger. -->
     <string name="badge_streak7_title">On fire</string>
     <string name="badge_streak7_detail">Keep a 7 day streak</string>
     <string name="badge_streak30_title">Unshakable</string>
     <string name="badge_streak30_detail">Keep a 30 day streak</string>
+    <!-- Badge for 10 hours of focus. A playful name, not about swimming. -->
     <string name="badge_hours10_title">Deep diver</string>
     <string name="badge_hours10_detail">Focus for 10 hours in total</string>
+    <!-- Badge for 50 hours of focus. A playful name for big effort. -->
     <string name="badge_hours50_title">Mountain mover</string>
     <string name="badge_hours50_detail">Focus for 50 hours in total</string>
     <string name="badge_marathon_title">Marathon</string>
@@ -138,6 +142,7 @@
     <string name="badge_sessions5_detail">Finish 5 sessions</string>
     <string name="badge_sessions10_title">A steady start</string>
     <string name="badge_sessions10_detail">Finish 10 sessions</string>
+    <!-- Badge for 25 sessions. Playful twist on "practice makes perfect". -->
     <string name="badge_sessions25_title">Practice makes progress</string>
     <string name="badge_sessions25_detail">Finish 25 sessions</string>
     <string name="badge_sessions100_title">Here to stay</string>
@@ -154,6 +159,7 @@
     <string name="badge_streak14_detail">Keep a 14 day streak</string>
     <string name="badge_days7_title">Seven small steps</string>
     <string name="badge_days7_detail">Focus for at least 10 minutes on 7 days</string>
+    <!-- Badge for focus on 30 days. Means "again and again". -->
     <string name="badge_days30_title">Time after time</string>
     <string name="badge_days30_detail">Focus for at least 10 minutes on 30 days</string>
     <string name="badge_days100_title">Always welcome back</string>
@@ -303,7 +309,7 @@
         <item quantity="one">Holding from %1$d app</item>
         <item quantity="other">Holding from %1$d apps</item>
     </plurals>
-    <string name="blocks_shorts_disabled_study">Off, study mode</string>
+    <string name="blocks_shorts_disabled_study">Feeds open, study mode on</string>
     <plurals name="blocks_shorts_enabled_study">
         <item quantity="one">%1$d of %2$d feeds closed, study mode</item>
         <item quantity="other">%1$d of %2$d feeds closed, study mode</item>
@@ -328,6 +334,7 @@
 
     <!-- Shared controls -->
     <string name="common_decrease">Decrease %1$s</string>
+    <!-- Screen reader label for a plus button. %1$s is the setting name, for example "Focus length". -->
     <string name="common_increase">Increase %1$s</string>
     <string name="common_level">Level</string>
     <string name="common_number" translatable="false">%1$d</string>
@@ -390,8 +397,11 @@
     <string name="focus_scene_space">Deep space</string>
     <string name="focus_scene_rain">Rain</string>
     <string name="focus_sound_off">Off</string>
+    <!-- White noise, a sound for focus. Not a color. -->
     <string name="focus_sound_white">White</string>
+    <!-- Pink noise, a sound for focus. Not a color. -->
     <string name="focus_sound_pink">Pink</string>
+    <!-- Brown noise, a sound for focus. Not a color. -->
     <string name="focus_sound_brown">Brown</string>
     <string name="focus_sound_rain">Rain</string>
     <string name="focus_sound_waves">Waves</string>
@@ -422,14 +432,14 @@
     <string name="focus_starting" tools:ignore="TypographyEllipsis">Starting...</string>
     <string name="focus_start_button">Start</string>
     <plurals name="focus_rounds_breaks">
-        <item quantity="one">%1$d rounds, %2$s breaks</item>
+        <item quantity="one">%1$d round, %2$s breaks</item>
         <item quantity="other">%1$d rounds, %2$s breaks</item>
     </plurals>
     <string name="focus_tip_blocking">Your distracting apps are blocked. Stay with it.</string>
     <string name="focus_tip_breathing">Breathe in for four. Breathe out for six.</string>
     <string name="focus_tip_phone">Phone face down, eyes on the task.</string>
     <string name="focus_tip_stuck">Stuck? Do the smallest next step.</string>
-    <string name="focus_tip_streak">Every minute here counts toward your streak.</string>
+    <string name="focus_tip_streak">Focus a little every goal day to keep your streak.</string>
     <string name="focus_tip_water">Thirsty? A sip of water helps you think.</string>
     <string name="focus_minimize">Minimize</string>
     <string name="focus_strict_mode_is_on">Strict mode is on</string>
@@ -453,7 +463,7 @@
     <string name="focus_session_complete">Session complete!</string>
     <string name="focus_nice_effort">Nice effort!</string>
     <string name="focus_complete_summary">You stayed with it to the end.</string>
-    <string name="focus_ended_summary">Every minute counts. Next time, go all the way!</string>
+    <string name="focus_ended_summary">Your minutes still count. Ronumi will be here next time.</string>
     <plurals name="focus_summary_minutes">
         <item quantity="one">%1$dm</item>
         <item quantity="other">%1$dm</item>
@@ -475,12 +485,12 @@
     <string name="focus_ended_title">Session ended</string>
     <string name="focus_round_notification">Round %1$d of %2$d</string>
     <plurals name="focus_break_notification">
-        <item quantity="one">Break for %1$d minutes</item>
+        <item quantity="one">Break for %1$d minute</item>
         <item quantity="other">Break for %1$d minutes</item>
     </plurals>
     <string name="focus_completed_body">You focused for %1$s.</string>
     <plurals name="focus_completed_inbox_body">
-        <item quantity="one">You focused for %1$s. %2$d notifications are waiting.</item>
+        <item quantity="one">You focused for %1$s. %2$d notification is waiting.</item>
         <item quantity="other">You focused for %1$s. %2$d notifications are waiting.</item>
     </plurals>
     <string name="focus_notification_title">Focus</string>
@@ -522,6 +532,7 @@
     <string name="home_greeting_ready">Ready when you are. One session at a time.</string>
     <string name="home_finish_setup">Finish setup</string>
     <string name="home_permissions_missing">Ronumi can\'t block anything yet. Tap to allow the permissions.</string>
+    <!-- Under the big focus value on Home, for example "of 1h". %1$s is the daily goal as a short duration. -->
     <string name="home_goal_target">of %1$s</string>
     <string name="home_goal_title">Today\'s focus</string>
     <string name="home_show_quest_details">Show quest details</string>
@@ -529,8 +540,9 @@
     <string name="home_quest_xp">+%1$d XP</string>
     <string name="home_quest_reward_earned">%1$d XP earned. This reward is already in your total.</string>
     <string name="home_quest_reward_pending">%1$d XP is added automatically when you finish this quest.</string>
+    <!-- How many times the phone was unlocked today. Not a purchase. -->
     <plurals name="home_unlocks_today">
-        <item quantity="one">%1$d unlocks today</item>
+        <item quantity="one">%1$d unlock today</item>
         <item quantity="other">%1$d unlocks today</item>
     </plurals>
 
@@ -551,6 +563,7 @@
     <string name="onboarding_goal_serious">Serious, 2 hours a day</string>
     <string name="onboarding_goal_intense">Intense, 4 hours a day</string>
     <string name="onboarding_shorts_and_reels">Shorts and Reels</string>
+    <!-- A distraction choice: watching one YouTube video after another for a long time. -->
     <string name="onboarding_youtube_rabbit_holes">YouTube rabbit holes</string>
     <string name="onboarding_social_media_feeds">Social media feeds</string>
     <string name="onboarding_notifications">Notifications</string>
@@ -564,13 +577,16 @@
     <string name="onboarding_distractions_question">What pulls you away the most?</string>
     <string name="onboarding_shorts_title">Scrolling Shorts?</string>
     <string name="onboarding_shorts_description">Ronumi closes the feed. The rest of the app still works.</string>
+    <!-- Imitates a phone buzzing with notifications. Keep it light and short. -->
     <string name="onboarding_inbox_title">Buzz, buzz, buzz?</string>
     <string name="onboarding_inbox_description">Notifications wait in a box until you finish.</string>
     <string name="onboarding_strict_title">Want to quit early?</string>
+    <!-- Strict mode: your future self is glad you could not quit early. Keep the light tone. -->
     <string name="onboarding_strict_description">Strict mode won\'t let you. Future you says thanks.</string>
     <string name="onboarding_build_a_streak">Build a streak</string>
     <string name="onboarding_streak_description">Focus a little every day. Keep the flame alive.</string>
     <string name="onboarding_app_name" translatable="false">Ronumi</string>
+    <!-- Short tagline under the app name on the first screen. -->
     <string name="onboarding_welcome_tagline">Less scrolling. More living.</string>
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_continue">Continue</string>
@@ -593,13 +609,13 @@
     </plurals>
     <string name="onboarding_permissions_ready">All set! I can protect your focus now.</string>
     <string name="onboarding_permissions_missing">One last step! Allow these so I can block distractions.</string>
-    <string name="onboarding_privacy_description">Your app usage stays on this phone. Only update checks and downloads use the internet.</string>
+    <string name="onboarding_privacy_description">Your app usage stays on this phone.</string>
     <string name="onboarding_skip_for_now">Skip for now</string>
     <string name="onboarding_first_session_intro">Let\'s try a 2 minute focus together. You\'ll see how it feels!</string>
     <string name="onboarding_first_session_start_button">Start 2 minute focus</string>
     <string name="onboarding_maybe_later">Maybe later</string>
     <plurals name="onboarding_goal_minutes">
-        <item quantity="one">Focus %1$d minutes a day</item>
+        <item quantity="one">Focus %1$d minute a day</item>
         <item quantity="other">Focus %1$d minutes a day</item>
     </plurals>
     <plurals name="onboarding_goal_hours">
@@ -632,7 +648,7 @@
     <string name="progress_rest_streak_empty">Rest day. Start a streak on your next focus day.</string>
     <string name="progress_streak_frozen">A freeze protects today\'s streak.</string>
     <plurals name="progress_streak_start">
-        <item quantity="one">Focus %1$d minutes today to start a streak.</item>
+        <item quantity="one">Focus %1$d minute today to start a streak.</item>
         <item quantity="other">Focus %1$d minutes today to start a streak.</item>
     </plurals>
     <plurals name="progress_day_streak">
@@ -660,17 +676,23 @@
     <string name="progress_unlocked">Unlocked!</string>
     <string name="progress_badge_percent" translatable="false">%1$d%%</string>
     <string name="progress_nice">Nice</string>
-    <string name="progress_average_focus">focus, %1$s a day on average</string>
+    <!-- Under the total focus time of the period. %1$s is a short duration, for example "25m". -->
+    <string name="progress_average_focus">%1$s a day on average</string>
     <string name="progress_period_usage">%1$s screen time in this period</string>
     <string name="progress_usage_categories_help">Productive apps are your choices. Distracting apps follow your focus block list. Other apps are the rest.</string>
     <string name="progress_by_tag">By tag</string>
+    <!-- Label under a number on Progress: how many notifications the inbox held in this period. -->
     <string name="progress_notifications_held">notifications held</string>
     <string name="progress_soon">Soon</string>
+    <!-- Shown in place of the time-saved value until 7 days of data exist. -->
     <string name="progress_saved_time_help">time saved, after 7 days of data</string>
+    <!-- Label under a duration on Progress: an estimate of screen time saved compared with earlier weeks. -->
     <string name="progress_time_saved">time saved</string>
+    <!-- The trailing space is intended. Keep it. -->
     <string name="progress_legend_label">"%1$s "</string>
     <string name="progress_most">Most: %1$s</string>
     <string name="progress_goal">Goal: %1$s</string>
+    <!-- Screen reader text for a chart bar. %1$s is the category name, %2$s is its value. -->
     <string name="progress_chart_description">%1$s, %2$s</string>
     <string name="progress_locked">Locked</string>
     <string name="progress_average_less">%1$s less than your daily average</string>
@@ -705,7 +727,7 @@
     <string name="quest_legacy_sessions2_detail">Save two sessions started today, each with at least one focus minute. Sessions you end early count for this task.</string>
     <string name="quest_legacy_goal_title">Reach your daily goal</string>
     <plurals name="quest_legacy_goal_detail">
-        <item quantity="one">Collect %1$d focus minutes across sessions started today. The first saved session fixes this goal. Later goal changes do not change it.</item>
+        <item quantity="one">Collect %1$d focus minute across sessions started today. The first saved session fixes this goal. Later goal changes do not change it.</item>
         <item quantity="other">Collect %1$d focus minutes across sessions started today. The first saved session fixes this goal. Later goal changes do not change it.</item>
     </plurals>
     <string name="quest_legacy_morning_title">Focus 20 minutes before noon</string>
@@ -786,8 +808,8 @@
         <item quantity="other">%1$d apps blocked</item>
     </plurals>
     <plurals name="schedule_apps_except">
-        <item quantity="one">all but %1$d app blocked</item>
-        <item quantity="other">all but %1$d apps blocked</item>
+        <item quantity="one">every app blocked except %1$d</item>
+        <item quantity="other">every app blocked except %1$d</item>
     </plurals>
 
     <!-- Wardrobe -->
@@ -845,6 +867,7 @@
     <string name="wardrobe_locked">Locked</string>
     <string name="wardrobe_wear">Wear</string>
     <string name="wardrobe_level">Level %1$d</string>
+    <!-- Wardrobe items unlocked by level, for example "12 / 49 unlocked". -->
     <plurals name="wardrobe_unlocked">
         <item quantity="one">%1$d / %2$d unlocked</item>
         <item quantity="other">%1$d / %2$d unlocked</item>
@@ -915,7 +938,7 @@
     <!-- Inbox notifications -->
     <string name="inbox_notification_body">Tap to open your notification inbox.</string>
     <plurals name="inbox_notification_title">
-        <item quantity="one">%1$d held notifications</item>
+        <item quantity="one">%1$d held notification</item>
         <item quantity="other">%1$d held notifications</item>
     </plurals>
 
@@ -936,7 +959,7 @@
         <item quantity="other">Take a breath. %1$d s</item>
     </plurals>
     <plurals name="block_passes_left">
-        <item quantity="one">%1$d passes left today.</item>
+        <item quantity="one">%1$d pass left today.</item>
         <item quantity="other">%1$d passes left today.</item>
     </plurals>
     <string name="block_line_focus_1">Not now. You\'re focusing!</string>
@@ -978,7 +1001,7 @@
     <!-- Limit -->
     <string name="limit_reminder_title">Time to take a break?</string>
     <plurals name="limit_reminder_body">
-        <item quantity="one">You have used %1$s for %2$d minutes.</item>
+        <item quantity="one">You have used %1$s for %2$d minute.</item>
         <item quantity="other">You have used %1$s for %2$d minutes.</item>
     </plurals>
 
@@ -1101,8 +1124,10 @@
     <!-- %1$s is the local price from Google Play, for example $4.99. -->
     <string name="plus_unlock_for">Unlock for %1$s</string>
     <string name="plus_unlock">Unlock Plus</string>
+    <!-- No subscription. "No account" means no Ronumi account. -->
     <string name="plus_one_payment">One payment. No subscription. No account.</string>
     <string name="plus_no_price">Connect to Google Play to see the price.</string>
+    <!-- Checks Google Play for an earlier Plus purchase. Not a backup restore. -->
     <string name="plus_restore">Restore purchase</string>
     <string name="plus_restore_none">No Plus purchase found for this Google account.</string>
     <string name="plus_pending">Your payment is pending. Plus unlocks when Google Play confirms it.</string>
@@ -1114,6 +1139,7 @@
     <string name="plus_settings_line_locked">Unlock every block and the Plus collection.</string>
     <string name="plus_settings_line_active">Plus is active. Thank you for your support.</string>
     <string name="plus_settings_line_pending">Payment pending</string>
+    <!-- Status of a saved rule that does not run without Ronumi Plus. Nothing is deleted. -->
     <string name="plus_paused">Paused - needs Plus</string>
     <string name="plus_free_apps_limit">Free blocks up to 5 apps. Plus blocks as many as you need.</string>
     <string name="plus_see">See Plus</string>
