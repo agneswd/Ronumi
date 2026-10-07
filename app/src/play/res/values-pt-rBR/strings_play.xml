@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">O foco funciona offline. Sem conta e sem anúncios. O Google Play é usado só para a compra do Plus.</string>
+    <string name="blocks_protection_description">A proteção bloqueia suas regras no Ronumi até a sessão terminar. Você ainda pode desativar o acesso nas configurações do Android.</string>
+    <string name="blocks_protection_switch_description">Bloqueia suas regras no Ronumi até a sessão terminar.</string>
+</resources>

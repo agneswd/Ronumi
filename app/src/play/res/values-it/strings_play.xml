@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">La concentrazione funziona offline. Nessun account e nessuna pubblicità. Google Play serve solo per l\'acquisto di Plus.</string>
+    <string name="blocks_protection_description">La protezione blocca le tue regole in Ronumi fino alla fine della sessione. Puoi comunque disattivare l\'accesso nelle impostazioni di Android.</string>
+    <string name="blocks_protection_switch_description">Blocca le tue regole in Ronumi fino alla fine della sessione.</string>
+</resources>

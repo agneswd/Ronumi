@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 object PolicyActions {
     /** Every schedule editor uses this check, including an editor opened before a block starts. */
     suspend fun saveSchedule(context: Context, schedule: Schedule, delete: Boolean = false): Boolean =
-        unlessLocked(context, context.getString(R.string.blocks_schedule_locked_message)) {
+        unlessLocked(context, context.app.getString(R.string.blocks_schedule_locked_message)) {
             if (delete) context.app.dao.deleteSchedule(schedule) else context.app.dao.saveSchedule(schedule)
         }
 
@@ -25,7 +25,7 @@ object PolicyActions {
      * A page opened before a block starts stays open, so the lock is checked again here.
      */
     suspend fun changeBlocks(context: Context, change: suspend () -> Unit): Boolean =
-        unlessLocked(context, context.getString(R.string.blocks_locked_message), change)
+        unlessLocked(context, context.app.getString(R.string.blocks_locked_message), change)
 
     private suspend fun unlessLocked(context: Context, message: String, change: suspend () -> Unit): Boolean {
         val changed = context.app.database.withTransaction {

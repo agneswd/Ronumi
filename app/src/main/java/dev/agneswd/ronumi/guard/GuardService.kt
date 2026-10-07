@@ -50,6 +50,9 @@ import java.time.LocalDate
  * Window content tells it about Shorts feeds, browser addresses and the settings pages of this app.
  */
 class GuardService : AccessibilityService() {
+    // Text in the app language. See RonumiApp.getResources.
+    override fun getResources(): android.content.res.Resources = applicationContext.resources
+
     private val scope = MainScope()
     private val handler = Handler(Looper.getMainLooper())
 

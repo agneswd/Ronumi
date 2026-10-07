@@ -125,18 +125,18 @@ object Focus {
                     focus.round >= focus.rounds -> finish(context, done, completed = true)
                     breakMinutes == 0 -> {
                         dao.saveActiveFocus(done.nextRound(now))
-                        announce(context, context.getString(R.string.focus_round_notification, focus.round + 1, focus.rounds), context.getString(R.string.focus_round_continue))
+                        announce(context, context.app.getString(R.string.focus_round_notification, focus.round + 1, focus.rounds), context.app.getString(R.string.focus_round_continue))
                     }
                     else -> {
                         dao.saveActiveFocus(done.copy(phase = FocusPhase.BREAK, phaseStartedAt = now, phaseEndsAt = now + breakMinutes * 60_000L, phaseElapsedMillis = 0, phaseAnchorElapsed = SystemClock.elapsedRealtime()))
-                        announce(context, context.resources.getQuantityString(R.plurals.focus_break_notification, breakMinutes, breakMinutes), context.getString(R.string.focus_break_advice))
+                        announce(context, context.app.resources.getQuantityString(R.plurals.focus_break_notification, breakMinutes, breakMinutes), context.app.getString(R.string.focus_break_advice))
                     }
                 }
             }
 
             FocusPhase.BREAK -> {
                 dao.saveActiveFocus(focus.nextRound(now))
-                announce(context, context.getString(R.string.focus_round_notification, focus.round + 1, focus.rounds), context.getString(R.string.focus_round_resume))
+                announce(context, context.app.getString(R.string.focus_round_notification, focus.round + 1, focus.rounds), context.app.getString(R.string.focus_round_resume))
             }
         }
     }
@@ -198,9 +198,9 @@ object Focus {
         val held = dao.heldCount()
         announce(
             context,
-            if (completed) context.getString(R.string.focus_completed_title) else context.getString(R.string.focus_ended_title),
-            if (held > 0) context.resources.getQuantityString(R.plurals.focus_completed_inbox_body, held, formatDuration(context, focus.focusedMillisBefore), held)
-            else context.getString(R.string.focus_completed_body, formatDuration(context, focus.focusedMillisBefore)),
+            if (completed) context.app.getString(R.string.focus_completed_title) else context.app.getString(R.string.focus_ended_title),
+            if (held > 0) context.app.resources.getQuantityString(R.plurals.focus_completed_inbox_body, held, formatDuration(context, focus.focusedMillisBefore), held)
+            else context.app.getString(R.string.focus_completed_body, formatDuration(context, focus.focusedMillisBefore)),
         )
     }
 

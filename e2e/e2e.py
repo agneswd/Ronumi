@@ -1074,6 +1074,50 @@ def legal_notices():
     return f"{notices}, {license_shot}; {url}"
 
 
+def set_app_language(tag: str):
+    # Android resets the app language some time after "pm clear". Set it until it stays.
+    end = time.time() + 15
+    while time.time() < end:
+        sh(f"cmd locale set-app-locales {PKG} --locales {tag}")
+        time.sleep(1.5)
+        if f"[{tag}]" in sh(f"cmd locale get-app-locales {PKG}"):
+            return
+    raise AssertionError(f"Android did not keep the app language {tag}")
+
+
+def app_language():
+    """The app language from Android settings reaches the guard, notifications, and channel names."""
+    if int(sh("getprop ro.build.version.sdk").strip()) < 33:
+        raise Skip("Android 12 and older have no app language setting")
+    sh(f"pm clear {PKG}")
+    device_workflow("grant-consents")
+    set_app_language("de-DE")
+    try:
+        # A background broadcast cannot start the focus foreground service on API 31+. Open Ronumi first.
+        open_ronumi("HOME")
+        device_workflow("focus-contacts")
+        rebind()
+        open_app(CONTACTS)
+        wait_block("während des Fokus blockiert", timeout=20)
+        german = shot("language-de-block")
+        home()
+        # A change while the guard runs must reach the next block screen and the channel names.
+        set_app_language("sv-SE")
+        time.sleep(2)
+        channels = sh("dumpsys notification --noredact")
+        if "mName=Fokushändelser" not in channels:
+            raise AssertionError("The notification channel kept its old name after the language change")
+        sh("logcat -c")
+        open_app(CONTACTS)
+        wait_block("blockerad under fokus", timeout=20)
+        swedish = shot("language-sv-block")
+        home()
+    finally:
+        sh(f"cmd locale set-app-locales {PKG}")
+        end_running_focus()
+    return f"{german}, {swedish}"
+
+
 def plus_gates():
     """Without Plus a locked feature shows the chip and opens the paywall. With Plus, and in the GitHub version, no chip shows."""
     open_ronumi("HOME")
@@ -1503,6 +1547,7 @@ CHECKS = [
     update_workflow,
     legal_notices,
     plus_gates,
+    app_language,
     pip_stays,
     consent_gates,
 ]
@@ -1520,7 +1565,7 @@ def main():
     if args.apk:
         APK = args.apk.resolve()
     opt_in = [import_workflow] if args.flavor == "github" else []
-    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates, legal_notices, plus_gates]
+    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates, legal_notices, plus_gates, app_language]
     available = suite + opt_in
     requested = set(args.only.split(",")) if args.only else {c.__name__ for c in suite}
     unknown = requested - {c.__name__ for c in available}

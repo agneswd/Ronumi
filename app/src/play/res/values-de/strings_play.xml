@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">Fokus funktioniert offline. Kein Konto, keine Werbung. Google Play wird nur für den Plus-Kauf genutzt.</string>
+    <string name="blocks_protection_description">Der Schutz sperrt deine Regeln in Ronumi, bis die Sitzung endet. Du kannst den Zugriff weiterhin in den Android-Einstellungen ausschalten.</string>
+    <string name="blocks_protection_switch_description">Sperrt deine Regeln in Ronumi, bis die Sitzung endet.</string>
+</resources>

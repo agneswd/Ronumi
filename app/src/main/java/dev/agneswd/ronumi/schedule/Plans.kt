@@ -143,8 +143,8 @@ object Plans {
         val snooze = PendingIntent.getBroadcast(context, id.toInt(), Intent(context, PlanReceiver::class.java)
             .setAction(SNOOZE).setData(Uri.parse("ronumi://snooze/$id")).putExtra("id", id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val notification = NotificationCompat.Builder(context, RonumiApp.CHANNEL_EVENTS)
-            .addAction(0, context.getString(R.string.plan_notification_snooze), snooze)
-            .setSmallIcon(R.drawable.ic_stat).setContentTitle(title.displayName(context)).setContentText(context.getString(R.string.plan_notification_body))
+            .addAction(0, context.app.getString(R.string.plan_notification_snooze), snooze)
+            .setSmallIcon(R.drawable.ic_stat).setContentTitle(title.displayName(context)).setContentText(context.app.getString(R.string.plan_notification_body))
             .setContentIntent(MainActivity.pendingPlan(context, id)).setAutoCancel(true).build()
         runCatching { context.getSystemService(NotificationManager::class.java).notify(20, notification) }
     }

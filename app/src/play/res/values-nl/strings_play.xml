@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">Focus werkt offline. Geen account en geen advertenties. Google Play wordt alleen gebruikt voor de aankoop van Plus.</string>
+    <string name="blocks_protection_description">Bescherming vergrendelt je regels in Ronumi tot de sessie eindigt. Je kunt de toegang nog steeds uitzetten in de instellingen van Android.</string>
+    <string name="blocks_protection_switch_description">Vergrendelt je regels in Ronumi tot de sessie eindigt.</string>
+</resources>

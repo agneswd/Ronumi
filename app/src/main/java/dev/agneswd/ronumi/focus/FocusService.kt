@@ -32,6 +32,9 @@ import kotlinx.coroutines.launch
  * It stops when the [ActiveFocus] row goes away.
  */
 class FocusService : LifecycleService() {
+    // Text in the app language. See RonumiApp.getResources.
+    override fun getResources(): android.content.res.Resources = applicationContext.resources
+
     private var started = false
     private val noise by lazy { NoisePlayer(this) }
 

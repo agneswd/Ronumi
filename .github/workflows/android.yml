@@ -53,7 +53,7 @@ jobs:
           profile: pixel_2
           script: |
             python3 .github/scripts/verify_android.py --flavor github --only schema_upgrade,onboarding,today_screen,storage_workflow,progression_workflow,notification_workflow,planned_focus_workflow
-            python3 .github/scripts/verify_android.py --flavor play --only plus_workflow
+            python3 .github/scripts/verify_android.py --flavor play --only plus_workflow,app_language
       - name: Save build files and lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
