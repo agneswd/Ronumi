@@ -901,6 +901,7 @@
     <string name="legal_freesound_terms">白噪音、粉噪音、棕噪音、雨声和海浪录音。Creative Commons Zero (CC0 1.0)。</string>
     <string name="legal_libraries_title">Android 和 Kotlin 库</string>
     <string name="legal_libraries_terms">Apache License, version 2.0.</string>
+    <string name="legal_ads_terms">Google 条款。Ronumi 依据许可证声明中 GPL 第 7 条的许可使用这些 SDK。</string>
     <string name="legal_billing_terms">Android Software Development Kit License。Ronumi 依据许可证声明中 GPL 第 7 条的许可使用它。</string>
     <string name="wardrobe_item_plus_color_aurora">极光</string>
     <string name="wardrobe_item_plus_color_ember">余烬</string>
@@ -935,6 +936,8 @@
     <string name="plus_perk_history_line">查看记录下的每一周和每个月。</string>
     <string name="plus_perk_collection">Plus 系列</string>
     <string name="plus_perk_collection_line">12 件新衣橱物品和 2 个新专注场景。</string>
+    <string name="plus_perk_no_ads">无广告</string>
+    <string name="plus_perk_no_ads_line">Ronumi 中任何地方都不显示广告。</string>
     <string name="plus_unlock_for">以 %1$s 开通</string>
     <string name="plus_unlock">开通 Plus</string>
     <string name="plus_one_payment">一次付费。无需订阅。无需账号。</string>
@@ -947,7 +950,7 @@
     <string name="plus_thanks_line">感谢你支持 Ronumi。</string>
     <string name="plus_done">完成</string>
     <string name="plus_try_on">试穿一下</string>
-    <string name="plus_settings_line_locked">解锁所有屏蔽功能和 Plus 系列。</string>
+    <string name="plus_settings_line_locked">移除广告,并解锁所有屏蔽功能和 Plus 系列。</string>
     <string name="plus_settings_line_active">Plus 已开通。感谢你的支持。</string>
     <string name="plus_settings_line_pending">付款待确认</string>
     <string name="plus_paused">已暂停 - 需要 Plus</string>

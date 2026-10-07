@@ -901,6 +901,7 @@
     <string name="legal_freesound_terms">ホワイト、ピンク、ブラウンのノイズ、雨、波の録音。Creative Commons Zero (CC0 1.0)。</string>
     <string name="legal_libraries_title">Android と Kotlin のライブラリ</string>
     <string name="legal_libraries_terms">Apache License, version 2.0.</string>
+    <string name="legal_ads_terms">Google の利用規約。Ronumi はライセンス表示にある GPL 第 7 条の許可に基づいてこれらの SDK を使用しています。</string>
     <string name="legal_billing_terms">Android Software Development Kit License。Ronumi はライセンス表示にある GPL 第 7 条の許可に基づいて使用しています。</string>
     <string name="wardrobe_item_plus_color_aurora">オーロラ</string>
     <string name="wardrobe_item_plus_color_ember">残り火</string>
@@ -935,6 +936,8 @@
     <string name="plus_perk_history_line">記録したすべての週と月を確認できます。</string>
     <string name="plus_perk_collection">Plusコレクション</string>
     <string name="plus_perk_collection_line">クローゼットの新アイテム 12 個と新しい集中の背景 2 つ。</string>
+    <string name="plus_perk_no_ads">広告なし</string>
+    <string name="plus_perk_no_ads_line">Ronumi にはどこにも広告が表示されません。</string>
     <string name="plus_unlock_for">%1$s で有効にする</string>
     <string name="plus_unlock">Plusを有効にする</string>
     <string name="plus_one_payment">1 回の支払いだけ。サブスクリプションもアカウントも不要です。</string>
@@ -947,7 +950,7 @@
     <string name="plus_thanks_line">Ronumi を応援していただき、ありがとうございます。</string>
     <string name="plus_done">完了</string>
     <string name="plus_try_on">試着する</string>
-    <string name="plus_settings_line_locked">すべてのブロックと Plusコレクションを解放します。</string>
+    <string name="plus_settings_line_locked">広告を消して、すべてのブロックと Plusコレクションを解放します。</string>
     <string name="plus_settings_line_active">Plus は有効です。応援ありがとうございます。</string>
     <string name="plus_settings_line_pending">支払い保留中</string>
     <string name="plus_paused">一時停止中 - Plus が必要</string>

@@ -997,6 +997,7 @@
     <string name="legal_freesound_terms">Gravações de ruído branco, rosa e marrom, chuva e ondas. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Bibliotecas Android e Kotlin</string>
     <string name="legal_libraries_terms">Apache License, versão 2.0.</string>
+    <string name="legal_ads_terms">Termos do Google. O Ronumi usa esses SDKs com a permissão da seção 7 da GPL indicada no aviso de licença.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. O Ronumi a usa com a permissão da seção 7 da GPL indicada no aviso de licença.</string>
     <string name="wardrobe_item_plus_color_aurora">Aurora</string>
     <string name="wardrobe_item_plus_color_ember">Brasa</string>
@@ -1031,6 +1032,8 @@
     <string name="plus_perk_history_line">Veja cada semana e mês registrados.</string>
     <string name="plus_perk_collection">Coleção Plus</string>
     <string name="plus_perk_collection_line">12 novos itens de guarda-roupa e 2 novos cenários de foco.</string>
+    <string name="plus_perk_no_ads">Sem anúncios</string>
+    <string name="plus_perk_no_ads_line">O Ronumi não mostra anúncios em lugar nenhum.</string>
     <string name="plus_unlock_for">Desbloquear por %1$s</string>
     <string name="plus_unlock">Desbloquear Plus</string>
     <string name="plus_one_payment">Um pagamento. Sem assinatura. Sem conta.</string>
@@ -1043,7 +1046,7 @@
     <string name="plus_thanks_line">Obrigado por apoiar o Ronumi.</string>
     <string name="plus_done">Concluído</string>
     <string name="plus_try_on">Experimentar</string>
-    <string name="plus_settings_line_locked">Desbloqueie todos os bloqueios e a coleção Plus.</string>
+    <string name="plus_settings_line_locked">Remova os anúncios e desbloqueie todos os bloqueios e a coleção Plus.</string>
     <string name="plus_settings_line_active">O Plus está ativo. Obrigado pelo apoio.</string>
     <string name="plus_settings_line_pending">Pagamento pendente</string>
     <string name="plus_paused">Em pausa - requer Plus</string>

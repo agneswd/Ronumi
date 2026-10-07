@@ -949,6 +949,7 @@
     <string name="legal_freesound_terms">Aufnahmen von weißem, rosa und braunem Rauschen, Regen und Wellen. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Android- und Kotlin-Bibliotheken</string>
     <string name="legal_libraries_terms">Apache License, Version 2.0.</string>
+    <string name="legal_ads_terms">Google-Bedingungen. Ronumi nutzt diese SDKs mit der Erlaubnis nach GPL-Abschnitt 7 im Lizenzhinweis.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi nutzt sie mit der Erlaubnis nach GPL Abschnitt 7 im Lizenzhinweis.</string>
     <string name="wardrobe_item_plus_color_aurora">Polarlicht</string>
     <string name="wardrobe_item_plus_color_ember">Glut</string>
@@ -983,6 +984,8 @@
     <string name="plus_perk_history_line">Sieh jede Woche und jeden Monat, den du erfasst hast.</string>
     <string name="plus_perk_collection">Plus-Kollektion</string>
     <string name="plus_perk_collection_line">12 neue Garderobenteile und 2 neue Fokusszenen.</string>
+    <string name="plus_perk_no_ads">Keine Werbung</string>
+    <string name="plus_perk_no_ads_line">Ronumi zeigt nirgends Werbung.</string>
     <string name="plus_unlock_for">Für %1$s freischalten</string>
     <string name="plus_unlock">Plus freischalten</string>
     <string name="plus_one_payment">Eine Zahlung. Kein Abo. Kein Konto.</string>
@@ -995,7 +998,7 @@
     <string name="plus_thanks_line">Danke, dass du Ronumi unterstützt.</string>
     <string name="plus_done">Fertig</string>
     <string name="plus_try_on">Anprobieren</string>
-    <string name="plus_settings_line_locked">Schalte alle Sperren und die Plus-Kollektion frei.</string>
+    <string name="plus_settings_line_locked">Entferne Werbung und schalte alle Sperren und die Plus-Kollektion frei.</string>
     <string name="plus_settings_line_active">Plus ist aktiv. Danke für deine Unterstützung.</string>
     <string name="plus_settings_line_pending">Zahlung ausstehend</string>
     <string name="plus_paused">Pausiert - braucht Plus</string>

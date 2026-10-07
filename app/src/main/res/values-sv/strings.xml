@@ -949,6 +949,7 @@
     <string name="legal_freesound_terms">Inspelningar av vitt, rosa och brunt brus, regn och vågor. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Android- och Kotlin-bibliotek</string>
     <string name="legal_libraries_terms">Apache License, version 2.0.</string>
+    <string name="legal_ads_terms">Googles villkor. Ronumi använder dessa SDK:er med tillståndet enligt GPL avsnitt 7 i licensmeddelandet.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi använder det med tillståndet enligt GPL avsnitt 7 i licensmeddelandet.</string>
     <string name="wardrobe_item_plus_color_aurora">Norrsken</string>
     <string name="wardrobe_item_plus_color_ember">Glöd</string>
@@ -983,6 +984,8 @@
     <string name="plus_perk_history_line">Se varje vecka och månad du har registrerat.</string>
     <string name="plus_perk_collection">Plus-kollektion</string>
     <string name="plus_perk_collection_line">12 nya garderobsplagg och 2 nya fokusscener.</string>
+    <string name="plus_perk_no_ads">Ingen reklam</string>
+    <string name="plus_perk_no_ads_line">Ronumi visar ingen reklam någonstans.</string>
     <string name="plus_unlock_for">Lås upp för %1$s</string>
     <string name="plus_unlock">Lås upp Plus</string>
     <string name="plus_one_payment">En betalning. Ingen prenumeration. Inget konto.</string>
@@ -995,7 +998,7 @@
     <string name="plus_thanks_line">Tack för att du stöder Ronumi.</string>
     <string name="plus_done">Klar</string>
     <string name="plus_try_on">Prova dem</string>
-    <string name="plus_settings_line_locked">Lås upp alla blockeringar och Plus-kollektionen.</string>
+    <string name="plus_settings_line_locked">Ta bort reklam och lås upp alla blockeringar och Plus-kollektionen.</string>
     <string name="plus_settings_line_active">Plus är aktivt. Tack för ditt stöd.</string>
     <string name="plus_settings_line_pending">Betalning väntar</string>
     <string name="plus_paused">Pausad - kräver Plus</string>

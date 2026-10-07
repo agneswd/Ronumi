@@ -901,6 +901,7 @@
     <string name="legal_freesound_terms">화이트, 핑크, 브라운 노이즈와 비, 파도 녹음. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Android 및 Kotlin 라이브러리</string>
     <string name="legal_libraries_terms">Apache License, version 2.0.</string>
+    <string name="legal_ads_terms">Google 약관. Ronumi는 라이선스 고지에 있는 GPL 제7조의 허가에 따라 이 SDK를 사용해요.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi는 라이선스 고지에 있는 GPL 제7조의 허가에 따라 이를 사용해요.</string>
     <string name="wardrobe_item_plus_color_aurora">오로라</string>
     <string name="wardrobe_item_plus_color_ember">잔불</string>
@@ -935,6 +936,8 @@
     <string name="plus_perk_history_line">기록된 모든 주와 달을 볼 수 있어요.</string>
     <string name="plus_perk_collection">Plus 컬렉션</string>
     <string name="plus_perk_collection_line">새 옷장 아이템 12개와 새 집중 배경 2개.</string>
+    <string name="plus_perk_no_ads">광고 없음</string>
+    <string name="plus_perk_no_ads_line">Ronumi 어디에도 광고가 표시되지 않아요.</string>
     <string name="plus_unlock_for">%1$s에 활성화</string>
     <string name="plus_unlock">Plus 활성화</string>
     <string name="plus_one_payment">한 번 결제. 구독 없음. 계정 없음.</string>
@@ -947,7 +950,7 @@
     <string name="plus_thanks_line">Ronumi를 응원해 주셔서 고마워요.</string>
     <string name="plus_done">완료</string>
     <string name="plus_try_on">입어 보기</string>
-    <string name="plus_settings_line_locked">모든 차단 기능과 Plus 컬렉션을 열어요.</string>
+    <string name="plus_settings_line_locked">광고를 없애고 모든 차단 기능과 Plus 컬렉션을 열어요.</string>
     <string name="plus_settings_line_active">Plus가 활성화되어 있어요. 응원해 주셔서 고마워요.</string>
     <string name="plus_settings_line_pending">결제 대기 중</string>
     <string name="plus_paused">일시중지됨 - Plus 필요</string>
