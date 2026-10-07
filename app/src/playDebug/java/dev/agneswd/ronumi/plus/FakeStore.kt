@@ -9,6 +9,8 @@ import android.content.Context
 internal class FakeStore(context: Context) : Store {
     private val prefs = context.getSharedPreferences("plus_fake_store", Context.MODE_PRIVATE)
     override var onPurchases: (StoreQuery) -> Unit = {}
+    // E2E changes the fake state between resumes, so every resume queries.
+    override val resumeCooldownMillis = 0L
 
     private var resumed = WeakReference<Activity>(null)
     val activity: Activity get() = checkNotNull(resumed.get()) { "Open Ronumi before the purchase check" }
