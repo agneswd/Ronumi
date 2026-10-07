@@ -1118,6 +1118,94 @@ def app_language():
     return f"{german}, {swedish}"
 
 
+def ads_state() -> str:
+    device_workflow("ads-read", receiver=".plus.PlusCheckReceiver")
+    return (RUN / "ads-read-check.txt").read_text()
+
+
+def close_ad():
+    # Google test ads close with Back once they allow it, or with their close button.
+    end = time.time() + 40
+    while time.time() < end and "AdActivity" in top_activity():
+        for node in screen().iter("node"):
+            label = (node.get("content-desc") or node.get("text") or "").lower()
+            if label in ("close", "close ad", "skip") or label.startswith("close"):
+                x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds")))
+                sh(f"input tap {(x1 + x2) // 2} {(y1 + y2) // 2}")
+                break
+        else:
+            sh("input keyevent KEYCODE_BACK")
+        time.sleep(2)
+    if "AdActivity" in top_activity():
+        raise AssertionError("The ad did not close")
+
+
+def ads_workflow():
+    """Play without Plus: a rewarded ad adds 10 XP, leaving a session summary shows one ad, and Plus hides both."""
+    if not sh("pm path com.google.android.gms").startswith("package:"):
+        raise Skip("Google Play services is missing, so Google test ads cannot load")
+    sh(f"pm clear {PKG}")
+    # The debug build picks the fake Play Store when the process starts, so the flag comes first.
+    sh(f"run-as {PKG} mkdir -p no_backup")
+    sh(f"run-as {PKG} touch no_backup/plus-fake-store")
+    device_workflow("grant-consents")
+    device_workflow("demo-wardrobe")
+    device_workflow("locked", receiver=".plus.PlusCheckReceiver")
+    device_workflow("ads-ready", receiver=".plus.PlusCheckReceiver")
+    sh(f"am force-stop {PKG}")
+
+    open_ronumi("PROGRESS")
+    shots = []
+    # Where the law asks for it, Google's consent form comes first. Refusing still allows ads that are not personal.
+    end = time.time() + 60
+    while time.time() < end and not find("Watch a short ad for XP"):
+        if find("Do not consent", exact=True):
+            shots.append(shot("ads-consent-form"))
+            tap("Do not consent", exact=True)
+        time.sleep(1)
+    wait_for("Watch a short ad for XP", timeout=30)
+    shots.append(shot("ads-reward-offer"))
+    tap("Watch a short ad for XP")
+    wait_top("AdActivity", timeout=20)
+    shots.append(shot("ads-rewarded"))
+    # Google's test rewarded ad grants the reward when its countdown ends.
+    end = time.time() + 60
+    while time.time() < end and "bonusXp=10" not in ads_state():
+        time.sleep(2)
+    close_ad()
+    state = ads_state()
+    assert "bonusXp=10" in state and "rewards=1" in state and "rewardsLeft=2" in state, state
+
+    open_ronumi("HOME")
+    device_workflow("focus-contacts")
+    # Sessions under one minute end without a summary.
+    time.sleep(65)
+    open_ronumi("FOCUS")
+    tap("GIVE UP", exact=True)
+    tap("End session", exact=True)
+    wait_for("Nice effort!")
+    # The summary loads the ad. A person reads it for a moment before Continue.
+    time.sleep(10)
+    tap("Continue", exact=True)
+    wait_top("AdActivity", timeout=20)
+    shots.append(shot("ads-interstitial"))
+    close_ad()
+    assert "interstitials=1" in ads_state()
+    if shots[0].endswith("ads-consent-form.png"):
+        open_ronumi("PROGRESS")
+        tap("Settings", exact=True)
+        scroll_to("Ad privacy choices")
+        shots.append(shot("ads-privacy-row"))
+
+    device_workflow("unlocked", receiver=".plus.PlusCheckReceiver")
+    sh(f"am force-stop {PKG}")
+    open_ronumi("PROGRESS")
+    time.sleep(5)
+    assert not find("Watch a short ad for XP"), "Plus still shows the ad offer"
+    shots.append(shot("ads-plus-none"))
+    return ", ".join(shots)
+
+
 def plus_gates():
     """Without Plus a locked feature shows the chip and opens the paywall. With Plus, and in the GitHub version, no chip shows."""
     open_ronumi("HOME")
@@ -1152,7 +1240,7 @@ def plus_gates():
     sh("input keyevent KEYCODE_BACK")
     open_ronumi("PROGRESS")
     tap("Settings", exact=True)
-    wait_for("Unlock every block and the Plus collection.")
+    wait_for("Remove ads and unlock every block and the Plus collection.")
     device_workflow("unlocked", receiver=".plus.PlusCheckReceiver")
     sh(f"am force-stop {PKG}")
     open_ronumi("PROGRESS")
@@ -1565,7 +1653,7 @@ def main():
     if args.apk:
         APK = args.apk.resolve()
     opt_in = [import_workflow] if args.flavor == "github" else []
-    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates, legal_notices, plus_gates, app_language]
+    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates, legal_notices, plus_gates, app_language, ads_workflow]
     available = suite + opt_in
     requested = set(args.only.split(",")) if args.only else {c.__name__ for c in suite}
     unknown = requested - {c.__name__ for c in available}
