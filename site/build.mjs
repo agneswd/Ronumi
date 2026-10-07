@@ -63,7 +63,7 @@ ${body}
   </main>
   <footer>
     <div class="wrap">
-      <span>Ronumi by <a href="https://agne.uk">Agne</a></span>
+      <span>Ronumi by <a href="https://agne.uk">Agne Studio</a></span>
       <nav><a href="https://github.com/agneswd/Ronumi">Source code</a></nav>
     </div>
   </footer>

@@ -42,7 +42,7 @@ import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.Sp
 
 /** The published privacy policy. Consent screens and the legal notices link to it. */
-internal const val PRIVACY_POLICY_URL = "https://github.com/agneswd/Ronumi/blob/main/docs/privacy.md"
+internal const val PRIVACY_POLICY_URL = "https://ronumi.agne.uk/privacy/"
 
 private class ConsentRequest(
     val kind: ConsentKind,
