@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">Odaklanma çevrimdışı çalışır. Hesap ve reklam yok. Google Play yalnızca Plus satın alımı için kullanılır.</string>
+    <string name="blocks_protection_description">Koruma, oturum bitene kadar Ronumi\'deki kurallarını kilitler. Erişimi yine de Android ayarlarından kapatabilirsin.</string>
+    <string name="blocks_protection_switch_description">Oturum bitene kadar Ronumi\'deki kurallarını kilitler.</string>
+</resources>

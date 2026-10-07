@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">集中機能はオフラインで使えます。アカウントも広告もありません。Google Play は Plus の購入にのみ使います。</string>
+    <string name="blocks_protection_description">保護をオンにすると、セッションが終わるまで Ronumi のルールがロックされます。アクセスは Android の設定からいつでもオフにできます。</string>
+    <string name="blocks_protection_switch_description">セッションが終わるまで Ronumi のルールをロックします。</string>
+</resources>

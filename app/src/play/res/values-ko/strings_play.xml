@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">집중 기능은 오프라인으로 작동해요. 계정도 광고도 없어요. Google Play는 Plus 구매에만 사용해요.</string>
+    <string name="blocks_protection_description">보호 기능은 세션이 끝날 때까지 Ronumi의 규칙을 잠가요. Android 설정에서는 언제든 접근을 끌 수 있어요.</string>
+    <string name="blocks_protection_switch_description">세션이 끝날 때까지 Ronumi의 규칙을 잠가요.</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">专注功能可离线使用。无需账号,没有广告。Google Play 仅用于购买 Plus。</string>
+    <string name="blocks_protection_description">保护会锁定你在 Ronumi 中的规则,直到时段结束。你仍可以在 Android 设置中关闭访问权限。</string>
+    <string name="blocks_protection_switch_description">锁定你在 Ronumi 中的规则,直到时段结束。</string>
+</resources>

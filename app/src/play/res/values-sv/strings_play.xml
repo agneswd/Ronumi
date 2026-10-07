@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="distribution_privacy">Fokus fungerar offline. Inget konto och ingen reklam. Google Play används bara för köpet av Plus.</string>
+    <string name="blocks_protection_description">Skyddet låser dina regler i Ronumi tills passet slutar. Du kan fortfarande stänga av åtkomsten i Androids inställningar.</string>
+    <string name="blocks_protection_switch_description">Låser dina regler i Ronumi tills passet slutar.</string>
+</resources>
