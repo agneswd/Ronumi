@@ -86,10 +86,13 @@ enum class Tab(@param:androidx.annotation.StringRes val labelRes: Int, val icon:
 
 /** A screen on top of the tabs. The back button removes it. */
 sealed interface Route {
+    /** [limit] caps the selection without Plus. A tap past it shows [onLimit] in the list, not a dialog. */
     data class PickApps(
         val title: String,
         val selected: Set<String>,
         val single: Boolean,
+        val limit: Int? = null,
+        val onLimit: () -> Unit = {},
         val onDone: (Set<String>) -> Unit,
     ) : Route
 
@@ -102,6 +105,8 @@ sealed interface Route {
     data object Held : Route
     data object Settings : Route
     data object Legal : Route
+    /** The Ronumi Plus paywall. [first] is the feature that opened it, or null from Settings. */
+    data class Plus(val first: dev.agneswd.ronumi.plus.PlusFeature?) : Route
     data object FocusSetup : Route
     data object ShortVideos : Route
     data object Websites : Route
@@ -274,7 +279,7 @@ private fun App(navigator: Navigator) {
     }
     androidx.compose.runtime.CompositionLocalProvider(
         dev.agneswd.ronumi.ui.design.LocalRonumiStyle provides
-            dev.agneswd.ronumi.game.RonumiStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1, s?.petTapCount ?: 0),
+            dev.agneswd.ronumi.game.RonumiStyles.resolve(s?.pebbleItems.orEmpty(), game?.level?.number ?: 1, s?.petTapCount ?: 0, rememberHasPlus()),
     ) {
         Box(Modifier.fillMaxSize().background(Sp.colors.background)) {
             SecretReveal()
@@ -314,10 +319,11 @@ private fun App(navigator: Navigator) {
                                     when (current) {
                                         is Route.PickApps -> Page { AppPicker(current, onClose = navigator::pop) }
                                         is Route.EditSchedule -> Page { ScheduleEditor(current, onClose = navigator::pop, navigator = navigator) }
-                                        Route.Wardrobe -> Page { game?.let { WardrobeScreen(it, navigator::pop) } }
+                                        Route.Wardrobe -> Page { game?.let { WardrobeScreen(it, navigator::pop, onPlus = { navigator.push(Route.Plus(dev.agneswd.ronumi.plus.PlusFeature.PLUS_WARDROBE)) }) } }
                                         Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
                                         Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
                                         Route.Legal -> Page { LegalNoticesScreen(onClose = navigator::pop) }
+                                        is Route.Plus -> Page { PlusScreen(current.first, onClose = navigator::pop) }
                                         Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
                                         Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
                                         Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
