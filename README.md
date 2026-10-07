@@ -9,7 +9,7 @@ Free and open source. No account, ads, or analytics. Focus works offline.
 
 <p>
   <img src="docs/images/home.png" alt="Home with Ronumi, a daily focus goal, and quests" width="30%">
-  <img src="docs/images/focus.png" alt="A focus timer against the animated Dawn scene" width="30%">
+  <img src="docs/images/focus.png" alt="A focus timer in the animated Firefly forest scene" width="30%">
   <img src="docs/images/wardrobe-dark.png" alt="Ronumi wearing a beanie and overalls in the dark-mode wardrobe" width="30%">
 </p>
 
@@ -48,7 +48,7 @@ Ronumi can also hold selected app notifications in an inbox. Read them later or 
 Separate settings control focus updates, planned reminders, and inbox summaries.
 
 <p>
-  <img src="docs/images/blocks.png" alt="App limits, an evening schedule, and controls for short videos and websites" width="30%">
+  <img src="docs/images/blocks.png" alt="App limits, schedules, and controls for short videos, websites, and notifications" width="30%">
   <img src="docs/images/progress.png" alt="Progress with a level, active streak, and focus totals" width="30%">
 </p>
 
