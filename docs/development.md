@@ -27,6 +27,7 @@ RONUMI_KEY_PASSWORD
 
 Keep the release keystore and passwords outside the repository. Keep a private backup of both.
 Use the GitHub release key for `assembleGithubRelease`. It must be the same key that signed Stillpoint, because the progress import only reads from an app with the same signer. Set `RONUMI_KEY_ALIAS` to that key's alias; the default alias is `ronumi`.
+Tag every release `v<versionName>`, for example `v1.0.0`. Settings > About > Legal notices links to that tag as the source for the installed version.
 Play uses Play App Signing. The owner supplies the Play upload key through the same environment variables for `bundlePlayRelease`.
 Build each signed distribution separately with its intended key. Google signs delivered Play APKs with the Play app signing key.
 
