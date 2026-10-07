@@ -49,6 +49,7 @@ private val notices = listOf(
 )
 
 private const val BILLING_TERMS = "https://developer.android.com/studio/terms.html"
+private const val ADS_TERMS = "https://developers.google.com/admob/terms"
 
 /** Copyright, warranty, license, source, and third-party notices. Opened from Settings, About. */
 @Composable
@@ -86,6 +87,11 @@ fun LegalNoticesScreen(onClose: () -> Unit) {
                 Text(stringResource(R.string.legal_billing_title), side, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
                 Text(stringResource(R.string.legal_billing_terms), side, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                 LinkButton(stringResource(R.string.legal_read_terms)) { open(BILLING_TERMS) }
+            }
+            if (Distribution.usesAds) {
+                Text(stringResource(R.string.legal_ads_title), side, style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
+                Text(stringResource(R.string.legal_ads_terms), side, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
+                LinkButton(stringResource(R.string.legal_read_terms)) { open(ADS_TERMS) }
             }
         }
     }

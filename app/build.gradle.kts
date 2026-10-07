@@ -27,6 +27,7 @@ android {
 
     buildFeatures {
         compose = true
+        resValues = true
     }
     // Lists the translated languages for the app language setting in Android 13 and later.
     // The default language comes from res/resources.properties.
@@ -66,8 +67,32 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// AdMob IDs for the Play version. Debug builds always use Google's test IDs. Release builds read the real IDs from
+// RONUMI_ADMOB_APP_ID, RONUMI_ADMOB_INTERSTITIAL, and RONUMI_ADMOB_REWARDED, and fall back to the test IDs.
+val testAds = mapOf(
+    "RONUMI_ADMOB_APP_ID" to "ca-app-pub-3940256099942544~3347511713",
+    "RONUMI_ADMOB_INTERSTITIAL" to "ca-app-pub-3940256099942544/1033173712",
+    "RONUMI_ADMOB_REWARDED" to "ca-app-pub-3940256099942544/5224354917",
+)
+androidComponents {
+    onVariants(selector().withFlavor("distribution" to "play")) { variant ->
+        val release = variant.buildType == "release"
+        fun id(name: String): String {
+            val real = providers.environmentVariable(name).orNull
+            if (release && real == null) logger.warn("${variant.name}: $name is not set. The build uses a Google test ad ID.")
+            return if (release && real != null) real else testAds.getValue(name)
+        }
+        variant.manifestPlaceholders.put("admobAppId", id("RONUMI_ADMOB_APP_ID"))
+        for ((key, name) in listOf("ads_unit_interstitial" to "RONUMI_ADMOB_INTERSTITIAL", "ads_unit_rewarded" to "RONUMI_ADMOB_REWARDED")) {
+            variant.resValues.put(variant.makeResValueKey("string", key), com.android.build.api.variant.ResValue(id(name), null))
+        }
+    }
+}
+
 dependencies {
     "playImplementation"("com.android.billingclient:billing:9.1.0")
+    "playImplementation"("com.google.android.gms:play-services-ads:25.5.0")
+    "playImplementation"("com.google.android.ump:user-messaging-platform:4.0.0")
     testImplementation("junit:junit:4.13.2")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

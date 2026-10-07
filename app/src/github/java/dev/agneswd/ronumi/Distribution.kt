@@ -21,6 +21,9 @@ object Distribution {
     /** GitHub builds contain no Google Play Billing code, so the legal notices do not list it. */
     const val usesBilling = false
 
+    /** GitHub builds contain no ad code. */
+    const val usesAds = false
+
     fun createPlus(app: RonumiApp): Plus {
         app.scope.launch {
             app.dao.settings().map { it.autoUpdateChecks }.distinctUntilChanged().collect {
@@ -36,6 +39,18 @@ object Distribution {
     /** True while the Stillpoint import screen covers setup. Null while that check runs. */
     @Composable
     fun ImportOffer(): Boolean? = dev.agneswd.ronumi.ui.LegacyImportGate()
+
+    /** The GitHub version has no ads. */
+    @Composable
+    fun RewardedXpOffer() = Unit
+
+    @Composable
+    fun PrepareSessionAd() = Unit
+
+    fun afterSessionSummary(activity: Activity) = Unit
+
+    @Composable
+    fun AdPrivacyRow() = Unit
 }
 
 private object GithubPlus : Plus {

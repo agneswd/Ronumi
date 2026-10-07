@@ -219,6 +219,7 @@ fun WardrobeScreen(game: GameState, onClose: () -> Unit, onPlus: () -> Unit = {}
                     stringResource(R.string.wardrobe_unlock_help),
                     Modifier.padding(20.dp), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim,
                 )
+                dev.agneswd.ronumi.Distribution.RewardedXpOffer()
                 Text(
                     stringResource(R.string.wardrobe_restore_original_look),
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp).clip(RoundedCornerShape(16.dp)).clickable(enabled = worn.isNotEmpty() && !saving) { wear(reset = true) }.padding(12.dp),

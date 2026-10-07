@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">集中機能はオフラインで使えます。アカウントも広告もありません。Google Play は Plus の購入にのみ使います。</string>
+    <string name="distribution_privacy">集中機能はオフラインで使えます。アカウントは不要です。Plus がない場合、Google の広告が少し表示されますが、集中中には表示されません。Plus で広告はなくなります。</string>
+    <string name="ads_reward_title">短い広告を見て XP をもらう</string>
+    <plurals name="ads_reward_line">
+        <item quantity="other">今日はあと %1$d 回もらえます。</item>
+    </plurals>
+    <string name="ads_privacy_title">広告のプライバシー設定</string>
+    <string name="ads_privacy_line">Google が広告にあなたのデータをどう使えるかを変更します。</string>
     <string name="blocks_protection_description">保護をオンにすると、セッションが終わるまで Ronumi のルールがロックされます。アクセスは Android の設定からいつでもオフにできます。</string>
     <string name="blocks_protection_switch_description">セッションが終わるまで Ronumi のルールをロックします。</string>
 </resources>

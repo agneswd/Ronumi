@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">Odaklanma çevrimdışı çalışır. Hesap ve reklam yok. Google Play yalnızca Plus satın alımı için kullanılır.</string>
+    <string name="distribution_privacy">Odaklanma çevrimdışı çalışır. Hesap yok. Plus olmadan Ronumi Google\'dan birkaç reklam gösterir, ama odaklanırken asla. Plus bunları kaldırır.</string>
+    <string name="ads_reward_title">XP için kısa bir reklam izle</string>
+    <plurals name="ads_reward_line">
+        <item quantity="one">Bugün %1$d ödül kaldı.</item>
+        <item quantity="other">Bugün %1$d ödül kaldı.</item>
+    </plurals>
+    <string name="ads_privacy_title">Reklam gizlilik seçenekleri</string>
+    <string name="ads_privacy_line">Google\'ın verilerini reklamlar için nasıl kullanabileceğini değiştir.</string>
     <string name="blocks_protection_description">Koruma, oturum bitene kadar Ronumi\'deki kurallarını kilitler. Erişimi yine de Android ayarlarından kapatabilirsin.</string>
     <string name="blocks_protection_switch_description">Oturum bitene kadar Ronumi\'deki kurallarını kilitler.</string>
 </resources>

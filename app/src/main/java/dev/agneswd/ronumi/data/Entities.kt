@@ -178,6 +178,8 @@ data class Settings(
     val freezeRewardedThrough: String = "",
     /** Asks Android 16 and later to show the running focus timer as a Live Update in the status bar. */
     val liveFocusTimer: Boolean = true,
+    /** XP from rewards outside focus sessions, such as a rewarded ad in the Play version. */
+    val bonusXp: Int = 0,
 )
 
 /**

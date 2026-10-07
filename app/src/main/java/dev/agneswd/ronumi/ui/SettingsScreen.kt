@@ -60,6 +60,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
         TopBar(stringResource(R.string.settings_settings), onClose)
         Column(Modifier.weight(1f).verticalScroll(navigator.settingsScroll)) {
             if (dev.agneswd.ronumi.Distribution.usesBilling) PlusSettingsRow(navigator)
+            dev.agneswd.ronumi.Distribution.AdPrivacyRow()
             SectionTitle(stringResource(R.string.settings_permissions))
             if (access.allAllowed) {
                 ListRow(stringResource(R.string.settings_all_permissions_allowed), if (showPermissions) stringResource(R.string.settings_hide_details) else stringResource(R.string.settings_review_permissions), onClick = { navigator.showPermissions = !showPermissions })

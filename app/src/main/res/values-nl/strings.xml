@@ -949,6 +949,7 @@
     <string name="legal_freesound_terms">Opnamen van witte, roze en bruine ruis, regen en golven. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Android- en Kotlin-bibliotheken</string>
     <string name="legal_libraries_terms">Apache License, versie 2.0.</string>
+    <string name="legal_ads_terms">Voorwaarden van Google. Ronumi gebruikt deze SDK\'s met de toestemming uit sectie 7 van de GPL in de licentiemelding.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi gebruikt die met de toestemming uit sectie 7 van de GPL in de licentiemelding.</string>
     <string name="wardrobe_item_plus_color_aurora">Poollicht</string>
     <string name="wardrobe_item_plus_color_ember">Gloed</string>
@@ -983,6 +984,8 @@
     <string name="plus_perk_history_line">Bekijk elke vastgelegde week en maand.</string>
     <string name="plus_perk_collection">Plus-collectie</string>
     <string name="plus_perk_collection_line">12 nieuwe garderobe-items en 2 nieuwe focusscènes.</string>
+    <string name="plus_perk_no_ads">Geen advertenties</string>
+    <string name="plus_perk_no_ads_line">Ronumi toont nergens advertenties.</string>
     <string name="plus_unlock_for">Ontgrendelen voor %1$s</string>
     <string name="plus_unlock">Plus ontgrendelen</string>
     <string name="plus_one_payment">Eén betaling. Geen abonnement. Geen account.</string>
@@ -995,7 +998,7 @@
     <string name="plus_thanks_line">Bedankt dat je Ronumi steunt.</string>
     <string name="plus_done">Klaar</string>
     <string name="plus_try_on">Probeer ze</string>
-    <string name="plus_settings_line_locked">Ontgrendel alle blokkades en de Plus-collectie.</string>
+    <string name="plus_settings_line_locked">Verwijder advertenties en ontgrendel alle blokkades en de Plus-collectie.</string>
     <string name="plus_settings_line_active">Plus is actief. Bedankt voor je steun.</string>
     <string name="plus_settings_line_pending">Betaling in behandeling</string>
     <string name="plus_paused">Gepauzeerd - Plus nodig</string>

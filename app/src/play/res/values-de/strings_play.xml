@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">Fokus funktioniert offline. Kein Konto, keine Werbung. Google Play wird nur für den Plus-Kauf genutzt.</string>
+    <string name="distribution_privacy">Fokus funktioniert offline. Kein Konto. Ohne Plus zeigt Ronumi etwas Werbung von Google, nie während des Fokus. Plus entfernt sie.</string>
+    <string name="ads_reward_title">Sieh dir für XP eine kurze Werbung an</string>
+    <plurals name="ads_reward_line">
+        <item quantity="one">Heute noch %1$d Belohnung.</item>
+        <item quantity="other">Heute noch %1$d Belohnungen.</item>
+    </plurals>
+    <string name="ads_privacy_title">Datenschutzoptionen für Werbung</string>
+    <string name="ads_privacy_line">Lege fest, wie Google deine Daten für Werbung nutzen darf.</string>
     <string name="blocks_protection_description">Der Schutz sperrt deine Regeln in Ronumi, bis die Sitzung endet. Du kannst den Zugriff weiterhin in den Android-Einstellungen ausschalten.</string>
     <string name="blocks_protection_switch_description">Sperrt deine Regeln in Ronumi, bis die Sitzung endet.</string>
 </resources>

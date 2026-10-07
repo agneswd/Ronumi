@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ronumi code never uses the network in the Play build. The Billing library talks to the
-     Play Store app, and its bundled diagnostics library declares INTERNET and ACCESS_NETWORK_STATE.
-     Keep both: removing them can crash that library when it checks the network in the background. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<!-- The Play build shows ads from Google to users without Plus, so the Google Mobile Ads SDK uses the network.
+     The Billing library talks to the Play Store app. Its diagnostics library also declares INTERNET and
+     ACCESS_NETWORK_STATE; removing them can crash that library when it checks the network in the background. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="${admobAppId}" />
+    </application>
+</manifest>

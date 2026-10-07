@@ -102,6 +102,7 @@ fun Backup.validated(): Backup {
     requireBackup(s.themeMode in setOf("SYSTEM", "LIGHT", "DARK")) { R.string.backup_error_theme }
     requireBackup(s.clockFormat in setOf("SYSTEM", "H12", "H24")) { R.string.backup_error_clock }
     requireBackup(s.petTapCount in 0..1000) { R.string.backup_error_pet_count }
+    requireBackup(s.bonusXp in 0..BONUS_XP_LIMIT) { R.string.backup_error_settings }
     requireBackup(s.pebbleItems.size <= 8 && s.pebbleItems.all { it.matches(Regex("[a-z][a-z0-9_]{0,63}")) }) { R.string.backup_error_items }
     requireBackup(s.notificationDeliveryTimes.all { it.toIntOrNull() in 0..1439 }) { R.string.backup_error_delivery_time }
     requireBackup(s.freezeRewardedThrough.isEmpty() || runCatching { LocalDate.parse(s.freezeRewardedThrough) }.isSuccess) { R.string.backup_error_freeze_reward }
@@ -129,3 +130,6 @@ fun Backup.validated(): Backup {
     // Old files have no setup state or goal snapshot.
     return if (version == 1) copy(settings = s.copy(onboarded = true), sessions = sessions.map { it.copy(goalMinutes = s.focusGoalMinutes) }) else this
 }
+
+/** Far above any real total. It only rejects edited backups. */
+const val BONUS_XP_LIMIT = 1_000_000

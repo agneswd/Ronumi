@@ -20,6 +20,7 @@ UPDATER_PERMISSIONS = {
 PLAY_FORBIDDEN_PERMISSIONS = {"android.permission.REQUEST_INSTALL_PACKAGES"}
 MIGRATE = "dev.agneswd.stillpoint.permission.MIGRATE"
 BILLING = "com.android.vending.BILLING"
+AD_ID = "com.google.android.gms.permission.AD_ID"
 
 
 def analyze(*args):
@@ -64,6 +65,7 @@ def inspect(flavor, build_type):
         assert MIGRATE not in actual, variant
         assert "stillpoint" not in printed, variant
         assert BILLING in actual, variant
+        assert AD_ID in actual, f"{variant}: the ads SDK must declare the advertising ID"
         for forbidden in ("dev.agneswd.ronumi.update", "UpdatesActivity", "UpdateSettingsKt", "LegacyImport", "MigrationProvider"):
             assert forbidden not in classes, f"{variant}: isolated class {forbidden}"
         for text in ("Welcome back. Bring your progress", "dev.agneswd.stillpoint", "MigrationProvider"):
@@ -74,7 +76,8 @@ def inspect(flavor, build_type):
         assert "dev.agneswd.stillpoint" in printed, variant
         assert "dev.agneswd.stillpoint.migrate" in printed, variant
         assert BILLING not in actual, variant
-        for forbidden in ("com.android.billingclient", "com.google.android.gms.internal.play_billing", "MigrationProvider"):
+        assert AD_ID not in actual, f"{variant}: the GitHub version must not declare the advertising ID"
+        for forbidden in ("com.android.billingclient", "com.google.android.gms.internal.play_billing", "com.google.android.gms.ads", "com.google.android.ump", "dev.agneswd.ronumi.ads", "MigrationProvider"):
             assert forbidden not in classes, f"{variant}: isolated class {forbidden}"
         assert has_text(apk, "Welcome back. Bring your progress"), variant
 

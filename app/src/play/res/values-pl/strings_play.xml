@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">Skupienie działa offline. Bez konta i bez reklam. Google Play służy tylko do zakupu Plus.</string>
+    <string name="distribution_privacy">Skupienie działa offline. Bez konta. Bez Plus Ronumi pokazuje trochę reklam Google, nigdy podczas skupienia. Plus je usuwa.</string>
+    <string name="ads_reward_title">Obejrzyj krótką reklamę, aby zdobyć XP</string>
+    <plurals name="ads_reward_line">
+        <item quantity="one">Została %1$d nagroda na dziś.</item>
+        <item quantity="few">Zostały %1$d nagrody na dziś.</item>
+        <item quantity="many">Zostało %1$d nagród na dziś.</item>
+        <item quantity="other">Zostało %1$d nagrody na dziś.</item>
+    </plurals>
+    <string name="ads_privacy_title">Ustawienia prywatności reklam</string>
+    <string name="ads_privacy_line">Zmień, jak Google może używać Twoich danych do reklam.</string>
     <string name="blocks_protection_description">Ochrona blokuje Twoje reguły w Ronumi do końca sesji. Nadal możesz wyłączyć dostęp w ustawieniach Androida.</string>
     <string name="blocks_protection_switch_description">Blokuje Twoje reguły w Ronumi do końca sesji.</string>
 </resources>

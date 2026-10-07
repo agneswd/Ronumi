@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">Fokus fungerar offline. Inget konto och ingen reklam. Google Play används bara för köpet av Plus.</string>
+    <string name="distribution_privacy">Fokus fungerar offline. Inget konto. Utan Plus visar Ronumi lite reklam från Google, aldrig under fokus. Plus tar bort den.</string>
+    <string name="ads_reward_title">Se en kort annons för XP</string>
+    <plurals name="ads_reward_line">
+        <item quantity="one">%1$d belöning kvar i dag.</item>
+        <item quantity="other">%1$d belöningar kvar i dag.</item>
+    </plurals>
+    <string name="ads_privacy_title">Integritetsval för annonser</string>
+    <string name="ads_privacy_line">Ändra hur Google får använda dina data för annonser.</string>
     <string name="blocks_protection_description">Skyddet låser dina regler i Ronumi tills passet slutar. Du kan fortfarande stänga av åtkomsten i Androids inställningar.</string>
     <string name="blocks_protection_switch_description">Låser dina regler i Ronumi tills passet slutar.</string>
 </resources>

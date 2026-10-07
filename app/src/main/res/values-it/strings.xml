@@ -997,6 +997,7 @@
     <string name="legal_freesound_terms">Registrazioni di rumore bianco, rosa e marrone, pioggia e onde. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Librerie Android e Kotlin</string>
     <string name="legal_libraries_terms">Apache License, versione 2.0.</string>
+    <string name="legal_ads_terms">Termini di Google. Ronumi usa questi SDK con il permesso della sezione 7 della GPL indicato nell\'avviso di licenza.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi la usa con il permesso della sezione 7 della GPL indicato nell\'avviso di licenza.</string>
     <string name="wardrobe_item_plus_color_aurora">Aurora</string>
     <string name="wardrobe_item_plus_color_ember">Brace</string>
@@ -1031,6 +1032,8 @@
     <string name="plus_perk_history_line">Consulta ogni settimana e ogni mese registrati.</string>
     <string name="plus_perk_collection">Collezione Plus</string>
     <string name="plus_perk_collection_line">12 nuovi capi del guardaroba e 2 nuovi scenari di concentrazione.</string>
+    <string name="plus_perk_no_ads">Niente pubblicità</string>
+    <string name="plus_perk_no_ads_line">Ronumi non mostra pubblicità da nessuna parte.</string>
     <string name="plus_unlock_for">Sblocca per %1$s</string>
     <string name="plus_unlock">Sblocca Plus</string>
     <string name="plus_one_payment">Un solo pagamento. Nessun abbonamento. Nessun account.</string>
@@ -1043,7 +1046,7 @@
     <string name="plus_thanks_line">Grazie per sostenere Ronumi.</string>
     <string name="plus_done">Fine</string>
     <string name="plus_try_on">Provali</string>
-    <string name="plus_settings_line_locked">Sblocca tutti i blocchi e la collezione Plus.</string>
+    <string name="plus_settings_line_locked">Rimuovi la pubblicità e sblocca tutti i blocchi e la collezione Plus.</string>
     <string name="plus_settings_line_active">Plus è attivo. Grazie per il sostegno.</string>
     <string name="plus_settings_line_pending">Pagamento in sospeso</string>
     <string name="plus_paused">In pausa - richiede Plus</string>

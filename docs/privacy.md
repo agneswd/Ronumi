@@ -1,13 +1,14 @@
 # Ronumi privacy policy
 
-Last updated: 2026-10-06
+Last updated: 2026-10-07
 
 Ronumi is developed by agneswd. This policy covers the Google Play version and the APK from GitHub.
 Contact: `SUPPORT_EMAIL`.
 
 ## Data on your device
 
-Ronumi does not require an account. It has no ads, analytics SDK, or tracking.
+Ronumi does not require an account. It has no analytics SDK. The GitHub APK has no ads.
+The Google Play version shows ads from Google unless Ronumi Plus is unlocked. See "Ads in the Google Play version".
 We do not operate an app server. We do not sell your data.
 
 Ronumi stores settings, chosen apps and websites, schedules, focus sessions, task names, notes, and progress on your device.
@@ -55,9 +56,29 @@ Google handles its purchase data under the [Google Privacy Policy](https://polic
 See [Google Play order and purchase help](https://support.google.com/googleplay/answer/2850369?hl=en).
 Google controls retention of its payment records. Uninstalling the app does not erase them.
 
-The Play version has no GitHub updater, and Ronumi code makes no network requests.
+The Play version has no GitHub updater. Ronumi code makes no network requests of its own.
 The Google Play Billing Library in the Play version can send purchase diagnostics to Google.
 Google Play uses its own connection to process purchases and deliver app updates.
+
+## Ads in the Google Play version
+
+Without Plus, the Google Play version shows ads from Google through the Google Mobile Ads SDK (AdMob).
+It never shows ads during a focus session, during setup, or in the first three days after install.
+After a session summary, it can show at most three full-screen ads a day.
+You can also choose to watch a short ad for XP, at most three times a day.
+Ronumi Plus removes all ads.
+
+To show and measure ads, the Google Mobile Ads SDK collects and shares data with Google.
+This can include the device advertising ID, IP address, approximate location from the IP address,
+device and app information, and how you interact with ads. Google handles this data under the
+[Google Privacy Policy](https://policies.google.com/privacy) and explains it in
+[How Google uses information from sites or apps that use our services](https://policies.google.com/technologies/partner-sites).
+Ronumi does not send your focus history, blocked apps, websites, notifications, or notes to Google for ads.
+
+Where the law requires it, such as in the European Economic Area and the United Kingdom, Ronumi asks for your consent
+with Google's consent form before it requests ads. If you do not consent, Google can still show ads that are not personalized.
+You can change your choice later in Settings with "Ad privacy choices".
+You can also reset or delete your advertising ID in Android Settings.
 
 ## GitHub updates
 

@@ -1045,6 +1045,7 @@
     <string name="legal_freesound_terms">Nagrania białego, różowego i brązowego szumu, deszczu i fal. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Biblioteki Androida i Kotlina</string>
     <string name="legal_libraries_terms">Apache License, wersja 2.0.</string>
+    <string name="legal_ads_terms">Warunki Google. Ronumi używa tych SDK na podstawie zgody z sekcji 7 GPL podanej w informacji o licencji.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi używa jej na podstawie zgody z sekcji 7 GPL podanej w informacji o licencji.</string>
     <string name="wardrobe_item_plus_color_aurora">Zorza</string>
     <string name="wardrobe_item_plus_color_ember">Żar</string>
@@ -1079,6 +1080,8 @@
     <string name="plus_perk_history_line">Zobacz każdy zapisany tydzień i miesiąc.</string>
     <string name="plus_perk_collection">Kolekcja Plus</string>
     <string name="plus_perk_collection_line">12 nowych elementów garderoby i 2 nowe scenerie skupienia.</string>
+    <string name="plus_perk_no_ads">Bez reklam</string>
+    <string name="plus_perk_no_ads_line">Ronumi nigdzie nie pokazuje reklam.</string>
     <string name="plus_unlock_for">Odblokuj za %1$s</string>
     <string name="plus_unlock">Odblokuj Plus</string>
     <string name="plus_one_payment">Jedna płatność. Bez subskrypcji. Bez konta.</string>
@@ -1091,7 +1094,7 @@
     <string name="plus_thanks_line">Dziękujemy za wspieranie Ronumi.</string>
     <string name="plus_done">Gotowe</string>
     <string name="plus_try_on">Przymierz</string>
-    <string name="plus_settings_line_locked">Odblokuj wszystkie blokady i kolekcję Plus.</string>
+    <string name="plus_settings_line_locked">Usuń reklamy i odblokuj wszystkie blokady oraz kolekcję Plus.</string>
     <string name="plus_settings_line_active">Plus jest aktywny. Dziękujemy za wsparcie.</string>
     <string name="plus_settings_line_pending">Płatność oczekująca</string>
     <string name="plus_paused">Wstrzymane - wymaga Plus</string>

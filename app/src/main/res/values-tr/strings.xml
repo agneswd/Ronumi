@@ -949,6 +949,7 @@
     <string name="legal_freesound_terms">Beyaz, pembe ve kahverengi gürültü, yağmur ve dalga kayıtları. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Android ve Kotlin kitaplıkları</string>
     <string name="legal_libraries_terms">Apache License, sürüm 2.0.</string>
+    <string name="legal_ads_terms">Google koşulları. Ronumi bu SDK\'ları lisans bildirimindeki GPL bölüm 7 izniyle kullanır.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi bunu, lisans bildirimindeki GPL bölüm 7 izniyle kullanır.</string>
     <string name="wardrobe_item_plus_color_aurora">Kutup ışığı</string>
     <string name="wardrobe_item_plus_color_ember">Kor</string>
@@ -983,6 +984,8 @@
     <string name="plus_perk_history_line">Kaydettiğin her haftayı ve ayı gör.</string>
     <string name="plus_perk_collection">Plus koleksiyonu</string>
     <string name="plus_perk_collection_line">12 yeni gardırop öğesi ve 2 yeni odaklanma sahnesi.</string>
+    <string name="plus_perk_no_ads">Reklam yok</string>
+    <string name="plus_perk_no_ads_line">Ronumi hiçbir yerde reklam göstermez.</string>
     <string name="plus_unlock_for">%1$s karşılığında aç</string>
     <string name="plus_unlock">Plus erişimini aç</string>
     <string name="plus_one_payment">Tek ödeme. Abonelik yok. Hesap yok.</string>
@@ -995,7 +998,7 @@
     <string name="plus_thanks_line">Ronumi\'yi desteklediğin için teşekkürler.</string>
     <string name="plus_done">Bitti</string>
     <string name="plus_try_on">Dene</string>
-    <string name="plus_settings_line_locked">Tüm engelleri ve Plus koleksiyonunu aç.</string>
+    <string name="plus_settings_line_locked">Reklamları kaldır, tüm engelleri ve Plus koleksiyonunu aç.</string>
     <string name="plus_settings_line_active">Plus etkin. Desteğin için teşekkürler.</string>
     <string name="plus_settings_line_pending">Ödeme beklemede</string>
     <string name="plus_paused">Duraklatıldı - Plus gerekir</string>

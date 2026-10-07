@@ -997,6 +997,7 @@
     <string name="legal_freesound_terms">Enregistrements de bruit blanc, rose et brun, de pluie et de vagues. Creative Commons Zero (CC0 1.0).</string>
     <string name="legal_libraries_title">Bibliothèques Android et Kotlin</string>
     <string name="legal_libraries_terms">Apache License, version 2.0.</string>
+    <string name="legal_ads_terms">Conditions de Google. Ronumi utilise ces SDK avec l\'autorisation de la section 7 de la GPL indiquée dans l\'avis de licence.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi l\'utilise avec l\'autorisation de la section 7 de la GPL indiquée dans l\'avis de licence.</string>
     <string name="wardrobe_item_plus_color_aurora">Aurore</string>
     <string name="wardrobe_item_plus_color_ember">Braise</string>
@@ -1031,6 +1032,8 @@
     <string name="plus_perk_history_line">Consultez chaque semaine et chaque mois enregistrés.</string>
     <string name="plus_perk_collection">Collection Plus</string>
     <string name="plus_perk_collection_line">12 nouveaux articles de garde-robe et 2 nouveaux décors de concentration.</string>
+    <string name="plus_perk_no_ads">Sans publicité</string>
+    <string name="plus_perk_no_ads_line">Ronumi n\'affiche aucune publicité.</string>
     <string name="plus_unlock_for">Débloquer pour %1$s</string>
     <string name="plus_unlock">Débloquer Plus</string>
     <string name="plus_one_payment">Un seul paiement. Pas d\'abonnement. Pas de compte.</string>
@@ -1043,7 +1046,7 @@
     <string name="plus_thanks_line">Merci de soutenir Ronumi.</string>
     <string name="plus_done">OK</string>
     <string name="plus_try_on">Les essayer</string>
-    <string name="plus_settings_line_locked">Débloquez tous les blocages et la collection Plus.</string>
+    <string name="plus_settings_line_locked">Supprimez les publicités et débloquez tous les blocages et la collection Plus.</string>
     <string name="plus_settings_line_active">Plus est actif. Merci pour votre soutien.</string>
     <string name="plus_settings_line_pending">Paiement en attente</string>
     <string name="plus_paused">En pause - nécessite Plus</string>
