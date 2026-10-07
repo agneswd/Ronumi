@@ -1074,6 +1074,53 @@ def legal_notices():
     return f"{notices}, {license_shot}; {url}"
 
 
+def plus_gates():
+    """Without Plus a locked feature shows the chip and opens the paywall. With Plus, and in the GitHub version, no chip shows."""
+    open_ronumi("HOME")
+    end = time.time() + 10
+    while time.time() < end and not find("Daily quests"):
+        if find("GET STARTED") or find("Get started") or find("Hi! I'm Ronumi"):
+            device_workflow("demo-wardrobe")
+            sh(f"am force-stop {PKG}")
+            break
+        time.sleep(0.5)
+    shots = []
+    if FLAVOR == "github":
+        for tab in ("BLOCKS", "PROGRESS"):
+            open_ronumi(tab)
+            time.sleep(1)
+            assert not find("Plus", exact=True), f"A Plus label shows on {tab} in the GitHub version"
+        tap("Settings", exact=True)
+        assert not find("Ronumi Plus", exact=True), "Settings shows Plus in the GitHub version"
+        return shot("github-no-plus")
+    sh(f"run-as {PKG} mkdir -p no_backup")
+    sh(f"run-as {PKG} touch no_backup/plus-fake-store")
+    device_workflow("locked", receiver=".plus.PlusCheckReceiver")
+    sh(f"am force-stop {PKG}")
+    open_ronumi("BLOCKS")
+    scroll_to("Websites")
+    assert find("Plus", exact=True), "Locked features show no Plus label"
+    shots.append(shot("plus-blocks-locked"))
+    tap("Websites", exact=True)
+    wait_for("Ronumi Plus", exact=True)
+    wait_for("$4.99")
+    shots.append(shot("plus-paywall"))
+    sh("input keyevent KEYCODE_BACK")
+    open_ronumi("PROGRESS")
+    tap("Settings", exact=True)
+    wait_for("Unlock every block and the Plus collection.")
+    device_workflow("unlocked", receiver=".plus.PlusCheckReceiver")
+    sh(f"am force-stop {PKG}")
+    open_ronumi("PROGRESS")
+    tap("Settings", exact=True)
+    wait_for("Plus is active. Thank you for your support.")
+    open_ronumi("BLOCKS")
+    scroll_to("Websites")
+    assert not find("Plus", exact=True), "The Plus label stays after unlocking"
+    shots.append(shot("plus-blocks-unlocked"))
+    return ", ".join(shots)
+
+
 def consent_text() -> str:
     return sh(f"run-as {PKG} cat shared_prefs/consents.xml")
 
@@ -1455,6 +1502,7 @@ CHECKS = [
     planned_focus_workflow,
     update_workflow,
     legal_notices,
+    plus_gates,
     pip_stays,
     consent_gates,
 ]
@@ -1472,7 +1520,7 @@ def main():
     if args.apk:
         APK = args.apk.resolve()
     opt_in = [import_workflow] if args.flavor == "github" else []
-    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates, legal_notices]
+    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates, legal_notices, plus_gates]
     available = suite + opt_in
     requested = set(args.only.split(",")) if args.only else {c.__name__ for c in suite}
     unknown = requested - {c.__name__ for c in available}
