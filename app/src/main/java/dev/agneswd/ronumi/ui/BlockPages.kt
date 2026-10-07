@@ -60,13 +60,13 @@ import dev.agneswd.ronumi.ui.design.appear
 import kotlinx.coroutines.launch
 
 /** The short-video apps that Ronumi can close the feed of. */
-data class ShortsApp(val pkg: String, @param:androidx.annotation.StringRes val nameRes: Int, val logo: Int, val get: (Settings) -> Boolean, val set: (Settings, Boolean) -> Settings)
+data class ShortsApp(val pkg: String, @param:androidx.annotation.StringRes val nameRes: Int, val get: (Settings) -> Boolean, val set: (Settings, Boolean) -> Settings)
 
 val shortsApps = listOf(
-    ShortsApp("com.google.android.youtube", R.string.blocks_youtube_shorts, R.drawable.logo_youtube, { it.blockYoutubeShorts }, { s, v -> s.copy(blockYoutubeShorts = v) }),
-    ShortsApp("com.instagram.android", R.string.blocks_instagram_reels, R.drawable.logo_instagram, { it.blockInstagramReels }, { s, v -> s.copy(blockInstagramReels = v) }),
-    ShortsApp("com.snapchat.android", R.string.blocks_snapchat_spotlight, R.drawable.logo_snapchat, { it.blockSnapchatSpotlight }, { s, v -> s.copy(blockSnapchatSpotlight = v) }),
-    ShortsApp("com.facebook.katana", R.string.blocks_facebook_reels, R.drawable.logo_facebook, { it.blockFacebookReels }, { s, v -> s.copy(blockFacebookReels = v) }),
+    ShortsApp("com.google.android.youtube", R.string.blocks_youtube_shorts, { it.blockYoutubeShorts }, { s, v -> s.copy(blockYoutubeShorts = v) }),
+    ShortsApp("com.instagram.android", R.string.blocks_instagram_reels, { it.blockInstagramReels }, { s, v -> s.copy(blockInstagramReels = v) }),
+    ShortsApp("com.snapchat.android", R.string.blocks_snapchat_spotlight, { it.blockSnapchatSpotlight }, { s, v -> s.copy(blockSnapchatSpotlight = v) }),
+    ShortsApp("com.facebook.katana", R.string.blocks_facebook_reels, { it.blockFacebookReels }, { s, v -> s.copy(blockFacebookReels = v) }),
 )
 
 /**
@@ -122,7 +122,7 @@ fun ShortVideosPage(onClose: () -> Unit) {
     BlockPage(stringResource(R.string.blocks_short_videos), stringResource(R.string.blocks_shorts_description), Mood.GUARD, onClose) { s, update ->
         Group(Modifier.appear(0)) {
             shortsApps.forEach { item ->
-                SwitchRow(stringResource(item.nameRes), null, item.get(s), leading = { AppIcon(item.pkg, name = stringResource(item.nameRes), logo = item.logo) }) { on -> update { item.set(it, on) } }
+                SwitchRow(stringResource(item.nameRes), null, item.get(s), leading = { AppIcon(item.pkg, name = stringResource(item.nameRes), logo = R.drawable.ic_video) }) { on -> update { item.set(it, on) } }
             }
         }
         Group(Modifier.padding(top = 12.dp).appear(60)) {
