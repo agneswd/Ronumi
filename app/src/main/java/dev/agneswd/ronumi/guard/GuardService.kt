@@ -35,8 +35,11 @@ import android.view.View
 import android.view.WindowManager
 import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
+import dev.agneswd.ronumi.Distribution
 import dev.agneswd.ronumi.R
 import dev.agneswd.ronumi.RonumiApp
+import dev.agneswd.ronumi.consent.ConsentKind
+import dev.agneswd.ronumi.consent.Consents
 import java.time.LocalDate
 
 /**
@@ -55,6 +58,8 @@ class GuardService : AccessibilityService() {
     private var launchers = emptySet<String>()
     private var browsers = emptySet<String>()
     private var systemAppsUpdatedAt = 0L
+    private var appListReady = false
+    private val guardsSystemScreens = Distribution.guardsSystemScreens
     private var evaluation: kotlinx.coroutines.Job? = null
     private val activityCache = HashMap<ComponentName, Boolean>()
     private var lastContentCheck = 0L
@@ -68,6 +73,7 @@ class GuardService : AccessibilityService() {
     private var blockedPackage: String? = null
     private var blockedKind: BlockKind? = null
     private var returnStarted = 0L
+    private var returnClockStarted = false
     private var returnStep = 0
     private var stepStarted = 0L
     private var lastTapAt = 0L
@@ -99,54 +105,104 @@ class GuardService : AccessibilityService() {
 
     /**
      * Recovers in the blocked app under the cover, one step per run.
-     * Websites load a blank page in the same tab. Feeds go Back to the page that opened them,
-     * or to a safe tab when the feed is itself a tab or the first screen of this visit.
-     * Every step waits for the app to react before it tries the next one.
+     * A website loads a blank page in the same tab.
+     * A feed goes Back, or to a safe tab when Back would leave the app.
+     * Each step waits for the app to react.
      */
     private val returnSettle = object : Runnable {
         override fun run() {
             val pkg = blockedPackage ?: return finishReturn()
             val kind = blockedKind ?: return finishReturn()
-            val front = appInFront()
+            // Windows can omit the app for a moment after the block activity finishes.
+            // rootInActiveWindow still names it. Do not send actions to a different app.
+            var front = appInFront()
+            if (front == null && rootInActiveWindow?.packageName?.toString() == pkg) front = pkg
             val now = SystemClock.elapsedRealtime()
             val elapsed = now - returnStarted
             if (front != pkg) {
-                // The block activity needs a frame to finish. Never send actions to another app.
-                if ((front == null || front == packageName) && elapsed < 800) handler.postDelayed(this, 50)
+                if ((front == null || front == packageName) && elapsed < FRONT_WAIT_MILLIS) handler.postDelayed(this, 50)
                 else finishReturn()
                 return
             }
+            if (!returnClockStarted) {
+                returnClockStarted = true
+                returnStarted = now
+                stepStarted = now
+            }
             val roots = windowRoots(pkg)
             if (roots.isEmpty()) {
-                if (elapsed < 1200) handler.postDelayed(this, 80) else finishReturn()
+                val limit = if (kind == BlockKind.SITE) SITE_RECOVERY_MILLIS else FRONT_WAIT_MILLIS
+                if (now - returnStarted < limit) handler.postDelayed(this, 80)
+                else if (kind == BlockKind.SITE) leaveBlockedPage()
+                else finishReturn()
                 return
             }
-            if (kind == BlockKind.SITE) settleSite(pkg, roots, elapsed) else settleFeed(pkg, kind, roots, now, elapsed)
+            val settleElapsed = now - returnStarted
+            if (kind == BlockKind.SITE) settleSite(roots, settleElapsed) else settleFeed(pkg, kind, roots, now, settleElapsed)
         }
     }
 
-    private fun settleSite(pkg: String, roots: List<AccessibilityNodeInfo>, elapsed: Long) {
+    /**
+     * Replaces the blocked page with about:blank in the same tab.
+     * A missing host is not success. The bar must show about:blank, or a host the rules allow.
+     * On timeout, go Home. Do not read the page again and show the block screen.
+     */
+    private fun settleSite(roots: List<AccessibilityNodeInfo>, elapsed: Long) {
         val now = SystemClock.elapsedRealtime()
-        if (returnStep == 0) {
-            // The rule can change while the block is open. Keep a page that is now allowed.
-            val host = roots.firstNotNullOfOrNull { it.browserHost() }
-            if (host != null && blockedSite(host, rules) == null) return finishReturn()
-            // Some toolbars take a second to open their editor. Another tap meanwhile would close it again.
-            val editing = roots.any { it.browserAddressBar()?.isFocused == true }
-            if (editing || now - lastTapAt >= EDITOR_WAIT_MILLIS) {
-                if (!editing) lastTapAt = now
-                if (roots.any { it.clearBrowserPage(::tapBrowserControl) }) returnStep = 1
-            }
-        } else if (roots.none { it.browserAddressBar()?.isFocused == true }) {
+        val bar = roots.firstNotNullOfOrNull { it.browserAddressBar() }
+        val editing = bar?.isFocused == true
+        if (siteCleared(bar, editing)) {
             finishReturn()
-            checkContent(pkg, force = true)
             return
         }
-        if (elapsed < 2500) {
+        if (returnStep == 0 && (editing || now - lastTapAt >= EDITOR_WAIT_MILLIS)) {
+            if (!editing) lastTapAt = now
+            if (roots.any { it.clearBrowserPage(::tapBrowserControl) }) returnStep = 1
+        } else if (returnStep > 0 && !editing && blockedAddress(bar)) {
+            if (now - lastTapAt >= EDITOR_WAIT_MILLIS) {
+                lastTapAt = now
+                roots.any { it.clearBrowserPage(::tapBrowserControl) }
+            }
+        }
+        if (elapsed < SITE_RECOVERY_MILLIS) {
             handler.postDelayed(returnSettle, 100)
             return
         }
-        // This browser did not load the blank page. Its blocked page must not stay usable.
+        leaveBlockedPage()
+    }
+
+    /** The bar shows about:blank, or a host that the current rules allow. */
+    private fun siteCleared(bar: AccessibilityNodeInfo?, editing: Boolean): Boolean {
+        if (editing || bar == null) return false
+        val address = addressText(bar)
+        if (isBlankPage(address)) return true
+        val host = hostOf(address) ?: return false
+        return blockedSite(host, rules) == null
+    }
+
+    /** The bar shows a host that the current rules still block. An unreadable bar is not a block. */
+    private fun blockedAddress(bar: AccessibilityNodeInfo?): Boolean {
+        if (bar == null) return false
+        val host = hostOf(addressText(bar)) ?: return false
+        return blockedSite(host, rules) != null
+    }
+
+    private fun addressText(bar: AccessibilityNodeInfo): String {
+        val text = bar.text?.toString()?.trim().orEmpty()
+        if (text.isNotEmpty() || bar.viewIdResourceName?.substringAfterLast('/') != "ADDRESSBAR_URL_BOX") return text
+        return bar.contentDescription?.toString()?.trim()?.substringBefore(' ')?.trimEnd('.').orEmpty()
+    }
+
+    private fun isBlankPage(address: String): Boolean {
+        val value = address.trim()
+        return value.equals("about:blank", true) ||
+            value.startsWith("about:blank/", true) ||
+            value.startsWith("about:blank?", true) ||
+            value.startsWith("about:blank#", true)
+    }
+
+    /** Hides the cover and leaves the blocked page. The page must not stay in front. */
+    private fun leaveBlockedPage() {
         finishReturn()
         performGlobalAction(GLOBAL_ACTION_HOME)
     }
@@ -173,7 +229,7 @@ class GuardService : AccessibilityService() {
                 returnStep = 2
                 stepStarted = now
             }
-            returnStep == 2 && now - stepStarted >= FEED_SETTLE_MILLIS || elapsed >= 2500 -> {
+            returnStep == 2 && now - stepStarted >= FEED_SETTLE_MILLIS || elapsed >= FRONT_WAIT_MILLIS -> {
                 // Nothing left the feed. Show the block again instead of the feed.
                 finishReturn()
                 checkContent(pkg, force = true)
@@ -232,10 +288,13 @@ class GuardService : AccessibilityService() {
 
     private val tick = object : Runnable {
         override fun run() {
-            if (getSystemService(PowerManager::class.java).isInteractive) {
-                appInFront()?.let(::setForeground)
-                evaluate()
-                foreground?.let { checkContent(it, force = true) }
+            if (accessibilityAllowed()) {
+                if (Consents.granted(this@GuardService, ConsentKind.APP_LIST) != appListReady) refreshSystemApps()
+                if (getSystemService(PowerManager::class.java).isInteractive) {
+                    appInFront()?.let(::setForeground)
+                    evaluate()
+                    foreground?.let { checkContent(it, force = true) }
+                }
             }
             handler.postDelayed(this, TICK_MILLIS)
         }
@@ -249,17 +308,20 @@ class GuardService : AccessibilityService() {
     }
 
     override fun onServiceConnected() {
-        refreshSystemApps()
-        // A reconnect gets no window event for the app already in front. Check it as soon as rules load.
-        appInFront()?.let(::setForeground)
+        if (accessibilityAllowed()) {
+            refreshSystemApps()
+            // A reconnect gets no window event for the app already in front. Check it as soon as rules load.
+            appInFront()?.let(::setForeground)
+        }
         val dao = app.dao
         scope.launch {
             combine(dao.settings(), dao.limits(), dao.schedules(), dao.sites(), dao.activeFocusFlow()) { settings, limits, schedules, sites, focus ->
                 Rules(settings, limits.associateBy { it.packageName }, schedules, sites.map { it.domain }.toSet(), focus)
             }.collect {
                 rules = it
+                if (!accessibilityAllowed()) return@collect
                 evaluate()
-                foreground?.let { checkContent(it, force = true) }
+                foreground?.let { pkg -> checkContent(pkg, force = true) }
             }
         }
         handler.postDelayed(tick, TICK_MILLIS)
@@ -299,6 +361,7 @@ class GuardService : AccessibilityService() {
      * TYPE_VIEW_CLICKED and TYPE_VIEW_SELECTED: immediate full check. Shorts uses the click.
      */
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
+        if (!accessibilityAllowed()) return
         val pkg = event.packageName?.toString() ?: return
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
@@ -380,16 +443,21 @@ class GuardService : AccessibilityService() {
     }
 
     private fun refreshSystemApps() {
+        val ready = Consents.granted(this, ConsentKind.APP_LIST)
         val now = SystemClock.elapsedRealtime()
-        if (essentials.isNotEmpty() && now - systemAppsUpdatedAt < 30_000) return
+        if (ready == appListReady && essentials.isNotEmpty() && now - systemAppsUpdatedAt < 30_000) return
+        appListReady = ready
         systemAppsUpdatedAt = now
         val catalog = app.catalog
         essentials = catalog.essentials()
         launchers = catalog.launchers()
-        browsers = browserPackages()
+        browsers = if (ready) browserPackages() else emptySet()
     }
 
+    private fun accessibilityAllowed(): Boolean = Consents.granted(this, ConsentKind.ACCESSIBILITY)
+
     private fun evaluate() {
+        if (!accessibilityAllowed()) return
         val pkg = foreground ?: return
         if (pkg == packageName) return
         val current = rules
@@ -434,8 +502,10 @@ class GuardService : AccessibilityService() {
     }
 
     private fun checkContent(pkg: String, force: Boolean, windowId: Int = -1, hint: ContentHint? = null) {
+        if (!accessibilityAllowed()) return
         if (returnInProgress || blockVisible && appInFront() == packageName) return
-        if (pkg !in watchedPackages && pkg !in browsers && !rules.settings.blockMultiWindow) return
+        val watched = if (guardsSystemScreens) watchedPackages else watchedPackages - protectedScreens
+        if (pkg !in watched && pkg !in browsers && !rules.settings.blockMultiWindow) return
         val elapsed = SystemClock.elapsedRealtime()
         if (!force && elapsed - lastContentCheck < CONTENT_THROTTLE_MILLIS) {
             scheduleContent(pkg, windowId, hint ?: ContentHint(unscopedContent = true, addressInBar = false, addressHost = null))
@@ -451,7 +521,8 @@ class GuardService : AccessibilityService() {
                 pkg == "com.google.android.youtube" && (current.settings.blockYoutubeHome || current.settings.youtubeStudyMode) ||
                 pkg in browsers && (current.sites.isNotEmpty() || current.settings.siteAllowList || current.settings.blockAdultSites)
             )
-        if (!watchesContent && !(protected && pkg in protectedScreens) && !current.settings.blockMultiWindow) return
+        val shieldsSettings = guardsSystemScreens && protected && pkg in protectedScreens
+        if (!watchesContent && !shieldsSettings && !current.settings.blockMultiWindow) return
         val roots = windowRoots(pkg)
         if (roots.isEmpty()) return
 
@@ -525,7 +596,7 @@ class GuardService : AccessibilityService() {
 
         // A scroll or a list change keeps the previous full check. A window change clears it.
         val skipProtected = !force && sameWindow && hint != null && !hint.unscopedContent
-        if (!skipProtected && current.settings.protection && pkg in protectedScreens && current.locked(LocalDateTime.now()) &&
+        if (!skipProtected && guardsSystemScreens && current.settings.protection && pkg in protectedScreens && current.locked(LocalDateTime.now()) &&
             roots.any { it.containsText(app.catalog.label(packageName)) }
         ) {
             markChecked(cached)
@@ -683,13 +754,22 @@ class GuardService : AccessibilityService() {
         else -> emptyList()
     }
 
-    /** Closes a picture-in-picture window. The close control sits in the system window, not in the video. */
+    /** The picture-in-picture window of [pkg], when that package is still the blocked one. */
+    private fun pipWindow(pkg: String): AccessibilityWindowInfo? =
+        windows.firstOrNull { it.isInPictureInPictureMode && it.root?.packageName?.toString() == pkg }
+
+    private fun pipStill(pkg: String): Boolean =
+        blockVisible && blockedPackage == pkg && pipWindow(pkg) != null
+
+    /** Closes the picture-in-picture window of the blocked app. Another app's window stays. */
     private fun dismissPip() {
-        if (clickPipClose()) return
-        val pip = windows.firstOrNull { it.isInPictureInPictureMode } ?: return
+        val pkg = blockedPackage ?: return
+        if (!pipStill(pkg)) return
+        if (clickPipClose(pkg)) return
+        val pip = pipWindow(pkg) ?: return
         val bounds = android.graphics.Rect()
         pip.getBoundsInScreen(bounds)
-        if (bounds.width() < 2 || bounds.height() < 2) return
+        if (bounds.width() < 2 || bounds.height() < 2 || !pipStill(pkg)) return
         val path = android.graphics.Path().apply {
             moveTo(bounds.centerX().toFloat(), bounds.centerY().toFloat())
         }
@@ -698,7 +778,7 @@ class GuardService : AccessibilityService() {
             android.accessibilityservice.GestureDescription.Builder().addStroke(stroke).build(),
             object : android.accessibilityservice.AccessibilityService.GestureResultCallback() {
                 override fun onCompleted(gestureDescription: android.accessibilityservice.GestureDescription?) {
-                    handler.postDelayed({ clickPipClose() }, 280)
+                    handler.postDelayed({ if (pipStill(pkg)) clickPipClose(pkg) }, 280)
                 }
             },
             null,
@@ -706,26 +786,44 @@ class GuardService : AccessibilityService() {
     }
 
     /** The close control is drawn next to the video. Do not click every Close label on the phone. */
-    private fun clickPipClose(): Boolean {
-        val pip = windows.firstOrNull { it.isInPictureInPictureMode } ?: return false
+    private fun clickPipClose(pkg: String): Boolean {
+        if (!pipStill(pkg)) return false
+        val pip = pipWindow(pkg) ?: return false
         val area = android.graphics.Rect()
         pip.getBoundsInScreen(area)
         area.inset(-120, -160)
         if (area.isEmpty) return false
-        return windows.mapNotNull { it.root }.any { clickCloseIn(it, area) }
+        val roots = ArrayList<AccessibilityNodeInfo>()
+        for (window in windows) {
+            val root = window.root ?: continue
+            val owner = root.packageName?.toString()
+            if (owner == pkg) {
+                roots.add(root)
+            } else if (window.type != AccessibilityWindowInfo.TYPE_APPLICATION && owner != packageName && windowOverlaps(window, area)) {
+                roots.add(root)
+            }
+        }
+        return roots.any { clickCloseIn(it, area, pkg) }
     }
 
-    private fun clickCloseIn(node: AccessibilityNodeInfo, area: android.graphics.Rect): Boolean {
+    private fun windowOverlaps(window: AccessibilityWindowInfo, area: android.graphics.Rect): Boolean {
+        val bounds = android.graphics.Rect()
+        window.getBoundsInScreen(bounds)
+        return android.graphics.Rect.intersects(area, bounds)
+    }
+
+    private fun clickCloseIn(node: AccessibilityNodeInfo, area: android.graphics.Rect, pkg: String): Boolean {
+        if (!pipStill(pkg)) return false
         val bounds = android.graphics.Rect()
         node.getBoundsInScreen(bounds)
         val label = (node.contentDescription ?: node.text)?.toString()?.trim().orEmpty()
         val close = label.equals("Close", true) || label.equals("Dismiss", true) || label.contains("picture-in-picture", true)
-        if (close && android.graphics.Rect.intersects(area, bounds) &&
+        if (close && android.graphics.Rect.intersects(area, bounds) && pipStill(pkg) &&
             (node.performAction(AccessibilityNodeInfo.ACTION_CLICK) || node.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true)
         ) return true
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
-            if (clickCloseIn(child, area)) return true
+            if (clickCloseIn(child, area, pkg)) return true
         }
         return false
     }
@@ -746,6 +844,7 @@ class GuardService : AccessibilityService() {
         if (returnInProgress || pkg != blockedPackage) return
         returnInProgress = true
         blockVisible = false
+        returnClockStarted = false
         returnStarted = SystemClock.elapsedRealtime()
         returnStep = 0
         stepStarted = returnStarted
@@ -807,6 +906,10 @@ class GuardService : AccessibilityService() {
         private const val FEED_SETTLE_MILLIS = 900L
         private const val EDITOR_WAIT_MILLIS = 1200L
         private const val TITLE_WAIT_MILLIS = 1500L
+        /** How long to wait for the blocked app to return to the front. */
+        private const val FRONT_WAIT_MILLIS = 2_500L
+        /** How long a website may take to load about:blank before the phone goes Home. */
+        private const val SITE_RECOVERY_MILLIS = 4_000L
 
         /** Screens where someone can turn off or remove this app. */
         private val protectedScreens = setOf(
