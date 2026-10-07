@@ -6,4 +6,5 @@
     android:canPerformGestures="true"
     android:canRetrieveWindowContent="true"
     android:description="@string/guard_description"
+    android:isAccessibilityTool="false"
     android:notificationTimeout="0" />

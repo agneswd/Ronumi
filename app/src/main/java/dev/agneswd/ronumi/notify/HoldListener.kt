@@ -20,6 +20,7 @@ import java.time.LocalDateTime
  */
 class HoldListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        if (!dev.agneswd.ronumi.consent.Consents.granted(this, dev.agneswd.ronumi.consent.ConsentKind.NOTIFICATION_ACCESS)) return
         if (sbn.isOngoing || sbn.packageName == packageName) return
         val extras = sbn.notification.extras
         // Group summaries repeat their children. Keep only the real messages.

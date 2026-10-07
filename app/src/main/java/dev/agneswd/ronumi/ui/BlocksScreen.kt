@@ -95,7 +95,7 @@ fun BlocksScreen(navigator: Navigator) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         ScreenTitle(stringResource(R.string.blocks_blocks), Modifier.padding(horizontal = ScreenPadding, vertical = 14.dp))
         if (!access.ready) {
-            ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding), fill = Sp.colors.danger.copy(alpha = 0.1f), onClick = { navigator.push(Route.Settings) }) {
+            ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding), fill = Sp.colors.danger.copy(alpha = 0.1f), onClick = { context.openGuardSetup { navigator.push(Route.Settings) } }) {
                 Text(stringResource(R.string.blocks_permissions_missing), style = MaterialTheme.typography.titleSmall, color = Sp.colors.danger)
             }
         }

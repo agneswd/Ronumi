@@ -202,7 +202,7 @@ fun NotificationsPage(navigator: Navigator, onClose: () -> Unit) {
                 ListRow(
                     stringResource(R.string.blocks_allow_notification_access),
                     stringResource(R.string.blocks_listener_description),
-                    onClick = { navigator.push(Route.Settings) },
+                    onClick = { context.withConsent(dev.agneswd.ronumi.consent.ConsentKind.NOTIFICATION_ACCESS) { context.openNotificationListenerSettings() } },
                     leading = { IconTile(R.drawable.ic_bell, Sp.colors.danger) },
                 ) { Chevron() }
             }

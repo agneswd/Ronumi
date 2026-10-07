@@ -95,6 +95,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 110.dp)) {
             GameBar(game, onOpen = { navigator.tab = Tab.PROGRESS })
+            BlockingConsentNudge(Modifier.padding(horizontal = ScreenPadding).appear(0))
             if (!access.ready) {
                 SetupNudge(Modifier.padding(horizontal = ScreenPadding).appear(0)) { navigator.push(Route.Settings) }
             }
@@ -110,6 +111,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
             SectionTitle(stringResource(R.string.home_daily_quests), action = { Tag(stringResource(R.string.home_resets_at_midnight), Sp.colors.textDim) })
             QuestCard(game?.quests.orEmpty(), Modifier.padding(horizontal = ScreenPadding).appear(180))
             SectionTitle(stringResource(R.string.home_screen_time))
+            UsageConsentLine(Modifier.padding(horizontal = ScreenPadding).appear(220))
             ScreenTimeCard(today, Modifier.padding(horizontal = ScreenPadding).appear(240)) { navigator.tab = Tab.PROGRESS }
             val next = nextSchedule(schedules)
             if (next != null) {

@@ -19,6 +19,7 @@ class AppCatalog(private val context: Context) {
 
     /** Apps with a launcher icon, sorted by name. This app is not in the list. */
     fun launchableApps(): List<InstalledApp> {
+        if (!dev.agneswd.ronumi.consent.Consents.granted(context, dev.agneswd.ronumi.consent.ConsentKind.APP_LIST)) return emptyList()
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         return pm.queryIntentActivities(intent, 0)
             .map { it.activityInfo.packageName }

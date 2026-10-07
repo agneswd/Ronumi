@@ -50,9 +50,9 @@
     <string name="permissions_accessibility">Accessibility</string>
     <string name="permissions_accessibility_description">Sees which app is open so Ronumi can block it. If the switch is grey, open App info, tap the menu, then allow restricted settings.</string>
     <string name="permissions_alarms_and_reminders">Alarms and reminders</string>
-    <string name="permissions_alarms_description">Starts planned focus and ends timer rounds while the phone sleeps.</string>
+    <string name="permissions_alarms_description">Allow precise timing for planned focus and timer rounds. Without it, Android may delay reminders or ask you to start focus yourself.</string>
     <string name="permissions_notifications">Notifications</string>
-    <string name="permissions_notifications_description">Shows the focus timer and tells you when a round ends.</string>
+    <string name="permissions_notifications_description">Allow Ronumi to show your focus timer, reminders, and inbox summaries?</string>
     <string name="permissions_notification_access">Notification access</string>
     <string name="permissions_listener_description">Holds notifications from the apps you choose.</string>
     <string name="permissions_allowed">Allowed</string>
@@ -902,7 +902,7 @@
     <string name="settings_focus_updates">Focus updates</string>
     <string name="settings_focus_events_help">Messages when focus rounds and sessions end.</string>
     <string name="settings_live_focus_timer">Live focus timer</string>
-    <string name="settings_live_timer_help">Shows the time left in the status bar while you focus.</string>
+    <string name="settings_live_timer_help">Show the running focus timer in Android\'s status bar when supported.</string>
     <string name="settings_allow_live_updates">Allow live updates</string>
     <string name="settings_live_timer_permission_help">Android turned off live updates for Ronumi. Tap to allow them.</string>
     <string name="settings_planned_focus_reminders">Planned focus reminders</string>
@@ -1015,4 +1015,42 @@
     <!-- Notification channels -->
     <string name="notification_channel_focus">Focus timer</string>
     <string name="notification_channel_events">Focus events</string>
+
+    <!-- Consent and permissions -->
+    <string name="consent_accessibility_title">Allow accessibility access?</string>
+    <string name="consent_usage_title">Allow usage access?</string>
+    <string name="consent_notification_title">Allow notification access?</string>
+    <string name="consent_app_list_title">Allow the app list?</string>
+    <string name="consent_agree">Agree and open settings</string>
+    <string name="consent_choose_apps">Choose apps</string>
+    <string name="consent_not_now">Not now</string>
+    <string name="consent_privacy_policy">Privacy policy</string>
+    <string name="consent_finish_blocking">Finish setup for blocking</string>
+    <string name="consent_agree_before_blocks">Agree before Ronumi blocks apps.</string>
+    <string name="consent_usage_needed">Allow usage access to see screen time.</string>
+    <string-array name="consent_accessibility_body">
+        <item>Ronumi uses Android accessibility access to see which app is open and read relevant text and controls on its screen.</item>
+        <item>This can include website addresses, video titles, and channel names. Ronumi uses this data to apply the blocking rules you choose.</item>
+        <item>While access is on, blocking can work when Ronumi is not open. Screen data stays on your device. We do not receive it.</item>
+        <item>Ronumi can cover blocked content, pause playback, and use buttons or navigation to leave it. It can close a blocked picture-in-picture video window. Returning from a website block replaces that page with a blank page in the same tab.</item>
+        <item>Ronumi is a focus app. It is not an accessibility tool for people with disabilities.</item>
+        <item>You can turn this access off in Android Settings. You can use the timer without it.</item>
+    </string-array>
+    <string-array name="consent_usage_body">
+        <item>Ronumi reads which apps you use, how long you use them, and phone unlock events. It saves daily totals for screen-time reports and app limits.</item>
+        <item>It checks usage while your rules run, including when Ronumi is not open. This data stays on your device.</item>
+        <item>You can turn usage access off in Android Settings. The timer works without it. Usage reports and daily app limits need this access.</item>
+    </string-array>
+    <string-array name="consent_notification_body">
+        <item>Android gives Ronumi access to notifications. Ronumi saves the title, text, app, and time from the apps you select. It uses a notification identifier to update saved messages.</item>
+        <item>After saving a selected notification, Ronumi removes it from the notification drawer. You can read it later in the inbox.</item>
+        <item>Holding works during focus and schedules, or all the time if you choose that setting. It works when Ronumi is not open.</item>
+        <item>Messages stay on your device until you clear the inbox or remove app data. We do not receive them.</item>
+        <item>You can decline access or turn it off in Android Settings. The timer and app blocking still work.</item>
+        <item>Granting access does not import notifications that arrived before you agreed.</item>
+    </string-array>
+    <string-array name="consent_app_list_body">
+        <item>Ronumi reads app names and icons to let you choose your blocks. It identifies browsers and home-screen apps to apply your rules.</item>
+        <item>This list stays on your device.</item>
+    </string-array>
 </resources>
