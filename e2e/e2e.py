@@ -1043,6 +1043,37 @@ def update_workflow():
     raise AssertionError("The update check did not finish")
 
 
+def legal_notices():
+    """Settings links to the license text and to the source tag of the installed version."""
+    open_ronumi("HOME")
+    # The GitHub build checks for an old Stillpoint install before it shows Home or the welcome screen.
+    end = time.time() + 10
+    while time.time() < end and not find("Daily quests"):
+        if find("GET STARTED") or find("Get started") or find("Hi! I'm Ronumi"):
+            device_workflow("demo-wardrobe")
+            sh(f"am force-stop {PKG}")
+            break
+        time.sleep(0.5)
+    open_ronumi("PROGRESS")
+    tap("Settings", exact=True)
+    scroll_to("Legal notices")
+    tap("Legal notices", exact=True)
+    version = re.search(r"versionName=(\S+)", sh(f"dumpsys package {PKG}")).group(1)
+    wait_for(f"Ronumi {version}", exact=True)
+    notices = shot("legal-notices")
+    tap("Read the license")
+    wait_for("GNU GENERAL PUBLIC LICENSE")
+    license_shot = shot("legal-license")
+    sh("input keyevent KEYCODE_BACK")
+    wait_for("Source code for this version")
+    tap("Source code for this version")
+    time.sleep(2)
+    url = f"https://github.com/agneswd/Ronumi/tree/v{version}"
+    if url not in sh("dumpsys activity activities"):
+        raise AssertionError(f"The source link did not open {url}")
+    return f"{notices}, {license_shot}; {url}"
+
+
 def consent_text() -> str:
     return sh(f"run-as {PKG} cat shared_prefs/consents.xml")
 
@@ -1423,6 +1454,7 @@ CHECKS = [
     notification_workflow,
     planned_focus_workflow,
     update_workflow,
+    legal_notices,
     pip_stays,
     consent_gates,
 ]
@@ -1440,7 +1472,7 @@ def main():
     if args.apk:
         APK = args.apk.resolve()
     opt_in = [import_workflow] if args.flavor == "github" else []
-    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates]
+    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates, legal_notices]
     available = suite + opt_in
     requested = set(args.only.split(",")) if args.only else {c.__name__ for c in suite}
     unknown = requested - {c.__name__ for c in available}
