@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">O foco funciona offline. Sem conta e sem anúncios. O Google Play é usado só para a compra do Plus.</string>
+    <string name="distribution_privacy">O foco funciona offline. Sem conta. Sem o Plus, o Ronumi mostra alguns anúncios do Google, nunca durante o foco. O Plus remove todos.</string>
+    <string name="ads_reward_title">Assista a um anúncio curto para ganhar XP</string>
+    <plurals name="ads_reward_line">
+        <item quantity="one">Resta %1$d recompensa hoje.</item>
+        <item quantity="many">Restam %1$d recompensas hoje.</item>
+        <item quantity="other">Restam %1$d recompensas hoje.</item>
+    </plurals>
+    <string name="ads_privacy_title">Opções de privacidade de anúncios</string>
+    <string name="ads_privacy_line">Mude como o Google pode usar seus dados para anúncios.</string>
     <string name="blocks_protection_description">A proteção bloqueia suas regras no Ronumi até a sessão terminar. Você ainda pode desativar o acesso nas configurações do Android.</string>
     <string name="blocks_protection_switch_description">Bloqueia suas regras no Ronumi até a sessão terminar.</string>
 </resources>

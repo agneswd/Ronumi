@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">La concentración funciona sin conexión. Sin cuenta ni anuncios. Google Play solo se usa para la compra de Plus.</string>
+    <string name="distribution_privacy">La concentración funciona sin conexión. Sin cuenta. Sin Plus, Ronumi muestra algunos anuncios de Google, nunca durante la concentración. Plus los quita.</string>
+    <string name="ads_reward_title">Mira un anuncio corto para ganar XP</string>
+    <plurals name="ads_reward_line">
+        <item quantity="one">Te queda %1$d recompensa hoy.</item>
+        <item quantity="many">Te quedan %1$d recompensas hoy.</item>
+        <item quantity="other">Te quedan %1$d recompensas hoy.</item>
+    </plurals>
+    <string name="ads_privacy_title">Opciones de privacidad de anuncios</string>
+    <string name="ads_privacy_line">Cambia cómo puede usar Google tus datos para anuncios.</string>
     <string name="blocks_protection_description">La protección bloquea tus reglas en Ronumi hasta que termine la sesión. Aún puedes desactivar el acceso en los ajustes de Android.</string>
     <string name="blocks_protection_switch_description">Bloquea tus reglas en Ronumi hasta que termine la sesión.</string>
 </resources>

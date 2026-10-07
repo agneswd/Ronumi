@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">专注功能可离线使用。无需账号,没有广告。Google Play 仅用于购买 Plus。</string>
+    <string name="distribution_privacy">专注功能可离线使用。无需账号。没有 Plus 时,Ronumi 会显示少量 Google 广告,专注期间绝不显示。Plus 可以移除广告。</string>
+    <string name="ads_reward_title">看一段短广告获得 XP</string>
+    <plurals name="ads_reward_line">
+        <item quantity="other">今天还剩 %1$d 次奖励。</item>
+    </plurals>
+    <string name="ads_privacy_title">广告隐私选项</string>
+    <string name="ads_privacy_line">更改 Google 如何将你的数据用于广告。</string>
     <string name="blocks_protection_description">保护会锁定你在 Ronumi 中的规则,直到时段结束。你仍可以在 Android 设置中关闭访问权限。</string>
     <string name="blocks_protection_switch_description">锁定你在 Ronumi 中的规则,直到时段结束。</string>
 </resources>

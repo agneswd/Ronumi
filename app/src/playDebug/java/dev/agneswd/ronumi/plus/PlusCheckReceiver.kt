@@ -23,6 +23,7 @@ class PlusCheckReceiver : BroadcastReceiver() {
                 val plus = context.app.plus as PlayPlus
                 val store = plus.store as FakeStore
                 val scenario = intent.getStringExtra("scenario")
+                if (scenario == "ads-ready" || scenario == "ads-read") return@runCatching dev.agneswd.ronumi.ads.adsCheck(context, scenario == "ads-ready")
                 if (scenario == "backup") {
                     val uri = Uri.fromFile(File(context.cacheDir, "plus-check.ronumi"))
                     val password = "debug plus backup password".toCharArray()

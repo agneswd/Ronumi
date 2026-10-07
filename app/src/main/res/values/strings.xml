@@ -1085,6 +1085,9 @@
     <string name="legal_libraries_title">Android and Kotlin libraries</string>
     <string name="legal_libraries_terms">Apache License, Version 2.0.</string>
     <string name="legal_billing_title" translatable="false">Google Play Billing Library</string>
+    <string name="legal_ads_title" translatable="false">Google Mobile Ads SDK and User Messaging Platform SDK</string>
+    <!-- Legal notices, Play version only. The SDK names stay in English. -->
+    <string name="legal_ads_terms">Google terms. Ronumi uses these SDKs with the GPL section 7 permission in the license notice.</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi uses it under the GPL section 7 permission in the license notice.</string>
     <!-- Plus collection: wardrobe items and focus scenes -->
     <string name="wardrobe_item_plus_color_aurora">Aurora</string>
@@ -1121,6 +1124,8 @@
     <string name="plus_perk_history_line">See every week and month you recorded.</string>
     <string name="plus_perk_collection">Plus collection</string>
     <string name="plus_perk_collection_line">12 new wardrobe items and 2 new focus scenes.</string>
+    <string name="plus_perk_no_ads">No ads</string>
+    <string name="plus_perk_no_ads_line">Ronumi shows no ads anywhere.</string>
     <!-- %1$s is the local price from Google Play, for example $4.99. -->
     <string name="plus_unlock_for">Unlock for %1$s</string>
     <string name="plus_unlock">Unlock Plus</string>
@@ -1136,7 +1141,7 @@
     <string name="plus_thanks_line">Thank you for supporting Ronumi.</string>
     <string name="plus_done">Done</string>
     <string name="plus_try_on">Try them on</string>
-    <string name="plus_settings_line_locked">Unlock every block and the Plus collection.</string>
+    <string name="plus_settings_line_locked">Remove ads and unlock every block and the Plus collection.</string>
     <string name="plus_settings_line_active">Plus is active. Thank you for your support.</string>
     <string name="plus_settings_line_pending">Payment pending</string>
     <!-- Status of a saved rule that does not run without Ronumi Plus. Nothing is deleted. -->

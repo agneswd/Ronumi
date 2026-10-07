@@ -73,6 +73,7 @@ fun PlusChip(modifier: Modifier = Modifier) {
 
 /** One line on the paywall. The order here is the order on screen. */
 private enum class PlusPerk(@DrawableRes val icon: Int, @StringRes val title: Int, @StringRes val line: Int, val features: Set<PlusFeature>) {
+    NO_ADS(R.drawable.ic_check, R.string.plus_perk_no_ads, R.string.plus_perk_no_ads_line, emptySet()),
     BLOCKS(R.drawable.ic_tab_blocks, R.string.plus_perk_blocks, R.string.plus_perk_blocks_line,
         setOf(PlusFeature.UNLIMITED_FOCUS_APPS, PlusFeature.UNLIMITED_SCHEDULES, PlusFeature.UNLIMITED_APP_LIMITS)),
     WEBSITES(R.drawable.ic_globe, R.string.plus_perk_websites, R.string.plus_perk_websites_line, setOf(PlusFeature.WEBSITES)),

@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">Focus werkt offline. Geen account en geen advertenties. Google Play wordt alleen gebruikt voor de aankoop van Plus.</string>
+    <string name="distribution_privacy">Focus werkt offline. Geen account. Zonder Plus toont Ronumi een paar advertenties van Google, nooit tijdens focus. Plus verwijdert ze.</string>
+    <string name="ads_reward_title">Bekijk een korte advertentie voor XP</string>
+    <plurals name="ads_reward_line">
+        <item quantity="one">Nog %1$d beloning vandaag.</item>
+        <item quantity="other">Nog %1$d beloningen vandaag.</item>
+    </plurals>
+    <string name="ads_privacy_title">Privacykeuzes voor advertenties</string>
+    <string name="ads_privacy_line">Wijzig hoe Google je gegevens voor advertenties mag gebruiken.</string>
     <string name="blocks_protection_description">Bescherming vergrendelt je regels in Ronumi tot de sessie eindigt. Je kunt de toegang nog steeds uitzetten in de instellingen van Android.</string>
     <string name="blocks_protection_switch_description">Vergrendelt je regels in Ronumi tot de sessie eindigt.</string>
 </resources>

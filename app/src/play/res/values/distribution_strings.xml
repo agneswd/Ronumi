@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="distribution_privacy">Focus works offline. No account or ads. Google Play is used only for the Plus purchase.</string>
+    <string name="distribution_privacy">Focus works offline. No account. Without Plus, Ronumi shows a few ads from Google, never during focus. Plus removes them.</string>
+    <!-- A list row on Progress and in the Wardrobe. The user chooses to watch a short ad and gets XP. -->
+    <string name="ads_reward_title">Watch a short ad for XP</string>
+    <plurals name="ads_reward_line">
+        <item quantity="one">%1$d reward left today.</item>
+        <item quantity="other">%1$d rewards left today.</item>
+    </plurals>
+    <!-- Settings row. It opens Google's form to change ad consent, where the law requires it. -->
+    <string name="ads_privacy_title">Ad privacy choices</string>
+    <string name="ads_privacy_line">Change how Google can use your data for ads.</string>
     <string name="blocks_protection_description">Protection locks your rules in Ronumi until the session ends. You can still turn off access in Android Settings.</string>
     <string name="blocks_protection_switch_description">Locks your rules in Ronumi until the session ends.</string>
 </resources>

@@ -483,6 +483,7 @@ private fun GlassLabel(text: String, big: Boolean = false, modifier: Modifier = 
 @Composable
 fun Celebration(sessionId: Long, onDone: () -> Unit) {
     val context = LocalContext.current
+    dev.agneswd.ronumi.Distribution.PrepareSessionAd()
     val app = context.app
     val sessions by app.dao.sessions().collectAsState(null)
     val settings by app.dao.settings().collectAsState(null)
@@ -610,6 +611,8 @@ fun Celebration(sessionId: Long, onDone: () -> Unit) {
                 stringResource(R.string.focus_continue),
                 {
                     if (notes != session.notes) app.scope.launch { app.dao.saveSession(session.copy(notes = notes.trim())) }
+                    // The Play version may show an ad on this screen change. Never during focus.
+                    context.findActivity()?.let(dev.agneswd.ronumi.Distribution::afterSessionSummary)
                     onDone()
                 },
                 Modifier.fillMaxWidth().padding(top = 12.dp),
