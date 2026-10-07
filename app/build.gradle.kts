@@ -28,6 +28,11 @@ android {
     buildFeatures {
         compose = true
     }
+    // Lists the translated languages for the app language setting in Android 13 and later.
+    // The default language comes from res/resources.properties.
+    androidResources {
+        generateLocaleConfig = true
+    }
     sourceSets.getByName("main").assets.srcDir(rootProject.file("licenses"))
 
     compileOptions {
