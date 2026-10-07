@@ -3,7 +3,7 @@
 Last updated: 2026-10-07
 
 Ronumi is developed by agneswd. This policy covers the Google Play version and the APK from GitHub.
-Contact: `SUPPORT_EMAIL`.
+Contact: agneswdmail@gmail.com.
 
 ## Data on your device
 
@@ -94,7 +94,7 @@ The owner uses that information to answer you and resolve the issue.
 Do not send private notifications, passwords, or backups in a support request.
 Public GitHub issues are visible to others.
 
-Contact `SUPPORT_EMAIL` for privacy questions or to request removal of support correspondence.
+Contact agneswdmail@gmail.com for privacy questions or to request removal of support correspondence.
 The owner cannot remotely read or delete records stored only on your device.
 The owner may retain transaction or support records when needed to resolve a dispute or meet legal obligations.
 
