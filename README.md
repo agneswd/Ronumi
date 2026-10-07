@@ -122,7 +122,7 @@ Leave private messages and backups out of reports.
 For builds and device checks, read the [development guide](docs/development.md).
 The [feature map](docs/feature-map.md) describes what Ronumi does.
 
-Ronumi code and original artwork use [GPL-3.0-only](LICENSE).
+Ronumi code and original artwork use [GPL-3.0-only](LICENSE). [NOTICE](NOTICE) adds a section 7 permission to combine Ronumi with the Google Play Billing Library.
 Nunito uses the [SIL Open Font License](licenses/Nunito-OFL.txt).
 [VCSL instrument recordings](licenses/VCSL-CC0.txt) and [Freesound focus recordings](docs/focus-audio-sources.md) use CC0.
 See [NOTICE](NOTICE) for credits. License texts are also included in the app.
