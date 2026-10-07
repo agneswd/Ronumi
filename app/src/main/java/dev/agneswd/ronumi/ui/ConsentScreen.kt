@@ -41,7 +41,8 @@ import dev.agneswd.ronumi.ui.design.Mood
 import dev.agneswd.ronumi.ui.design.Ronumi
 import dev.agneswd.ronumi.ui.design.Sp
 
-private const val PRIVACY_POLICY = "https://github.com/agneswd/Ronumi/blob/main/docs/privacy.md"
+/** The published privacy policy. Consent screens and the legal notices link to it. */
+internal const val PRIVACY_POLICY_URL = "https://github.com/agneswd/Ronumi/blob/main/docs/privacy.md"
 
 private class ConsentRequest(
     val kind: ConsentKind,
@@ -122,7 +123,7 @@ private fun ConsentScreen(kind: ConsentKind, onAccept: () -> Unit, onDecline: ()
                 Spacer(Modifier.height(12.dp))
             }
             TextButton(onClick = {
-                val view = Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY))
+                val view = Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL))
                 runCatching { context.startActivity(view) }
             }) {
                 Text(stringResource(R.string.consent_privacy_policy), color = Sp.colors.brand)

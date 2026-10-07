@@ -18,6 +18,9 @@ object Distribution {
     /** GitHub builds still block system screens that can turn Ronumi off. */
     const val guardsSystemScreens = true
 
+    /** GitHub builds contain no Google Play Billing code, so the legal notices do not list it. */
+    const val usesBilling = false
+
     fun createPlus(app: RonumiApp): Plus {
         app.scope.launch {
             app.dao.settings().map { it.autoUpdateChecks }.distinctUntilChanged().collect {

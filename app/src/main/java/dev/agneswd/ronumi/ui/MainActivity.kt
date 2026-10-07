@@ -101,6 +101,7 @@ sealed interface Route {
     data object Wardrobe : Route
     data object Held : Route
     data object Settings : Route
+    data object Legal : Route
     data object FocusSetup : Route
     data object ShortVideos : Route
     data object Websites : Route
@@ -316,6 +317,7 @@ private fun App(navigator: Navigator) {
                                         Route.Wardrobe -> Page { game?.let { WardrobeScreen(it, navigator::pop) } }
                                         Route.Held -> Page { HeldScreen(onClose = navigator::pop) }
                                         Route.Settings -> Page { SettingsScreen(navigator, onClose = navigator::pop) }
+                                        Route.Legal -> Page { LegalNoticesScreen(onClose = navigator::pop) }
                                         Route.FocusSetup -> FocusSetup(navigator, onClose = navigator::pop)
                                         Route.ShortVideos -> Page { ShortVideosPage(onClose = navigator::pop) }
                                         Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }

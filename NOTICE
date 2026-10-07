@@ -4,12 +4,25 @@ Copyright (C) 2026 agneswd
 Ronumi source code and original artwork are licensed under GPL-3.0-only.
 See LICENSE for the full license text.
 
+Additional permission under GNU GPL version 3 section 7
+
+If you modify this Program, or any covered work, by linking or combining it
+with the Google Play Billing Library (com.android.billingclient:billing), or a
+modified version of that library, containing parts covered by the terms of the
+Android Software Development Kit License Agreement or the Google Play Billing
+Library terms, the licensors of this Program grant you additional permission
+to convey the resulting work. Corresponding Source for a non-source form of
+such a combination shall not include the source code for the parts of the
+Google Play Billing Library used as well as that of the covered work.
+
 Nunito font
 Copyright 2014 The Nunito Project Authors
 Licensed under the SIL Open Font License, Version 1.1.
 See licenses/Nunito-OFL.txt for the font license and copyright notice.
 
 Android and Kotlin libraries retain their respective licenses.
+The Google Play version links the Google Play Billing Library, which is covered by the
+Android Software Development Kit License (https://developer.android.com/studio/terms.html).
 Dependency coordinates and versions are listed in gradle/libs.versions.toml.
 
 Versilian Community Sample Library (VCSL) by Versilian Studios
