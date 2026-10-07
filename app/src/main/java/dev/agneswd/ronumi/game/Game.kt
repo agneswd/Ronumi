@@ -106,7 +106,7 @@ fun gameState(sessions: List<FocusSession>, settings: Settings, today: LocalDate
     // Quest XP counts for every past day too, so XP never drops.
     val questXp = byDay.entries.sumOf { (d, list) -> questsFor(d, list, list.minBy { it.startedAt }.goalMinutes).filter { it.done }.sumOf { it.xp.toLong() } }
     val sessionXp = sessions.sumOf { it.safeFocusMillis() / 60_000 * XP_PER_MINUTE + if (it.completed) XP_COMPLETED else 0 }
-    val xp = (sessionXp + questXp).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+    val xp = (sessionXp + questXp + settings.bonusXp).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
     val total = sessions.focusMinutesTotal()
 
     return GameState(
