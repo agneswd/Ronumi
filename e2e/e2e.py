@@ -24,6 +24,7 @@ import sqlite3
 
 SERIAL = os.environ.get("ANDROID_SERIAL", "emulator-5554")
 PKG = "dev.agneswd.ronumi"
+FLAVOR = "github"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 APK = ROOT / "app/build/outputs/apk/github/debug/app-github-debug.apk"
 RUN = ROOT / "e2e/artifacts" / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -56,11 +57,18 @@ CONTACTS = "com.google.android.contacts" if "package:com.google.android.contacts
 
 
 def screen() -> ET.Element:
-    raw = sh(f"am instrument -w -r {PKG}.e2e/{PKG}.e2e.E2eDriver")
-    for line in raw.splitlines():
-        if line.startswith("INSTRUMENTATION_RESULT: hierarchy="):
-            return ET.fromstring(line.split("=", 1)[1])
-    raise AssertionError("The Android test driver returned no accessibility tree: " + raw[-1000:])
+    last = ""
+    for attempt in range(2):
+        raw = sh(f"am instrument -w -r {PKG}.e2e/{PKG}.e2e.E2eDriver")
+        for line in raw.splitlines():
+            if line.startswith("INSTRUMENTATION_RESULT: hierarchy="):
+                return ET.fromstring(line.split("=", 1)[1])
+        last = raw
+        # The driver process can exit before the result binder is delivered.
+        if "Process crashed" not in raw or attempt == 1:
+            break
+        time.sleep(0.4)
+    raise AssertionError("The Android test driver returned no accessibility tree: " + last[-1000:])
 
 
 def find(text: str, exact: bool = False):
@@ -168,6 +176,7 @@ def fresh_install():
     disable_guard()
     adb("install", "-r", "-t", str(APK))
     adb("install", "-r", "-t", str(ROOT / "e2e-driver/build/outputs/apk/debug/e2e-driver-debug.apk"))
+    sh(f"am force-stop {PKG}.e2e")
     sh(f"pm clear {PKG}")
     sh(f"appops set {PKG} GET_USAGE_STATS allow")
     sh(f"pm grant {PKG} android.permission.POST_NOTIFICATIONS")
@@ -179,6 +188,7 @@ def fresh_install():
     sh(f"am force-stop {CHROME}")
     sh(f"pm grant {CHROME} android.permission.POST_NOTIFICATIONS")
     sh("logcat -c")
+    device_workflow("grant-consents")
     rebind()
 
 
@@ -598,11 +608,14 @@ def leave_shorts_block(name: str):
 def shorts_block():
     require_shorts()
     sh("logcat -c")
+    sh(f"am force-stop {YOUTUBE}")
     rebind()
     open_app(YOUTUBE)
     try:
-        tap("Shorts", exact=True)
-        wait_block("YouTube Shorts is blocked", timeout=30)
+        # A resumed Short is already covered. The tab is not on screen then.
+        if not find("YouTube Shorts is blocked"):
+            tap("Shorts", exact=True)
+            wait_block("YouTube Shorts is blocked", timeout=30)
     except AssertionError:
         if "NewVersionAvailable" in sh("dumpsys activity activities | grep -E 'youtube'"):
             sh("input keyevent KEYCODE_BACK")
@@ -1030,6 +1043,360 @@ def update_workflow():
     raise AssertionError("The update check did not finish")
 
 
+def consent_text() -> str:
+    return sh(f"run-as {PKG} cat shared_prefs/consents.xml")
+
+
+def assert_no_consents():
+    text = consent_text()
+    if "int name=" in text:
+        raise AssertionError("A consent was stored:\n" + text[:400])
+
+
+def open_settings():
+    open_ronumi("PROGRESS")
+    wait_for("Progress", exact=True)
+    tap("Settings", exact=True)
+    wait_for("Permissions", exact=True)
+    if find("Review permissions", exact=True):
+        tap("Review permissions", exact=True)
+
+
+def tap_row(title: str, action: str = "Allow", timeout: float = 15):
+    """Taps the action on [title]'s row. The button of the row above does not count."""
+    print(f"tap {action} on {title}", flush=True)
+    end = time.time() + timeout
+    scrolls = 0
+    while time.time() < end:
+        title_box = None
+        actions = []
+        for node in screen().iter("node"):
+            if node.get("visible") == "false":
+                continue
+            bounds = node.get("bounds")
+            if not bounds:
+                continue
+            nums = list(map(int, re.findall(r"-?\d+", bounds)))
+            if len(nums) != 4:
+                continue
+            text = node.get("text") or ""
+            desc = node.get("content-desc") or ""
+            if text.casefold() == title.casefold():
+                title_box = nums
+            if action.casefold() in (text.casefold(), desc.casefold()):
+                actions.append(nums)
+        if title_box:
+            mid = (title_box[1] + title_box[3]) // 2
+            same = []
+            for box in actions:
+                center = (box[1] + box[3]) // 2
+                # A button whose center sits above this title belongs to the previous row.
+                if center + 40 < title_box[1]:
+                    continue
+                if abs(center - mid) < 480:
+                    same.append(box)
+            if same:
+                same.sort(key=lambda box: abs((box[1] + box[3]) // 2 - mid))
+                box = same[0]
+                sh(f"input tap {(box[0] + box[2]) // 2} {(box[1] + box[3]) // 2}")
+                time.sleep(0.8)
+                return
+        if scrolls < 4:
+            scroll_up()
+            scrolls += 1
+            time.sleep(0.4)
+        else:
+            time.sleep(0.7)
+    raise AssertionError(f'{action} for "{title}" did not show')
+
+
+def show_consent(title: str):
+    open_settings()
+    scroll_to(title)
+    tap_row(title)
+    wait_for("Not now", exact=True)
+
+
+def end_running_focus():
+    open_ronumi("HOME")
+    if find("Return to focus", exact=True):
+        tap("Return to focus", exact=True)
+    if not find("GIVE UP", exact=True):
+        return
+    tap("GIVE UP", exact=True)
+    tap("End session", exact=True)
+    if find("Nice effort!"):
+        tap("Continue", exact=True)
+
+
+def prepare_consent_device():
+    """A signed-in app with no consents and no sensitive Android grants."""
+    sh(f"pm clear {PKG}")
+    disable_guard()
+    sh(f"appops set {PKG} GET_USAGE_STATS deny")
+    sh(f"cmd notification disallow_listener {PKG}/{PKG}.notify.HoldListener")
+    device_workflow("demo-wardrobe")
+    assert_no_consents()
+
+
+def timer_without_consent() -> str:
+    open_ronumi("HOME")
+    tap("Start focus")
+    wait_for("Focus setup", exact=True)
+    tap("Start", exact=True)
+    wait_for("Pause", exact=True)
+    name = shot("timer-without-consent")
+    end_running_focus()
+    return name
+
+
+def shoot_consent_screens() -> str:
+    saved = []
+    for mode, night in (("light", "no"), ("dark", "yes")):
+        sh(f"cmd uimode night {night}")
+        for scale in ("1.0", "2.0"):
+            sh(f"settings put system font_scale {scale}")
+            time.sleep(0.4)
+            sh(f"am force-stop {PKG}")
+            for title, key, accept in (
+                ("Accessibility", "accessibility", "Agree and open settings"),
+                ("Usage access", "usage", "Agree and open settings"),
+                ("Notification access", "notification", "Agree and open settings"),
+            ):
+                show_consent(title)
+                if not find(accept) or not find("Not now", exact=True):
+                    raise AssertionError(f"{key} hides an action at font {scale}")
+                saved.append(shot(f"consent-{key}-{mode}-font{scale.replace('.', '')}"))
+                scroll_up()
+                assert_no_consents()
+                if not find("Not now", exact=True):
+                    raise AssertionError("Scrolling accepted the consent")
+                tap("Not now", exact=True)
+                assert_no_consents()
+            open_ronumi("BLOCKS")
+            wait_for("Blocks", exact=True)
+            tap("Add app limit")
+            wait_for("Choose apps")
+            if not find("Not now", exact=True):
+                raise AssertionError(f"app list hides an action at font {scale}")
+            saved.append(shot(f"consent-apps-{mode}-font{scale.replace('.', '')}"))
+            tap("Not now", exact=True)
+            assert_no_consents()
+    return f"{len(saved)} consent screenshots"
+
+
+def refuse_consent() -> str:
+    show_consent("Accessibility")
+    sh("input keyevent KEYCODE_BACK")
+    time.sleep(0.6)
+    assert_no_consents()
+    if "ACCESSIBILITY_SETTINGS" in front() or "accessibility" in front().casefold() and "settings" in front().casefold():
+        raise AssertionError("Back opened accessibility settings")
+    show_consent("Usage access")
+    home()
+    assert_no_consents()
+    open_ronumi("HOME")
+    if find("Allow usage access?", exact=True):
+        raise AssertionError("Home kept the consent screen")
+    show_consent("Notification access")
+    tap("Close", exact=True)
+    time.sleep(0.4)
+    assert_no_consents()
+    show_consent("Accessibility")
+    # The policy link sits under the disclosure, so a long body hides it until the user scrolls.
+    scroll_to("Privacy policy")
+    tap("Privacy policy")
+    time.sleep(1.5)
+    assert_no_consents()
+    home()
+    open_ronumi("HOME")
+    if find("Allow accessibility access?", exact=True):
+        raise AssertionError("The privacy policy kept the consent screen")
+    show_consent("Accessibility")
+    sh("settings put system accelerometer_rotation 0")
+    sh("settings put system user_rotation 1")
+    time.sleep(1)
+    if not find("Not now", exact=True):
+        raise AssertionError("Rotation closed the consent screen")
+    assert_no_consents()
+    sh("settings put system user_rotation 0")
+    time.sleep(0.6)
+    tap("Not now", exact=True)
+    return "back, home, close, privacy policy, and rotation saved nothing"
+
+
+def app_list_gate() -> str:
+    open_ronumi("BLOCKS")
+    wait_for("Blocks", exact=True)
+    tap("Add app limit")
+    wait_for("Allow the app list?", exact=True)
+    if find("Clock", exact=True):
+        raise AssertionError("The app list showed before consent")
+    tap("Not now", exact=True)
+    time.sleep(0.5)
+    if find("Search", exact=True):
+        raise AssertionError("Decline left the app picker open")
+    tap("Add app limit")
+    wait_for("Choose apps")
+    tap("Choose apps")
+    tap("Search")
+    type_text("Clock")
+    wait_for("Clock", timeout=20)
+    name = shot("app-list-after-consent")
+    sh("input keyevent KEYCODE_BACK")
+    return name
+
+
+def blocking_after_consent(record: bool) -> str:
+    record_proc = None
+    if record:
+        record_proc = subprocess.Popen(["adb", "-s", SERIAL, "shell", "screenrecord", "--time-limit", "170", "/sdcard/consent-flow.mp4"])
+        time.sleep(1)
+    try:
+        disable_guard()
+        show_consent("Accessibility")
+        tap("Not now", exact=True)
+        assert_no_consents()
+        show_consent("Accessibility")
+        tap("Agree and open settings")
+        time.sleep(1)
+        if 'name="accessibility"' not in consent_text():
+            raise AssertionError("Agree did not store accessibility consent:\n" + consent_text()[:300])
+        rebind()
+        home()
+        device_workflow("focus-contacts")
+        open_app(CONTACTS)
+        wait_block("blocked during focus", timeout=20)
+        blocked = shot("block-after-consent")
+        device_workflow("clear-consents")
+        home()
+        open_app(CONTACTS)
+        stays_open("contacts", 4)
+        if "BlockActivity" in top_activity():
+            raise AssertionError("Revoking consent still blocked Contacts")
+        idle = shot("revocation-stops-block")
+        return blocked + ", " + idle
+    finally:
+        if record_proc is not None:
+            sh("killall -INT screenrecord")
+            time.sleep(2)
+            dest = RUN / "consent-flow.mp4"
+            adb("pull", "/sdcard/consent-flow.mp4", str(dest))
+            sh("rm -f /sdcard/consent-flow.mp4")
+            try:
+                record_proc.wait(timeout=8)
+            except subprocess.TimeoutExpired:
+                record_proc.kill()
+
+
+def external_guard_stays_idle() -> str:
+    """Android can enable the service before Ronumi has consent. It must not block."""
+    assert_no_consents()
+    rebind()
+    device_workflow("focus-contacts")
+    open_app(CONTACTS)
+    stays_open("contacts", 4)
+    if "BlockActivity" in top_activity():
+        raise AssertionError("The guard blocked without accessibility consent")
+    name = shot("guard-idle-without-consent")
+    end_running_focus()
+    return name
+
+
+def consent_gates():
+    prepare_consent_device()
+    try:
+        timer = timer_without_consent()
+        backup = " ".join(device_workflow("consent-backup", timeout=60))
+        assert_no_consents()
+        screens = shoot_consent_screens()
+        sh("settings put system font_scale 1.0")
+        sh("cmd uimode night no")
+        sh(f"am force-stop {PKG}")
+        refused = refuse_consent()
+        apps = app_list_gate()
+        device_workflow("clear-consents")
+        idle = external_guard_stays_idle()
+        story = blocking_after_consent(record=FLAVOR == "play")
+        end_running_focus()
+        video = "consent-flow.mp4" if FLAVOR == "play" else "no recording on this flavor"
+        return f"{timer}; {backup}; {screens}; {refused}; {apps}; {idle}; {story}; {video}"
+    finally:
+        sh("settings put system font_scale 1.0")
+        sh("cmd uimode night no")
+        sh("settings put system user_rotation 0")
+        sh("settings put system accelerometer_rotation 1")
+
+
+def pinned(fragment: str) -> bool:
+    """True when [fragment] is the activity of a task in picture-in-picture (windowing mode pinned)."""
+    dump = sh("dumpsys activity activities")
+    return any(fragment in task and "mode=pinned" in task for task in dump.split("* Task{"))
+
+
+def pip_stays():
+    if "android.software.picture_in_picture" not in sh("pm list features"):
+        raise Skip("This image has no picture-in-picture feature")
+    if not sh(f"pm path {YOUTUBE}").startswith("package:"):
+        raise Skip("YouTube is not installed, so a Shorts block cannot run")
+    sh(f"pm clear {PKG}")
+    device_workflow("grant-consents")
+    device_workflow("arm-shorts")
+    rebind()
+    sh(f"am start -n {PKG}.e2e/.PipActivity >/dev/null")
+    end = time.time() + 6
+    while time.time() < end and not pinned("PipActivity"):
+        time.sleep(0.4)
+    if not pinned("PipActivity"):
+        shot("pip-missing")
+        raise Skip("PipActivity did not enter picture-in-picture")
+    sh("logcat -c")
+    sh(f"am force-stop {YOUTUBE}")
+    sh(f"am start -a android.intent.action.VIEW -d {SHORT_URL} -p {YOUTUBE} >/dev/null")
+    wait_block("YouTube Shorts is blocked", timeout=30)
+    time.sleep(1.5)
+    shot("pip-during-shorts-block")
+    if not pinned("PipActivity"):
+        raise AssertionError("The unrelated picture-in-picture window closed")
+    home()
+    sh(f"am force-stop {PKG}.e2e")
+    return "the driver picture-in-picture window stayed open"
+
+
+def play_protection_routes():
+    sh(f"pm clear {PKG}")
+    device_workflow("grant-consents")
+    device_workflow("demo-wardrobe")
+    # A background broadcast cannot start the focus foreground service on API 31+.
+    # Open Ronumi first so the start is allowed.
+    open_ronumi("HOME")
+    device_workflow("strict-protection")
+    rebind()
+    open_app(CONTACTS)
+    wait_block("blocked during focus", timeout=20)
+    shot("play-contacts-blocked")
+    home()
+
+    def settings_stays(start: str, label: str):
+        sh(start)
+        time.sleep(2)
+        if "BlockActivity" in top_activity():
+            raise AssertionError(f"Play protection blocked {label}")
+        return shot(label)
+
+    app_info = settings_stays(
+        f"am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:{PKG} >/dev/null",
+        "play-app-info",
+    )
+    if not find("Force stop") and not find("Uninstall"):
+        scroll_to("Force stop")
+    access = settings_stays("am start -a android.settings.ACCESSIBILITY_SETTINGS >/dev/null", "play-accessibility")
+    uninstall = settings_stays(f"am start -a android.intent.action.DELETE -d package:{PKG} >/dev/null", "play-uninstall")
+    sh("input keyevent KEYCODE_BACK")
+    home()
+    return f"{app_info}, {access}, {uninstall}"
+
+
 CHECKS = [
     schema_upgrade,
     onboarding,
@@ -1056,21 +1423,24 @@ CHECKS = [
     notification_workflow,
     planned_focus_workflow,
     update_workflow,
+    pip_stays,
+    consent_gates,
 ]
 
 
 def main():
-    global APK
+    global APK, FLAVOR
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", help="comma-separated check names")
     parser.add_argument("--flavor", choices=("github", "play"), default="github")
     parser.add_argument("--apk", type=pathlib.Path, help="APK to install, such as a signed release build")
     args = parser.parse_args()
+    FLAVOR = args.flavor
     APK = ROOT / f"app/build/outputs/apk/{args.flavor}/debug/app-{args.flavor}-debug.apk"
     if args.apk:
         APK = args.apk.resolve()
     opt_in = [import_workflow] if args.flavor == "github" else []
-    suite = CHECKS if args.flavor == "github" else [plus_workflow]
+    suite = CHECKS if args.flavor == "github" else [plus_workflow, play_protection_routes, pip_stays, consent_gates]
     available = suite + opt_in
     requested = set(args.only.split(",")) if args.only else {c.__name__ for c in suite}
     unknown = requested - {c.__name__ for c in available}
