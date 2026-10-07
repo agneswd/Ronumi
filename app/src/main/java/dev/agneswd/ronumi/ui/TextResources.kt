@@ -1,5 +1,6 @@
 package dev.agneswd.ronumi.ui
 
+import dev.agneswd.ronumi.app
 import android.content.Context
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
@@ -20,10 +21,11 @@ fun textResource(@StringRes id: Int, vararg arguments: Any): ResourceText =
 fun quantityResource(@PluralsRes id: Int, count: Int, vararg arguments: Any): ResourceText =
     ResourceText.Quantity(id, count, arguments.toList())
 
+// Resolves through the app, so text from services and receivers uses the app language. See RonumiApp.getResources.
 fun ResourceText.resolve(context: Context): String = when (this) {
     is ResourceText.Literal -> value
-    is ResourceText.StringValue -> context.getString(id, *arguments.map { it.localizedArgument(context) }.toTypedArray())
-    is ResourceText.Quantity -> context.resources.getQuantityString(id, count, *arguments.map { it.localizedArgument(context) }.toTypedArray())
+    is ResourceText.StringValue -> context.app.getString(id, *arguments.map { it.localizedArgument(context) }.toTypedArray())
+    is ResourceText.Quantity -> context.app.resources.getQuantityString(id, count, *arguments.map { it.localizedArgument(context) }.toTypedArray())
 }
 
 @Composable

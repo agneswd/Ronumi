@@ -130,7 +130,7 @@ object Widgets {
             val (w, h) = artSize(context, manager, id, widthShare = 1f, heightShare = 0.4f)
             manager.updateAppWidget(id, RemoteViews(context.packageName, R.layout.widget_usage).apply {
                 setTextViewText(R.id.widget_value, formatDuration(context, today.totalMillis))
-                setTextViewText(R.id.widget_detail, context.resources.getQuantityString(R.plurals.widget_unlock_count, today.unlocks, today.unlocks))
+                setTextViewText(R.id.widget_detail, context.app.resources.getQuantityString(R.plurals.widget_unlock_count, today.unlocks, today.unlocks))
                 setImageViewBitmap(R.id.widget_art, artwork(ArtKey("bars", "", emptySet(), 0, w, h, night, week.joinToString(","))) {
                     barsArt(context, week, w, h)
                 })
@@ -144,7 +144,7 @@ object Widgets {
                 setImageViewBitmap(R.id.widget_art, artwork(ArtKey("goal", mood.name, style, (fraction.coerceIn(0f, 1f) * 100).toInt(), 360, 360, night, "")) {
                     goalArt(context, fraction, mood, style = style)
                 })
-                setTextViewText(R.id.widget_value, context.getString(R.string.widget_goal_progress, formatMinutes(context, game.todayMinutes), formatMinutes(context, game.goalMinutes)))
+                setTextViewText(R.id.widget_value, context.app.getString(R.string.widget_goal_progress, formatMinutes(context, game.todayMinutes), formatMinutes(context, game.goalMinutes)))
                 setTextViewText(R.id.widget_detail, streakText(context, game.streak, game.streakSafeToday))
                 setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingHome(context))
             })
@@ -187,9 +187,9 @@ object Widgets {
             views.setImageViewBitmap(R.id.widget_art, artwork(ArtKey("ronumi", Mood.IDLE.name, style, 0, 220, 220, night, "")) {
                 ronumiArt(context, Mood.IDLE, style = style)
             })
-            views.setTextViewText(R.id.widget_value, context.getString(R.string.widget_focus_title))
-            views.setTextViewText(R.id.widget_detail, context.getString(R.string.widget_session_length, formatMinutes(context, settings.focusMinutes)))
-            views.setTextViewText(R.id.widget_action, context.getString(R.string.widget_start_button))
+            views.setTextViewText(R.id.widget_value, context.app.getString(R.string.widget_focus_title))
+            views.setTextViewText(R.id.widget_detail, context.app.getString(R.string.widget_session_length, formatMinutes(context, settings.focusMinutes)))
+            views.setTextViewText(R.id.widget_action, context.app.getString(R.string.widget_start_button))
             val start = Intent(context, FocusWidget::class.java).setAction(FocusWidget.ACTION_START)
             views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getBroadcast(context, 0, start, PendingIntent.FLAG_IMMUTABLE))
         } else {
@@ -197,9 +197,9 @@ object Widgets {
             views.setImageViewBitmap(R.id.widget_art, artwork(ArtKey("ronumi", mood.name, style, 0, 220, 220, night, "")) {
                 ronumiArt(context, mood, style = style)
             })
-            views.setTextViewText(R.id.widget_value, if (!focus.running) context.getString(R.string.widget_paused_title) else if (focus.phase == FocusPhase.FOCUS) context.getString(R.string.widget_running_title) else context.getString(R.string.widget_break_title))
-            views.setTextViewText(R.id.widget_detail, if (!focus.running) context.getString(R.string.widget_resume_hint) else context.getString(R.string.widget_end_time, time(System.currentTimeMillis() + focus.remainingMillis(), context.uses24HourClock(settings.clockFormat))))
-            views.setTextViewText(R.id.widget_action, context.getString(R.string.widget_open_button))
+            views.setTextViewText(R.id.widget_value, if (!focus.running) context.app.getString(R.string.widget_paused_title) else if (focus.phase == FocusPhase.FOCUS) context.app.getString(R.string.widget_running_title) else context.app.getString(R.string.widget_break_title))
+            views.setTextViewText(R.id.widget_detail, if (!focus.running) context.app.getString(R.string.widget_resume_hint) else context.app.getString(R.string.widget_end_time, time(System.currentTimeMillis() + focus.remainingMillis(), context.uses24HourClock(settings.clockFormat))))
+            views.setTextViewText(R.id.widget_action, context.app.getString(R.string.widget_open_button))
             views.setOnClickPendingIntent(R.id.widget_root, MainActivity.pendingFocus(context))
         }
         manager.updateAppWidget(focusIds, views)
@@ -248,9 +248,9 @@ object Widgets {
     )
 
     private fun streakText(context: Context, streak: Int, safe: Boolean) = when {
-        streak == 0 -> context.getString(R.string.widget_streak_empty)
-        safe -> context.resources.getQuantityString(R.plurals.widget_streak_safe, streak, streak)
-        else -> context.resources.getQuantityString(R.plurals.widget_streak_pending, streak, streak)
+        streak == 0 -> context.app.getString(R.string.widget_streak_empty)
+        safe -> context.app.resources.getQuantityString(R.plurals.widget_streak_safe, streak, streak)
+        else -> context.app.resources.getQuantityString(R.plurals.widget_streak_pending, streak, streak)
     }
 
     /** The picture size in pixels: a share of the widget's current size, from the launcher's size options. */

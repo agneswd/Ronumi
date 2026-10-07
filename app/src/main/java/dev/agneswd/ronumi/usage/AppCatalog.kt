@@ -34,6 +34,9 @@ class AppCatalog(private val context: Context) {
             .getOrDefault(packageName)
     }
 
+    /** App labels follow the app language. Call this when the language changes. */
+    fun forgetLabels() = labels.clear()
+
     fun icon(packageName: String): Bitmap? = icons[packageName] ?: runCatching {
         pm.getApplicationIcon(packageName).toBitmap(96, 96).also { icons[packageName] = it }
     }.getOrNull()

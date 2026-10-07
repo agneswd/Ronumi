@@ -36,20 +36,20 @@ suspend fun exportBackup(context: Context, dao: RonumiDao, target: Uri, password
     val plaintext = json.encodeToString(backup).encodeToByteArray()
     val encrypted = try { BackupCrypto.encrypt(plaintext, password) } finally { plaintext.fill(0) }
     context.contentResolver.openOutputStream(target, "wt").use { out ->
-        requireNotNull(out) { context.getString(R.string.backup_error_write) }.write(encrypted)
+        requireNotNull(out) { context.app.getString(R.string.backup_error_write) }.write(encrypted)
     }
 }
 
 /** Validates the entire file before replacing any stored data. */
 suspend fun importBackup(context: Context, dao: RonumiDao, source: Uri, password: CharArray) = withContext(Dispatchers.IO) {
     val bytes = context.contentResolver.openInputStream(source).use { input ->
-        requireNotNull(input) { context.getString(R.string.backup_error_read) }
+        requireNotNull(input) { context.app.getString(R.string.backup_error_read) }
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(8192)
         while (true) {
             val count = input.read(buffer)
             if (count < 0) break
-            require(out.size() + count <= BackupCrypto.MAX_ENCRYPTED_BYTES) { context.getString(R.string.backup_error_size) }
+            require(out.size() + count <= BackupCrypto.MAX_ENCRYPTED_BYTES) { context.app.getString(R.string.backup_error_size) }
             out.write(buffer, 0, count)
         }
         out.toByteArray()
@@ -76,10 +76,10 @@ suspend fun restorePlainDocument(context: Context, dao: RonumiDao, bytes: ByteAr
 internal suspend fun restoreBackup(context: Context, dao: RonumiDao, backup: Backup) {
     val ready = backup.validated()
     context.app.database.withTransaction {
-        require(dao.activeFocus() == null) { context.getString(R.string.backup_error_focus_running) }
+        require(dao.activeFocus() == null) { context.app.getString(R.string.backup_error_focus_running) }
         val current = dao.currentSettings()
         require(!current.protection || !dev.agneswd.ronumi.guard.Rules(schedules = dao.allSchedules()).locked(java.time.LocalDateTime.now())) {
-            context.getString(R.string.backup_error_schedule_running)
+            context.app.getString(R.string.backup_error_schedule_running)
         }
         dev.agneswd.ronumi.game.RonumiPets.invalidatePendingTaps()
         dao.replaceAll(ready.copy(settings = ready.settings.copy(id = 0, pauseBlocksUntil = 0)))

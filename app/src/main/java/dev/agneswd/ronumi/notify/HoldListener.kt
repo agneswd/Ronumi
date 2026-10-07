@@ -19,6 +19,9 @@ import java.time.LocalDateTime
  * It holds them always, or only during focus rounds and schedules.
  */
 class HoldListener : NotificationListenerService() {
+    // Text in the app language. See RonumiApp.getResources.
+    override fun getResources(): android.content.res.Resources = applicationContext.resources
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (!dev.agneswd.ronumi.consent.Consents.granted(this, dev.agneswd.ronumi.consent.ConsentKind.NOTIFICATION_ACCESS)) return
         if (sbn.isOngoing || sbn.packageName == packageName) return
