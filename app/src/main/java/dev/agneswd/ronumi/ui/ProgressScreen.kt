@@ -152,41 +152,36 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
             activeStreak -> pluralStringResource(R.plurals.progress_streak_remaining, remainingStreakMinutes, remainingStreakMinutes)
             else -> pluralStringResource(R.plurals.progress_streak_start, dev.agneswd.ronumi.game.STREAK_MINUTES, dev.agneswd.ronumi.game.STREAK_MINUTES)
         }
-        ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(80)) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Flame(size = 56.dp, lit = activeStreak)
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            pluralStringResource(R.plurals.progress_day_streak, g.streak, g.streak), style = MaterialTheme.typography.headlineSmall,
-                            color = if (!activeStreak) Sp.colors.textDim else if (Sp.colors.dark) Sp.colors.flame else Color(0xFFA64D00),
-                        )
-                        Text(
-                            streakMessage,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Sp.colors.text,
-                        )
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(painterResource(R.drawable.ic_freeze), null, tint = Color(0xFF7CC8FF), modifier = Modifier.size(22.dp))
-                    Spacer(Modifier.width(8.dp))
+        Column(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp).appear(80)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Flame(size = 56.dp, lit = activeStreak)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
                     Text(
-                        pluralStringResource(R.plurals.progress_freeze_count, g.freezes, g.freezes),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Sp.colors.textDim,
+                        pluralStringResource(R.plurals.progress_day_streak, g.streak, g.streak),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Sp.colors.text,
                     )
+                    Text(streakMessage, style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
                 }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(painterResource(R.drawable.ic_freeze), null, tint = Color(0xFF7CC8FF), modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    pluralStringResource(R.plurals.progress_freeze_count, g.freezes, g.freezes),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Sp.colors.textDim,
+                )
             }
         }
 
-        // Numbers.
-        Row(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp).appear(140), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatTile({ Icon(painterResource(R.drawable.ic_timer), null, tint = Sp.colors.brand, modifier = Modifier.size(24.dp)) }, formatMinutes(g.totalMinutes), stringResource(R.string.progress_total_focus), Modifier.weight(1f))
-            StatTile({ Icon(painterResource(R.drawable.ic_check), null, tint = Sp.colors.mint, modifier = Modifier.size(24.dp)) }, stringResource(R.string.progress_count, g.sessions), stringResource(R.string.progress_filter_sessions), Modifier.weight(1f))
-            StatTile({ XpBolt(size = 24.dp) }, stringResource(R.string.progress_count, g.xp), stringResource(R.string.progress_total_xp), Modifier.weight(1f))
+        // Numbers. Three plain columns, with no card around them.
+        Row(Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp).appear(140)) {
+            StatColumn({ Icon(painterResource(R.drawable.ic_timer), null, tint = Sp.colors.brand, modifier = Modifier.size(24.dp)) }, formatMinutes(g.totalMinutes), stringResource(R.string.progress_total_focus), Modifier.weight(1f))
+            StatColumn({ Icon(painterResource(R.drawable.ic_check), null, tint = Sp.colors.mint, modifier = Modifier.size(24.dp)) }, stringResource(R.string.progress_count, g.sessions), stringResource(R.string.progress_filter_sessions), Modifier.weight(1f))
+            StatColumn({ XpBolt(size = 24.dp) }, stringResource(R.string.progress_count, g.xp), stringResource(R.string.progress_total_xp), Modifier.weight(1f))
         }
 
         SectionTitle(stringResource(R.string.progress_focus_this_week))
@@ -197,11 +192,15 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         }
 
         SectionTitle(stringResource(R.string.progress_focus_reports))
-        Row(Modifier.padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(1 to stringResource(R.string.progress_today), 7 to stringResource(R.string.progress_week), 30 to stringResource(R.string.progress_month)).forEach { (days, label) ->
-                ChoiceButton(label, period == days, Modifier.weight(1f)) { period = days }
-            }
-        }
+        val reportPeriods = listOf(
+            1 to stringResource(R.string.progress_today),
+            7 to stringResource(R.string.progress_week),
+            30 to stringResource(R.string.progress_month),
+        )
+        ChoiceRow(
+            reportPeriods.map { (days, label) -> label to (period == days) },
+            Modifier.padding(horizontal = ScreenPadding),
+        ) { index -> period = reportPeriods[index].first }
         ReportCard(totals, Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 12.dp).appear(200))
 
         UsageConsentLine(Modifier.padding(horizontal = ScreenPadding))
@@ -225,7 +224,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                     Text(
                         stringResource(if (less) R.string.progress_average_less else R.string.progress_average_more, formatDuration(kotlin.math.abs(today.totalMillis - average))),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (less) Sp.colors.mintLip else Sp.colors.danger,
+                        color = Sp.colors.text,
                     )
                 }
                 Spacer(Modifier.height(14.dp))
@@ -291,7 +290,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
                         .selectable(badgeFilter == filter, role = Role.Tab) { badgeFilter = filter }
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (badgeFilter == filter) Sp.colors.brand else Sp.colors.textDim,
+                    color = if (badgeFilter == filter) Sp.colors.text else Sp.colors.textDim,
                 )
             }
         }
@@ -351,7 +350,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
 private fun ReportCard(totals: Report, modifier: Modifier) {
     ChunkyCard(modifier.fillMaxWidth()) {
         Column {
-            Text(formatMinutes(totals.focusMinutes.toInt()), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.brand)
+            Text(formatMinutes(totals.focusMinutes.toInt()), style = MaterialTheme.typography.headlineMedium, color = Sp.colors.text)
             Text(stringResource(R.string.progress_average_focus, formatMinutes(totals.averageMinutes.toInt())), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
 
             val used = totals.screenMillis
@@ -419,14 +418,12 @@ private fun Legend(label: String, value: String, color: Color, modifier: Modifie
 }
 
 @Composable
-private fun StatTile(icon: @Composable () -> Unit, value: String, label: String, modifier: Modifier) {
-    ChunkyCard(modifier, contentPadding = 12.dp) {
-        Column {
-            icon()
-            Spacer(Modifier.height(4.dp))
-            Text(value, style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, maxLines = 1)
-            Text(label, style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
-        }
+private fun StatColumn(icon: @Composable () -> Unit, value: String, label: String, modifier: Modifier) {
+    Column(modifier) {
+        icon()
+        Spacer(Modifier.height(4.dp))
+        Text(value, style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, maxLines = 1)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
     }
 }
 
@@ -455,7 +452,7 @@ fun Bars(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.progress_most, label(values.maxOf { it.second })), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
             // Names the dashed line, so it does not read as the top of the scale.
-            if (goal != null && goal > 0f) Text(stringResource(R.string.progress_goal, label(goal)), style = MaterialTheme.typography.labelMedium, color = goalColor)
+            if (goal != null && goal > 0f) Text(stringResource(R.string.progress_goal, label(goal)), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
         }
         Spacer(Modifier.height(8.dp))
         Box {

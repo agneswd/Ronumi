@@ -39,6 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
@@ -82,6 +84,8 @@ fun ChunkyButton(
     icon: Painter? = null,
     height: Dp = 54.dp,
     sound: Sound? = null,
+    shrinkLabel: Boolean = true,
+    horizontalPadding: Dp? = null,
 ) {
     val source = remember { MutableInteractionSource() }
     val haptics = LocalHapticFeedback.current
@@ -111,7 +115,7 @@ fun ChunkyButton(
                 .clip(shape)
                 .background(colors.fill)
                 .then(if (colors.border != null) Modifier.drawBehind { drawRoundRect(colors.border, style = Stroke(2.dp.toPx()), cornerRadius = CornerRadius(16.dp.toPx())) } else Modifier)
-                .padding(horizontal = if (text.isEmpty()) 0.dp else if (height < 50.dp) 10.dp else 20.dp),
+                .padding(horizontal = horizontalPadding ?: if (text.isEmpty()) 0.dp else if (height < 50.dp) 10.dp else 20.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -119,15 +123,25 @@ fun ChunkyButton(
                 Icon(icon, null, tint = colors.content, modifier = Modifier.size(if (text.isEmpty()) 24.dp else 22.dp))
                 if (text.isNotEmpty()) Spacer(Modifier.width(10.dp))
             }
-            // Long labels shrink to fit narrow buttons instead of being cut off.
             if (text.isNotEmpty()) {
                 val style = MaterialTheme.typography.labelLarge
-                BasicText(
-                    text.uppercase(androidx.compose.ui.platform.LocalLocale.current.platformLocale),
-                    style = style.copy(color = colors.content, textAlign = TextAlign.Center),
-                    maxLines = 1,
-                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
-                )
+                val label = text.uppercase(androidx.compose.ui.platform.LocalLocale.current.platformLocale)
+                if (shrinkLabel) {
+                    // Full-width buttons can shrink a long label. Choice rows pass shrinkLabel false and wrap instead.
+                    BasicText(
+                        label,
+                        style = style.copy(color = colors.content, textAlign = TextAlign.Center),
+                        maxLines = 1,
+                        autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
+                    )
+                } else {
+                    BasicText(
+                        label,
+                        style = style.copy(color = colors.content, textAlign = TextAlign.Center),
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
             }
         }
     }
@@ -186,8 +200,10 @@ fun ChunkyCard(
 fun ChunkyProgress(fraction: Float, modifier: Modifier = Modifier, color: Color = Sp.colors.brand, height: Dp = 16.dp) {
     val animated by animateFloatAsState(fraction.coerceIn(0f, 1f), spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessLow), label = "progress")
     val track = Sp.colors.surfaceHigh
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     Box(
         modifier
+            .graphicsLayer { if (rtl) scaleX = -1f }
             .fillMaxWidth()
             .height(height)
             .drawBehind {

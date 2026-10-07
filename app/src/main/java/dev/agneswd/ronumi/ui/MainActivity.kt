@@ -23,12 +23,12 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.SideEffect
 import androidx.core.view.WindowCompat
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -51,9 +51,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import dev.agneswd.ronumi.Distribution
 import dev.agneswd.ronumi.R
@@ -65,6 +72,7 @@ import dev.agneswd.ronumi.focus.Celebrations
 import dev.agneswd.ronumi.game.GameState
 import dev.agneswd.ronumi.game.applyStreakFreezes
 import dev.agneswd.ronumi.game.gameState
+import dev.agneswd.ronumi.ui.design.Nunito
 import dev.agneswd.ronumi.ui.design.Sp
 import dev.agneswd.ronumi.ui.design.RonumiTheme
 import kotlinx.coroutines.launch
@@ -313,15 +321,8 @@ private fun App(navigator: Navigator) {
                                         Route.Websites -> Page { WebsitesPage(onClose = navigator::pop) }
                                         Route.Notifications -> Page { NotificationsPage(navigator, onClose = navigator::pop) }
                                         Route.Strict -> Page { StrictPage(onClose = navigator::pop) }
-                                        null -> Tabs(navigator, game)
+                                        null -> Tabs(navigator, game, running)
                                     }
-                                }
-                                if (running != null && visibleRoute == null) {
-                                    FocusChip(
-                                        running,
-                                        onOpen = { navigator.focusMinimized = false },
-                                        modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 6.dp),
-                                    )
                                 }
                             }
                         }
@@ -339,9 +340,18 @@ private fun Page(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun Tabs(navigator: Navigator, game: GameState?) {
+private fun Tabs(navigator: Navigator, game: GameState?, running: dev.agneswd.ronumi.data.ActiveFocus?) {
     Column(Modifier.fillMaxSize().background(Sp.colors.background)) {
-        Box(Modifier.weight(1f).statusBarsPadding()) {
+        // A minimized session keeps the chip in the layout, so it does not cover the tab.
+        if (running != null) {
+            Box(
+                Modifier.fillMaxWidth().statusBarsPadding().padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                FocusChip(running, onOpen = { navigator.focusMinimized = false })
+            }
+        }
+        Box(Modifier.weight(1f).then(if (running == null) Modifier.statusBarsPadding() else Modifier)) {
             AnimatedContent(navigator.tab, transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) }, label = "tab") { tab ->
                 when (tab) {
                     Tab.HOME -> HomeScreen(navigator, game)
@@ -355,34 +365,42 @@ private fun Tabs(navigator: Navigator, game: GameState?) {
     }
 }
 
-/** A bottom bar in the style of learning games: big icons, the chosen one in a soft outlined box. */
+private val TabLabel = TextStyle(fontFamily = Nunito, fontWeight = FontWeight.W700, fontSize = 12.sp, lineHeight = 16.sp)
+
+/** Bottom tabs. The active one is a soft pill. The row is the touch target. */
 @Composable
 private fun TabBar(navigator: Navigator) {
     Column(Modifier.fillMaxWidth().background(Sp.colors.background)) {
-        Box(Modifier.fillMaxWidth().height(2.dp).background(Sp.colors.border))
-        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 6.dp)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Sp.colors.border))
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp)) {
             Tab.entries.forEach { tab ->
                 val on = navigator.tab == tab
                 Column(
                     Modifier
                         .weight(1f)
-                        .clickable(remember { MutableInteractionSource() }, indication = null) {
+                        .defaultMinSize(minHeight = 48.dp)
+                        .semantics { selected = on }
+                        .clickable(remember { MutableInteractionSource() }, indication = null, role = Role.Tab) {
                             navigator.tab = tab
                         }
-                        .padding(vertical = 2.dp),
+                        .padding(top = 8.dp, bottom = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(
                         Modifier
-                            .size(58.dp, 40.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(if (on) Sp.colors.brandSoft else Sp.colors.background)
-                            .border(2.dp, if (on) Sp.colors.brand else Sp.colors.background, RoundedCornerShape(14.dp)),
+                            .size(56.dp, 32.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (on) Sp.colors.brandSoft else Color.Transparent),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(painterResource(tab.icon), stringResource(tab.labelRes), tint = if (on) Sp.colors.brand else Sp.colors.textDim, modifier = Modifier.size(26.dp))
+                        Icon(painterResource(tab.icon), null, tint = if (on) Sp.colors.brand else Sp.colors.textDim, modifier = Modifier.size(24.dp))
                     }
-                    Text(stringResource(tab.labelRes), style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
+                    Text(
+                        stringResource(tab.labelRes),
+                        style = TabLabel,
+                        color = if (on) Sp.colors.brand else Sp.colors.textDim,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                 }
             }
         }

@@ -65,7 +65,6 @@ import dev.agneswd.ronumi.ui.design.LightPalette
 import dev.agneswd.ronumi.ui.design.Mood
 import dev.agneswd.ronumi.ui.design.Sp
 import dev.agneswd.ronumi.ui.design.Tag
-import dev.agneswd.ronumi.ui.design.XpBolt
 import dev.agneswd.ronumi.ui.design.appear
 import dev.agneswd.ronumi.usage.DayUsage
 import kotlinx.coroutines.Dispatchers
@@ -89,45 +88,42 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
         onPauseOrDispose { }
     }
     val today by produceState<DayUsage?>(null, refresh, access.usage) {
-        value = withContext(Dispatchers.IO) { app.usage.day(LocalDate.now()) }
+        value = withContext(Dispatchers.IO) { app.usageRefresh.refresh(1).lastOrNull() }
     }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 110.dp)) {
             GameBar(game, onOpen = { navigator.tab = Tab.PROGRESS })
+            val (mood, line) = greeting(game)
+            val wardrobe = stringResource(R.string.home_wardrobe)
+            RonumiSays(
+                line,
+                mood,
+                Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60),
+                ronumiSize = 96.dp,
+                onMascotClick = { navigator.push(Route.Wardrobe) },
+                mascotDescription = wardrobe,
+            )
             BlockingConsentNudge(Modifier.padding(horizontal = ScreenPadding).appear(0))
             if (!access.ready) {
                 SetupNudge(Modifier.padding(horizontal = ScreenPadding).appear(0)) { navigator.push(Route.Settings) }
             }
-            val (mood, line) = greeting(game)
-            RonumiSays(line, mood, Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).appear(60), ronumiSize = 96.dp)
-            Text(
-                stringResource(R.string.home_wardrobe),
-                Modifier.align(Alignment.End).clip(RoundedCornerShape(12.dp)).clickable { navigator.push(Route.Wardrobe) }
-                    .padding(horizontal = ScreenPadding, vertical = 12.dp),
-                style = MaterialTheme.typography.labelLarge, color = Sp.colors.brand,
-            )
             GoalCard(game, Modifier.padding(horizontal = ScreenPadding).appear(120))
+            val next = nextSchedule(schedules)
+            if (next != null) {
+                ListRow(
+                    next.name.displayName(),
+                    stringResource(R.string.home_schedule_time_range, minuteText(next.startMinute, use24), minuteText(next.endMinute, use24)),
+                    onClick = { navigator.tab = Tab.PLANNER },
+                    leading = { ScheduleIcon(next.icon, next.startMinute, size = 48.dp) },
+                    trailing = { Chevron() },
+                )
+            }
             SectionTitle(stringResource(R.string.home_daily_quests), action = { Tag(stringResource(R.string.home_resets_at_midnight), Sp.colors.textDim) })
-            QuestCard(game?.quests.orEmpty(), Modifier.padding(horizontal = ScreenPadding).appear(180))
+            QuestCard(game?.quests.orEmpty(), Modifier.appear(180))
             SectionTitle(stringResource(R.string.home_screen_time))
             UsageConsentLine(Modifier.padding(horizontal = ScreenPadding).appear(220))
             ScreenTimeCard(today, Modifier.padding(horizontal = ScreenPadding).appear(240)) { navigator.tab = Tab.PROGRESS }
-            val next = nextSchedule(schedules)
-            if (next != null) {
-                SectionTitle(stringResource(R.string.home_up_next))
-                ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(300), onClick = { navigator.tab = Tab.PLANNER }, contentPadding = 12.dp) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ScheduleIcon(next.first.icon, next.first.startMinute, size = 48.dp)
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(next.first.name.displayName(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                            Text(stringResource(R.string.home_schedule_time_range, minuteText(next.first.startMinute, use24), minuteText(next.first.endMinute, use24)), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
-                        }
-                        Tag(next.second, if (next.first.isActive(LocalDateTime.now())) Sp.colors.mint else Sp.colors.brand)
-                    }
-                }
-            }
         }
         // The big start button stays at the bottom, above the tab bar.
         Box(
@@ -136,7 +132,7 @@ fun HomeScreen(navigator: Navigator, game: GameState?) {
                 .fillMaxWidth()
                 // Cards fade out under the button instead of meeting a hard edge.
                 .background(Brush.verticalGradient(0f to Sp.colors.background.copy(alpha = 0f), 0.35f to Sp.colors.background))
-                .padding(start = ScreenPadding, end = ScreenPadding, top = 28.dp, bottom = 12.dp),
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 16.dp, bottom = 12.dp),
         ) {
             ChunkyButton(
                 if (focus == null) stringResource(R.string.home_start_button) else stringResource(R.string.home_return_to_focus),
@@ -254,53 +250,54 @@ fun GoalRing(fraction: Float, modifier: Modifier, color: Color = Sp.colors.flame
 @Composable
 fun QuestCard(quests: List<Quest>, modifier: Modifier) {
     var expanded by remember { mutableStateOf<String?>(null) }
-    ChunkyCard(modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            quests.forEach { quest ->
-                Column {
-                    Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClickLabel = stringResource(R.string.home_show_quest_details)) {
-                            expanded = if (expanded == quest.id) null else quest.id
-                        },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (quest.done) Sp.colors.gold else Sp.colors.gold.copy(alpha = 0.18f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (quest.done) Icon(painterResource(R.drawable.ic_check), null, tint = LightPalette.text, modifier = Modifier.size(22.dp)) else XpBolt(size = 22.dp)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(quest.title.localized(), style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
-                            Spacer(Modifier.height(6.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                ChunkyProgress(quest.fraction, Modifier.weight(1f), color = Sp.colors.gold, height = 12.dp)
-                                Spacer(Modifier.width(8.dp))
-                                // A minimum width keeps the bars the same length on every row.
-                                Text(stringResource(R.string.home_quest_progress, quest.progress, quest.target), Modifier.widthIn(min = 52.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim, textAlign = TextAlign.End)
-                            }
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        Text(stringResource(R.string.home_quest_xp, quest.xp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.text)
+    Column(modifier) {
+        quests.forEach { quest ->
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClickLabel = stringResource(R.string.home_show_quest_details)) {
+                        expanded = if (expanded == quest.id) null else quest.id
                     }
-                    AnimatedVisibility(expanded == quest.id) {
-                        Column(Modifier.padding(start = 52.dp, top = 10.dp)) {
-                            Text(stringResource(quest.categoryRes), style = MaterialTheme.typography.labelMedium, color = Sp.colors.brand)
+                    .padding(horizontal = ScreenPadding, vertical = 12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                quest.detail.localized(),
-                                style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                                quest.title.localized(),
+                                Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Sp.colors.text,
                             )
-                            Text(
-                                if (quest.done) stringResource(R.string.home_quest_reward_earned, quest.xp)
-                                else stringResource(R.string.home_quest_reward_pending, quest.xp),
-                                Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
-                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.home_quest_xp, quest.xp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
                         }
+                        Spacer(Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            ChunkyProgress(quest.fraction, Modifier.weight(1f), color = Sp.colors.gold, height = 12.dp)
+                            Spacer(Modifier.width(8.dp))
+                            // A minimum width keeps the bars the same length on every row.
+                            Text(stringResource(R.string.home_quest_progress, quest.progress, quest.target), Modifier.widthIn(min = 52.dp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim, textAlign = TextAlign.End)
+                        }
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Chevron()
+                }
+                AnimatedVisibility(expanded == quest.id) {
+                    Column(Modifier.padding(top = 10.dp)) {
+                        Text(stringResource(quest.categoryRes), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+                        Text(
+                            quest.detail.localized(),
+                            style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                        )
+                        Text(
+                            if (quest.done) stringResource(R.string.home_quest_reward_earned, quest.xp)
+                            else stringResource(R.string.home_quest_reward_pending, quest.xp),
+                            Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim,
+                        )
                     }
                 }
             }
-            Text(stringResource(R.string.home_quest_help), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim)
         }
     }
 }
@@ -345,18 +342,12 @@ fun dayPartAt(minute: Int): DayPart = when {
     else -> DayPart.NIGHT
 }
 
-/** The schedule that runs now or starts next today, with a short label for when. */
-@Composable
-private fun nextSchedule(schedules: List<dev.agneswd.ronumi.data.Schedule>): Pair<dev.agneswd.ronumi.data.Schedule, String>? {
+/** The schedule that runs now, or the next one that starts today. */
+private fun nextSchedule(schedules: List<dev.agneswd.ronumi.data.Schedule>): dev.agneswd.ronumi.data.Schedule? {
     val now = LocalDateTime.now()
     val minute = now.hour * 60 + now.minute
     val enabled = schedules.filter { it.enabled }
-    enabled.firstOrNull { it.isActive(now) }?.let { return it to stringResource(R.string.home_schedule_now) }
+    enabled.firstOrNull { it.isActive(now) }?.let { return it }
     val bit = 1 shl (now.dayOfWeek.value - 1)
-    return enabled.filter { it.days and bit != 0 && it.startMinute > minute }
-        .minByOrNull { it.startMinute }
-        ?.let { s ->
-            val wait = s.startMinute - minute
-            s to if (wait < 60) pluralStringResource(R.plurals.home_schedule_wait_minutes, wait, wait) else pluralStringResource(R.plurals.home_schedule_wait_hours, wait / 60, wait / 60)
-        }
+    return enabled.filter { it.days and bit != 0 && it.startMinute > minute }.minByOrNull { it.startMinute }
 }

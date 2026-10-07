@@ -31,7 +31,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -96,7 +99,7 @@ fun BlocksScreen(navigator: Navigator) {
         ScreenTitle(stringResource(R.string.blocks_blocks), Modifier.padding(horizontal = ScreenPadding, vertical = 14.dp))
         if (!access.ready) {
             ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding), fill = Sp.colors.danger.copy(alpha = 0.1f), onClick = { context.openGuardSetup { navigator.push(Route.Settings) } }) {
-                Text(stringResource(R.string.blocks_permissions_missing), style = MaterialTheme.typography.titleSmall, color = Sp.colors.danger)
+                Text(stringResource(R.string.blocks_permissions_missing), style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
             }
         }
         PauseBanner(s.pauseBlocksUntil)
@@ -106,7 +109,7 @@ fun BlocksScreen(navigator: Navigator) {
                 navigator.push(Route.PickApps(resources.getString(R.string.blocks_limit_app_picker_title), emptySet(), single = true) { picked -> picked.firstOrNull()?.let { editingLimit = AppLimit(it, 30) } })
             }
         })
-        Group(Modifier.appear(0)) {
+        Column(Modifier.appear(0)) {
             if (limits.isEmpty()) Empty(stringResource(R.string.blocks_limits_empty))
             limits.forEach { limit ->
                 val streak = limitStreak(usage, limit.packageName)
@@ -119,7 +122,7 @@ fun BlocksScreen(navigator: Navigator) {
                     if (streak > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Flame(size = 18.dp)
-                            Text(stringResource(R.string.blocks_pass_count, streak), style = MaterialTheme.typography.titleSmall, color = Sp.colors.flame)
+                            Text(stringResource(R.string.blocks_pass_count, streak), style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
                         }
                         Spacer(Modifier.width(8.dp))
                     }
@@ -129,10 +132,8 @@ fun BlocksScreen(navigator: Navigator) {
         }
 
         SectionTitle(stringResource(R.string.blocks_schedules), action = { AddButton(stringResource(R.string.blocks_add_schedule)) { navigator.push(Route.EditSchedule(null)) } })
-        Column(Modifier.padding(horizontal = ScreenPadding).appear(60), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (schedules.isEmpty()) {
-                ChunkyCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) { Empty(stringResource(R.string.blocks_schedules_empty)) }
-            }
+        Column(Modifier.appear(60)) {
+            if (schedules.isEmpty()) Empty(stringResource(R.string.blocks_schedules_empty))
             schedules.forEach { schedule ->
                 ScheduleCard(schedule, onClick = { navigator.push(Route.EditSchedule(schedule)) }) { on ->
                     app.scope.launch { PolicyActions.saveSchedule(context, schedule.copy(enabled = on)) }
@@ -141,7 +142,7 @@ fun BlocksScreen(navigator: Navigator) {
         }
 
         SectionTitle(stringResource(R.string.blocks_more_blocks))
-        Group(Modifier.appear(120)) {
+        Column(Modifier.appear(120)) {
             val shortsOn = shortsApps.count { it.get(s) }
             ListRow(
                 stringResource(R.string.blocks_short_videos),
@@ -226,7 +227,7 @@ private fun PauseBanner(until: Long) {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.blocks_pause_title), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                Text(stringResource(R.string.blocks_pause_remaining, left / 60, left % 60), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.flameLip)
+                Text(stringResource(R.string.blocks_pause_remaining, left / 60, left % 60), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.text)
             }
             ChunkyButton(stringResource(R.string.blocks_resume), { context.app.scope.launch { pause(context, 0) } }, kind = ButtonKind.FLAME, height = 42.dp)
         }
@@ -240,7 +241,13 @@ private fun Empty(text: String) {
 
 @Composable
 fun Chevron() {
-    Icon(painterResource(R.drawable.ic_chevron), null, tint = Sp.colors.textDim, modifier = Modifier.size(18.dp))
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    Icon(
+        painterResource(R.drawable.ic_chevron),
+        null,
+        tint = Sp.colors.textDim,
+        modifier = Modifier.size(18.dp).graphicsLayer { if (rtl) scaleX = -1f },
+    )
 }
 
 @Composable
@@ -299,14 +306,13 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ChunkyButton("", { minutes = (minutes - if (minutes > 60) 15 else 5).coerceAtLeast(1) }, Modifier.width(56.dp).semantics { contentDescription = decreaseLabel }, kind = ButtonKind.SECONDARY, icon = painterResource(R.drawable.ic_minus))
-                    Text(formatMinutes(minutes), style = MaterialTheme.typography.displaySmall, color = Sp.colors.brand, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    Text(formatMinutes(minutes), style = MaterialTheme.typography.displaySmall, color = Sp.colors.text, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                     ChunkyButton("", { minutes = (minutes + if (minutes >= 60) 15 else 5).coerceAtMost(12 * 60) }, Modifier.width(56.dp).semantics { contentDescription = increaseLabel }, kind = ButtonKind.SECONDARY, icon = painterResource(R.drawable.ic_plus))
                 }
                 Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ChoiceButton(stringResource(R.string.blocks_gentle), !strict, Modifier.weight(1f)) { strict = false }
-                    ChoiceButton(stringResource(R.string.blocks_strict), strict, Modifier.weight(1f)) { strict = true }
-                }
+                ChoiceRow(
+                    listOf(stringResource(R.string.blocks_gentle) to !strict, stringResource(R.string.blocks_strict) to strict),
+                ) { index -> strict = index == 1 }
                 Text(
                     if (strict) stringResource(R.string.blocks_strict_limit_description) else stringResource(R.string.blocks_gentle_limit_description),
                     style = MaterialTheme.typography.bodySmall,
@@ -317,17 +323,12 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
                 Text(stringResource(R.string.blocks_remind_me_after), style = MaterialTheme.typography.titleSmall, color = Sp.colors.text)
                 Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(0, 5, 10, 15, 30).forEach { option ->
-                        ChunkyButton(
-                            if (option == 0) stringResource(R.string.blocks_off) else pluralStringResource(R.plurals.blocks_reminder_minutes, option, option),
-                            { reminder = option },
-                            Modifier.weight(1f),
-                            kind = if (reminder == option) ButtonKind.PRIMARY else ButtonKind.SECONDARY,
-                            height = 40.dp,
-                        )
-                    }
-                }
+                val reminderOptions = listOf(0, 5, 10, 15, 30)
+                ChoiceRow(
+                    reminderOptions.map { option ->
+                        (if (option == 0) stringResource(R.string.blocks_off) else pluralStringResource(R.plurals.blocks_reminder_minutes, option, option)) to (reminder == option)
+                    },
+                ) { index -> reminder = reminderOptions[index] }
                 if (warning || deleteWarning) {
                     Text(
                         stringResource(R.string.blocks_limit_weaken_confirmation),
