@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="distribution_privacy">Focus works offline. No account or ads. Purchases use Google Play.</string>
+    <string name="blocks_protection_description">Protection locks your rules in Ronumi until the session ends. You can still turn off access in Android Settings.</string>
+    <string name="blocks_protection_switch_description">Locks your rules in Ronumi until the session ends.</string>
 </resources>

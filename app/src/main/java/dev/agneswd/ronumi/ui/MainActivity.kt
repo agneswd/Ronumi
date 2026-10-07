@@ -328,6 +328,7 @@ private fun App(navigator: Navigator) {
                     }
                 }
             }
+            ConsentHost()
         }
     }
 }

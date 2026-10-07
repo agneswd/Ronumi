@@ -21,6 +21,7 @@ private val knownBrowsers = setOf(
 )
 
 fun Context.browserPackages(): Set<String> {
+    if (!dev.agneswd.ronumi.consent.Consents.granted(this, dev.agneswd.ronumi.consent.ConsentKind.APP_LIST)) return emptySet()
     val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
         .addCategory(Intent.CATEGORY_BROWSABLE)
     return knownBrowsers + packageManager.queryIntentActivities(web, android.content.pm.PackageManager.GET_RESOLVED_FILTER)

@@ -35,6 +35,9 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
+    /** Usage access is on and the user agreed to this version of the usage disclosure. */
+    fun canQuery(): Boolean = hasAccess() && dev.agneswd.ronumi.consent.Consents.granted(context, dev.agneswd.ronumi.consent.ConsentKind.USAGE)
+
     /** Foreground time of one app since local midnight. */
     fun todayMillis(packageName: String): Long {
         val from = startOfDay(LocalDate.now())
@@ -61,7 +64,7 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
     }
 
     private fun foregroundTimes(from: Long, to: Long): Map<String, Long> {
-        if (!hasAccess()) return emptyMap()
+        if (!canQuery()) return emptyMap()
         val timeline = ForegroundTimeline(from, to)
         // Find the app already open at midnight, even before its first event today.
         val events = manager.queryEvents((from - 86_400_000).coerceAtLeast(0), to)
@@ -78,7 +81,7 @@ class UsageReader(private val context: Context, private val catalog: AppCatalog)
     }
 
     private fun unlocks(from: Long, to: Long): Int {
-        if (!hasAccess()) return 0
+        if (!canQuery()) return 0
         var count = 0
         val events = manager.queryEvents(from, to)
         val event = UsageEvents.Event()

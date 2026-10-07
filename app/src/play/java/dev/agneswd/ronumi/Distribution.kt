@@ -7,6 +7,9 @@ import dev.agneswd.ronumi.plus.PlayPlus
 import dev.agneswd.ronumi.plus.createStore
 
 object Distribution {
+    /** Play builds do not block Android Settings, the installer, or uninstall. */
+    const val guardsSystemScreens = false
+
     fun createPlus(app: RonumiApp): Plus = PlayPlus(app, createStore(app))
 
     @Composable

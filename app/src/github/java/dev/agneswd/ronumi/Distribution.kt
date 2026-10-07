@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 object Distribution {
+    /** GitHub builds still block system screens that can turn Ronumi off. */
+    const val guardsSystemScreens = true
+
     fun createPlus(app: RonumiApp): Plus {
         app.scope.launch {
             app.dao.settings().map { it.autoUpdateChecks }.distinctUntilChanged().collect {

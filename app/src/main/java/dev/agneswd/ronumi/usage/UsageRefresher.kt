@@ -41,8 +41,11 @@ class UsageRefresher(private val app: RonumiApp) {
             monotonicMillis = SystemClock.elapsedRealtime(),
             generation = core.generationNow(),
         )
-        if (!app.usage.hasAccess()) {
-            return (days - 1 downTo 0).map { DayUsage(today.minusDays(it.toLong()), emptyList(), 0) }
+        if (!app.usage.canQuery()) {
+            return (days - 1 downTo 0).map { offset ->
+                val date = today.minusDays(offset.toLong())
+                app.dao.usageDay(date.toString())?.toDayUsage() ?: DayUsage(date, emptyList(), 0)
+            }
         }
         val stored = completeDays().filter { it < today }.toSet()
         val scan = core.plan(stored, days, clock)

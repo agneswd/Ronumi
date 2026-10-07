@@ -204,6 +204,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
         }
         ReportCard(totals, Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 12.dp).appear(200))
 
+        UsageConsentLine(Modifier.padding(horizontal = ScreenPadding))
         SectionTitle(stringResource(R.string.progress_screen_time))
         ChunkyCard(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).appear(260)) {
             Column {

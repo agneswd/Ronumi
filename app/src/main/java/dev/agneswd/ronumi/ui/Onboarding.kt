@@ -37,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +54,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.agneswd.ronumi.R
 import dev.agneswd.ronumi.app
+import dev.agneswd.ronumi.consent.ConsentKind
+import dev.agneswd.ronumi.consent.Consents
 import dev.agneswd.ronumi.data.BlockMode
 import dev.agneswd.ronumi.data.Schedule
 import dev.agneswd.ronumi.data.updateSettings
@@ -131,8 +134,15 @@ fun Onboarding(onDone: () -> Unit) {
     var dayPart by rememberSaveable { mutableStateOf<DayPart?>(null) }
     var noSchedule by rememberSaveable { mutableStateOf(false) }
     var apps by rememberSaveable { mutableStateOf<Set<String>?>(null) }
-    val installed by produceState<List<InstalledApp>>(emptyList()) {
-        value = withContext(Dispatchers.IO) { app.catalog.launchableApps() }
+    val revision by Consents.revision.collectAsState()
+    val installed by produceState(emptyList<InstalledApp>(), revision) {
+        value = if (!Consents.granted(context, ConsentKind.APP_LIST)) emptyList()
+        else withContext(Dispatchers.IO) { app.catalog.launchableApps() }
+    }
+    LaunchedEffect(step) {
+        if (step == Step.APPS && !Consents.granted(context, ConsentKind.APP_LIST)) {
+            context.withConsent(ConsentKind.APP_LIST) { }
+        }
     }
     val access = rememberAccess()
 
@@ -245,7 +255,14 @@ fun Onboarding(onDone: () -> Unit) {
                 Step.NOTIFY -> Slide(stringResource(R.string.onboarding_inbox_title), stringResource(R.string.onboarding_inbox_description), ::next) { NotificationScene() }
                 Step.STRICT -> Slide(stringResource(R.string.onboarding_strict_title), stringResource(R.string.onboarding_strict_description), ::next) { StrictScene() }
                 Step.STREAK -> Slide(stringResource(R.string.onboarding_build_a_streak), stringResource(R.string.onboarding_streak_description), ::next) { StreakScene() }
-                Step.APPS -> AppsStep(installed, apps ?: installed.map { it.packageName }.filter { it in commonDistractions }.toSet(), onChange = { apps = it }, onNext = ::next)
+                Step.APPS -> AppsStep(
+                    installed,
+                    apps ?: installed.map { it.packageName }.filter { it in commonDistractions }.toSet(),
+                    needsConsent = !Consents.granted(context, ConsentKind.APP_LIST),
+                    onChoose = { context.withConsent(ConsentKind.APP_LIST) { } },
+                    onChange = { apps = it },
+                    onNext = ::next,
+                )
                 Step.ACCESS -> AccessStep(access, onNext = ::next)
                 Step.FIRST -> FirstFocus(enabled = !finishing, onStart = { finish(firstFocus = true) }, onSkip = { finish(firstFocus = false) })
             }
@@ -384,7 +401,14 @@ private fun Slide(title: String, body: String, onNext: () -> Unit, art: @Composa
 }
 
 @Composable
-private fun AppsStep(installed: List<InstalledApp>, chosen: Set<String>, onChange: (Set<String>) -> Unit, onNext: () -> Unit) {
+private fun AppsStep(
+    installed: List<InstalledApp>,
+    chosen: Set<String>,
+    needsConsent: Boolean,
+    onChoose: () -> Unit,
+    onChange: (Set<String>) -> Unit,
+    onNext: () -> Unit,
+) {
     // Suggested apps first, then the rest by name.
     val sorted = remember(installed) { installed.sortedBy { if (it.packageName in commonDistractions) 0 else 1 } }
     Column(Modifier.fillMaxSize()) {
@@ -402,6 +426,9 @@ private fun AppsStep(installed: List<InstalledApp>, chosen: Set<String>, onChang
                     Checkbox(on, { onChange(if (on) chosen - item.packageName else chosen + item.packageName) }, colors = CheckboxDefaults.colors(checkedColor = Sp.colors.brand))
                 }
             }
+        }
+        if (needsConsent) {
+            ChunkyButton(stringResource(R.string.consent_choose_apps), onChoose, Modifier.fillMaxWidth().padding(horizontal = 20.dp))
         }
         ChunkyButton(stringResource(R.string.onboarding_continue), onNext, Modifier.fillMaxWidth().padding(20.dp))
     }

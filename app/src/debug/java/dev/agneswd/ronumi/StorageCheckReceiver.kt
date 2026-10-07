@@ -6,7 +6,10 @@ import android.content.Intent
 import android.net.Uri
 import androidx.room.Room
 import androidx.room.withTransaction
+import dev.agneswd.ronumi.consent.ConsentKind
+import dev.agneswd.ronumi.consent.Consents
 import dev.agneswd.ronumi.data.*
+import dev.agneswd.ronumi.focus.Focus
 import dev.agneswd.ronumi.game.gameState
 import dev.agneswd.ronumi.game.applyStreakFreezes
 import dev.agneswd.ronumi.guard.PolicyActions
@@ -85,6 +88,21 @@ class StorageCheckReceiver : BroadcastReceiver() {
                         "sent"
                     }
                     "plan-check" -> checkPlan(context)
+                    "grant-consents" -> {
+                        val requested = intent.getStringExtra("kinds")
+                        val kinds = if (requested.isNullOrBlank()) ConsentKind.entries.toList()
+                        else requested.split(',').map { ConsentKind.valueOf(it.trim()) }
+                        kinds.forEach { Consents.accept(context, it) }
+                        "granted ${kinds.joinToString(",") { it.name }}"
+                    }
+                    "clear-consents" -> {
+                        Consents.clear(context)
+                        "cleared"
+                    }
+                    "consent-backup" -> checkConsentBackup(context)
+                    "strict-protection" -> startStrictProtection(context)
+                    "focus-contacts" -> startFocusContacts(context)
+                    "arm-shorts" -> armShorts(context)
                     else -> error("Unknown check")
                 }
             }.fold({ "PASS\n$it" }, { "FAIL\n${it.stackTraceToString()}" })
@@ -454,6 +472,76 @@ private suspend fun rewardSnapshot(dao: RonumiDao): String {
         put("quests", JsonArray(state.quests.map { JsonPrimitive("${it.id}:${it.progress}/${it.target}:${it.done}") }))
         put("badges", JsonArray(state.badges.map { JsonPrimitive("${it.id}:${it.unlocked}") }))
     }.toString()
+}
+
+private suspend fun checkConsentBackup(context: Context): String {
+    val dao = context.app.dao
+    check(dao.activeFocus() == null)
+    Consents.accept(context, ConsentKind.ACCESSIBILITY)
+    val file = File(context.filesDir, "consent-backup.ronumi")
+    val password = "consent-check".toCharArray()
+    try {
+        exportBackup(context, dao, Uri.fromFile(file), password)
+        Consents.clear(context)
+        importBackup(context, dao, Uri.fromFile(file), password)
+        check(!Consents.granted(context, ConsentKind.ACCESSIBILITY))
+        Consents.accept(context, ConsentKind.USAGE)
+        importBackup(context, dao, Uri.fromFile(file), password)
+        check(Consents.granted(context, ConsentKind.USAGE))
+        check(!Consents.granted(context, ConsentKind.ACCESSIBILITY))
+        Consents.clear(context)
+    } finally {
+        password.fill('\u0000')
+        file.delete()
+    }
+    return "consent stayed out of the backup"
+}
+
+private suspend fun startStrictProtection(context: Context): String {
+    val dao = context.app.dao
+    check(dao.activeFocus() == null)
+    dao.updateSettings {
+        it.copy(
+            onboarded = true,
+            protection = true,
+            focusStrict = true,
+            focusLockHome = false,
+            focusPackages = setOf("com.google.android.contacts", "com.android.contacts"),
+            focusMode = BlockMode.LISTED,
+        )
+    }
+    Focus.start(context, "Protection check", minutes = 25)
+    return "strict protection is on"
+}
+
+private suspend fun startFocusContacts(context: Context): String {
+    val dao = context.app.dao
+    check(dao.activeFocus() == null)
+    dao.updateSettings {
+        it.copy(
+            onboarded = true,
+            protection = false,
+            focusStrict = false,
+            focusLockHome = false,
+            focusPackages = setOf("com.google.android.contacts", "com.android.contacts"),
+            focusMode = BlockMode.LISTED,
+        )
+    }
+    Focus.start(context, "Consent check", minutes = 25)
+    return "contacts focus is on"
+}
+
+private suspend fun armShorts(context: Context): String {
+    context.app.dao.updateSettings {
+        it.copy(
+            onboarded = true,
+            blockYoutubeShorts = true,
+            allowFirstShort = false,
+            contentOnlyDuringFocus = false,
+            protection = false,
+        )
+    }
+    return "shorts block is on"
 }
 
 /** Replaces history with sample data for an explicitly requested demo. */

@@ -92,6 +92,7 @@ fun PlannerScreen(navigator: Navigator) {
             SummaryTile(stringResource(R.string.planner_focus), formatDuration(daySessions.sumOf { it.focusedMillis }), Sp.colors.brand, Modifier.weight(1f))
             SummaryTile(stringResource(R.string.planner_screen_time), formatDuration(usage), Sp.colors.rose, Modifier.weight(1f))
         }
+        UsageConsentLine(Modifier.padding(horizontal = ScreenPadding))
 
         SectionTitle(if (selected == LocalDate.now()) stringResource(R.string.planner_today) else selected.dayOfWeek.getDisplayName(TextStyle.FULL, androidx.compose.ui.platform.LocalLocale.current.platformLocale))
         if (daySchedules.isEmpty() && daySessions.isEmpty()) {

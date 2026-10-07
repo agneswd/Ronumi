@@ -169,7 +169,7 @@ object Widgets {
 
     private suspend fun recordToday(app: dev.agneswd.ronumi.RonumiApp): dev.agneswd.ronumi.usage.DayUsage {
         val today = app.usage.day(LocalDate.now())
-        if (app.usage.hasAccess()) app.dao.recordUsage(UsageDay(today.date.toString(), today.perApp.toMap(), today.unlocks))
+        if (app.usage.canQuery()) app.dao.recordUsage(UsageDay(today.date.toString(), today.perApp.toMap(), today.unlocks))
         return today
     }
 

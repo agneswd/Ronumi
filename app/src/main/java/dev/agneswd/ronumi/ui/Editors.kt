@@ -2,6 +2,8 @@ package dev.agneswd.ronumi.ui
 
 import androidx.compose.ui.res.pluralStringResource
 import dev.agneswd.ronumi.R
+import dev.agneswd.ronumi.consent.ConsentKind
+import dev.agneswd.ronumi.consent.Consents
 import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import androidx.compose.foundation.background
@@ -42,6 +44,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -86,8 +89,15 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(route.selected) }
-    val apps by produceState<List<InstalledApp>?>(null) {
-        value = withContext(Dispatchers.IO) { context.app.catalog.launchableApps() }
+    val revision by Consents.revision.collectAsState()
+    val apps by produceState<List<InstalledApp>?>(null, revision) {
+        value = if (!Consents.granted(context, ConsentKind.APP_LIST)) emptyList()
+        else withContext(Dispatchers.IO) { context.app.catalog.launchableApps() }
+    }
+    LaunchedEffect(revision) {
+        if (!Consents.granted(context, ConsentKind.APP_LIST)) {
+            context.withConsent(ConsentKind.APP_LIST, onDeclined = onClose) { }
+        }
     }
     val done = {
         route.onDone(selected)

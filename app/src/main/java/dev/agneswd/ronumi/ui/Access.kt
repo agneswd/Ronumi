@@ -10,6 +10,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,7 +31,9 @@ import dev.agneswd.ronumi.ui.design.ChunkyButton
 import dev.agneswd.ronumi.ui.design.ChunkyCard
 import dev.agneswd.ronumi.ui.design.Sp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,6 +43,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.agneswd.ronumi.R
 import dev.agneswd.ronumi.app
+import dev.agneswd.ronumi.consent.ConsentKind
+import dev.agneswd.ronumi.consent.Consents
 import dev.agneswd.ronumi.guard.GuardService
 import dev.agneswd.ronumi.notify.HoldListener
 
@@ -82,21 +87,16 @@ fun AccessRows(access: Access, includeOptional: Boolean, onlyMissing: Boolean = 
     val context = LocalContext.current
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    if (!onlyMissing || !access.usage) AccessRow(
-        stringResource(R.string.permissions_usage_access),
-        stringResource(R.string.permissions_usage_description),
-        access.usage,
-    ) {
-        context.openFirst(
-            Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:${context.packageName}")),
-            Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS),
-        )
-    }
     if (!onlyMissing || !access.guard) AccessRow(
         stringResource(R.string.permissions_accessibility),
         stringResource(R.string.permissions_accessibility_description),
         access.guard,
-    ) { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+    ) { context.withConsent(ConsentKind.ACCESSIBILITY) { context.openAccessibilitySettings() } }
+    if (!onlyMissing || !access.usage) AccessRow(
+        stringResource(R.string.permissions_usage_access),
+        stringResource(R.string.permissions_usage_description),
+        access.usage,
+    ) { context.withConsent(ConsentKind.USAGE) { context.openUsageSettings() } }
     if (!includeOptional) return
     if (Build.VERSION.SDK_INT >= 31 && (!onlyMissing || !access.exactAlarms)) AccessRow(
         stringResource(R.string.permissions_alarms_and_reminders),
@@ -118,7 +118,76 @@ fun AccessRows(access: Access, includeOptional: Boolean, onlyMissing: Boolean = 
         stringResource(R.string.permissions_notification_access),
         stringResource(R.string.permissions_listener_description),
         access.listener,
-    ) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+    ) { context.withConsent(ConsentKind.NOTIFICATION_ACCESS) { context.openNotificationListenerSettings() } }
+}
+
+/** Shown when Android already enabled the guard and Ronumi has no accessibility agreement. */
+@Composable
+fun BlockingConsentNudge(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val revision by Consents.revision.collectAsState()
+    var resume by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        resume++
+        onPauseOrDispose { }
+    }
+    val show = remember(revision, resume) {
+        GuardService.isEnabled(context) && !Consents.granted(context, ConsentKind.ACCESSIBILITY)
+    }
+    if (!show) return
+    ChunkyCard(
+        modifier.fillMaxWidth().padding(bottom = 8.dp),
+        fill = Sp.colors.danger.copy(alpha = 0.1f),
+        onClick = { context.withConsent(ConsentKind.ACCESSIBILITY) { context.openAccessibilitySettings() } },
+    ) {
+        Column(Modifier.padding(4.dp)) {
+            Text(stringResource(R.string.consent_finish_blocking), style = MaterialTheme.typography.titleMedium, color = Sp.colors.danger)
+            Text(stringResource(R.string.consent_agree_before_blocks), style = MaterialTheme.typography.bodySmall, color = Sp.colors.text)
+        }
+    }
+}
+
+/** A line that opens usage consent. It draws nothing while usage can already be read. */
+@Composable
+fun UsageConsentLine(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val revision by Consents.revision.collectAsState()
+    var resume by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        resume++
+        onPauseOrDispose { }
+    }
+    val show = remember(revision, resume) { !context.app.usage.canQuery() }
+    if (!show) return
+    Text(
+        stringResource(R.string.consent_usage_needed),
+        modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
+            context.withConsent(ConsentKind.USAGE) { context.openUsageSettings() }
+        }.padding(vertical = 8.dp),
+        style = MaterialTheme.typography.bodyLarge,
+        color = Sp.colors.brand,
+    )
+}
+
+/** Opens in-app Settings when accessibility is already agreed. Otherwise it asks first. */
+fun Context.openGuardSetup(fallback: () -> Unit) {
+    if (Consents.granted(this, ConsentKind.ACCESSIBILITY)) fallback()
+    else withConsent(ConsentKind.ACCESSIBILITY) { openAccessibilitySettings() }
+}
+
+fun Context.openAccessibilitySettings() {
+    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+}
+
+fun Context.openUsageSettings() {
+    openFirst(
+        Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:$packageName")),
+        Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS),
+    )
+}
+
+fun Context.openNotificationListenerSettings() {
+    startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
 }
 
 @Composable

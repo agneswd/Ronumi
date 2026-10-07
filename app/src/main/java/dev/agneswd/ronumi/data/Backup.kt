@@ -69,7 +69,10 @@ suspend fun restorePlainDocument(context: Context, dao: RonumiDao, bytes: ByteAr
     restoreBackup(context, dao, backup)
 }
 
-/** Validates [backup] before the transaction. A failed check does not change stored data. */
+/**
+ * Validates [backup] before the transaction. A failed check does not change stored data.
+ * Consent versions live in their own preferences. Restore does not write them.
+ */
 internal suspend fun restoreBackup(context: Context, dao: RonumiDao, backup: Backup) {
     val ready = backup.validated()
     context.app.database.withTransaction {
