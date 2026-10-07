@@ -10,6 +10,9 @@ object Distribution {
     /** Play builds do not block Android Settings, the installer, or uninstall. */
     const val guardsSystemScreens = false
 
+    /** Play builds link the Google Play Billing Library. The legal notices list its terms. */
+    const val usesBilling = true
+
     fun createPlus(app: RonumiApp): Plus = PlayPlus(app, createStore(app))
 
     @Composable

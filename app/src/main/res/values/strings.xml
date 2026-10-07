@@ -905,7 +905,6 @@
     <string name="settings_repository_name" translatable="false">github.com/agneswd/Ronumi</string>
     <string name="settings_source_description">GPLv3 at %1$s</string>
     <string name="settings_version">Version</string>
-    <string name="settings_licenses_description">Nunito uses the SIL Open Font License. UI sounds from the Versilian Community Sample Library and focus recordings from Freesound use CC0. License texts are included in this app.</string>
     <string name="settings_clock_12">12-hour</string>
     <string name="settings_clock_24">24-hour</string>
     <string name="settings_days_every_day">Every day</string>
@@ -1042,4 +1041,26 @@
         <item>Ronumi reads app names and icons to let you choose your blocks. It identifies browsers and home-screen apps to apply your rules.</item>
         <item>This list stays on your device.</item>
     </string-array>
+    <!-- Legal notices (Settings > About) -->
+    <string name="legal_title">Legal notices</string>
+    <string name="legal_row_description">License, source code, and third-party notices.</string>
+    <!-- %1$s is the app version, for example 1.0.0. -->
+    <string name="legal_app_version">Ronumi %1$s</string>
+    <string name="legal_copyright" translatable="false">Copyright (C) 2026 agneswd</string>
+    <string name="legal_gpl_summary">Ronumi is free software under the GNU General Public License, version 3 only. It comes with no warranty. You can share and change it under the terms of that license.</string>
+    <string name="legal_read_license">Read the license</string>
+    <string name="legal_source_for_version">Source code for this version</string>
+    <string name="legal_third_party">Third-party notices</string>
+    <string name="legal_read_terms">Read the terms</string>
+    <string name="legal_gpl_title" translatable="false">GNU General Public License v3.0</string>
+    <string name="legal_nunito_title" translatable="false">Nunito font</string>
+    <string name="legal_nunito_terms">Copyright 2014 The Nunito Project Authors. SIL Open Font License, Version 1.1.</string>
+    <string name="legal_vcsl_title" translatable="false">Versilian Community Sample Library</string>
+    <string name="legal_vcsl_terms">UI and onboarding sounds by Versilian Studios. Creative Commons Zero (CC0 1.0).</string>
+    <string name="legal_freesound_title">Focus recordings from Freesound</string>
+    <string name="legal_freesound_terms">White, pink, and brown noise, rain, and waves recordings. Creative Commons Zero (CC0 1.0).</string>
+    <string name="legal_libraries_title">Android and Kotlin libraries</string>
+    <string name="legal_libraries_terms">Apache License, Version 2.0.</string>
+    <string name="legal_billing_title" translatable="false">Google Play Billing Library</string>
+    <string name="legal_billing_terms">Android Software Development Kit License. Ronumi uses it under the GPL section 7 permission in the license notice.</string>
 </resources>

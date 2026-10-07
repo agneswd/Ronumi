@@ -179,7 +179,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
             }) { Chevron() }
             val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
             ListRow(stringResource(R.string.settings_version), version)
-            Hint(stringResource(R.string.settings_licenses_description))
+            ListRow(stringResource(R.string.legal_title), stringResource(R.string.legal_row_description), onClick = { navigator.push(Route.Legal) }) { Chevron() }
             Spacer(Modifier.height(32.dp))
         }
     }
