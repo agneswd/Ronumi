@@ -1,5 +1,8 @@
 package dev.agneswd.ronumi.ui
 
+import dev.agneswd.ronumi.plus.FreeLimits
+import dev.agneswd.ronumi.plus.PlusFeature
+
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import android.content.Context
@@ -88,7 +91,12 @@ fun BlocksScreen(navigator: Navigator) {
     val usage by dao.usageDays().collectAsState(emptyList())
     val access = rememberAccess()
     var editingLimit by navigator::editingLimit
+    val hasPlus = rememberHasPlus()
     val s = settings ?: return
+    // Without Plus, only the first enabled limit and the oldest enabled schedule run. The others wait, saved.
+    val freeLimit = limits.firstOrNull { it.enabled }?.packageName
+    val freeSchedule = schedules.filter { it.enabled }.minByOrNull { it.id }?.id
+    fun plus(feature: PlusFeature) = navigator.push(Route.Plus(feature))
 
     if (s.protection && Rules(schedules = schedules, focus = focus).locked(LocalDateTime.now())) {
         LockedNotice()
@@ -106,6 +114,7 @@ fun BlocksScreen(navigator: Navigator) {
 
         SectionTitle(stringResource(R.string.blocks_app_limits), action = {
             AddButton(stringResource(R.string.blocks_add_app_limit)) {
+                if (!hasPlus && limits.size >= FreeLimits.APP_LIMITS) return@AddButton plus(PlusFeature.UNLIMITED_APP_LIMITS)
                 navigator.push(Route.PickApps(resources.getString(R.string.blocks_limit_app_picker_title), emptySet(), single = true) { picked -> picked.firstOrNull()?.let { editingLimit = AppLimit(it, 30) } })
             }
         })
@@ -113,10 +122,11 @@ fun BlocksScreen(navigator: Navigator) {
             if (limits.isEmpty()) Empty(stringResource(R.string.blocks_limits_empty))
             limits.forEach { limit ->
                 val streak = limitStreak(usage, limit.packageName)
+                val paused = !hasPlus && limit.enabled && limit.packageName != freeLimit
                 ListRow(
                     app.catalog.label(limit.packageName),
                     stringResource(if (limit.mode == LimitMode.STRICT) R.string.blocks_limit_strict_summary else R.string.blocks_limit_gentle_summary, formatMinutes(limit.minutesPerDay)),
-                    onClick = { editingLimit = limit },
+                    onClick = { if (paused) plus(PlusFeature.UNLIMITED_APP_LIMITS) else editingLimit = limit },
                     leading = { AppIcon(limit.packageName) },
                 ) {
                     if (streak > 0) {
@@ -126,16 +136,23 @@ fun BlocksScreen(navigator: Navigator) {
                         }
                         Spacer(Modifier.width(8.dp))
                     }
-                    MintSwitch(limit.enabled) { on -> app.scope.launch { PolicyActions.changeBlocks(context) { dao.saveLimit(limit.copy(enabled = on)) } } }
+                    if (paused) PausedLabel()
+                    else MintSwitch(limit.enabled) { on -> app.scope.launch { PolicyActions.changeBlocks(context) { dao.saveLimit(limit.copy(enabled = on)) } } }
                 }
             }
         }
 
-        SectionTitle(stringResource(R.string.blocks_schedules), action = { AddButton(stringResource(R.string.blocks_add_schedule)) { navigator.push(Route.EditSchedule(null)) } })
+        SectionTitle(stringResource(R.string.blocks_schedules), action = {
+            AddButton(stringResource(R.string.blocks_add_schedule)) {
+                if (!hasPlus && schedules.size >= FreeLimits.SCHEDULES) plus(PlusFeature.UNLIMITED_SCHEDULES)
+                else navigator.push(Route.EditSchedule(null))
+            }
+        })
         Column(Modifier.appear(60)) {
             if (schedules.isEmpty()) Empty(stringResource(R.string.blocks_schedules_empty))
             schedules.forEach { schedule ->
-                ScheduleCard(schedule, onClick = { navigator.push(Route.EditSchedule(schedule)) }) { on ->
+                val paused = !hasPlus && schedule.enabled && schedule.id != freeSchedule
+                ScheduleCard(schedule, paused = paused, onClick = { if (paused) plus(PlusFeature.UNLIMITED_SCHEDULES) else navigator.push(Route.EditSchedule(schedule)) }) { on ->
                     app.scope.launch { PolicyActions.saveSchedule(context, schedule.copy(enabled = on)) }
                 }
             }
@@ -151,9 +168,9 @@ fun BlocksScreen(navigator: Navigator) {
                     s.youtubeStudyMode -> pluralStringResource(R.plurals.blocks_shorts_enabled_study, shortsOn, shortsOn, shortsApps.size)
                     else -> pluralStringResource(R.plurals.blocks_shorts_summary, shortsOn, shortsOn, shortsApps.size)
                 },
-                onClick = { navigator.push(Route.ShortVideos) },
+                onClick = { if (hasPlus) navigator.push(Route.ShortVideos) else plus(PlusFeature.SHORT_VIDEOS) },
                 leading = { IconTile(R.drawable.ic_video, Sp.colors.rose) },
-            ) { Chevron() }
+            ) { if (hasPlus) Chevron() else PlusChip() }
             ListRow(
                 stringResource(R.string.blocks_websites),
                 when {
@@ -162,9 +179,9 @@ fun BlocksScreen(navigator: Navigator) {
                     s.blockAdultSites -> stringResource(R.string.blocks_sites_adult)
                     else -> stringResource(R.string.blocks_off)
                 },
-                onClick = { navigator.push(Route.Websites) },
+                onClick = { if (hasPlus) navigator.push(Route.Websites) else plus(PlusFeature.WEBSITES) },
                 leading = { IconTile(R.drawable.ic_globe, Sp.colors.brand) },
-            ) { Chevron() }
+            ) { if (hasPlus) Chevron() else PlusChip() }
             ListRow(
                 stringResource(R.string.blocks_notifications),
                 when {
@@ -172,15 +189,15 @@ fun BlocksScreen(navigator: Navigator) {
                     held.isNotEmpty() -> pluralStringResource(R.plurals.blocks_waiting, held.size, held.size)
                     else -> pluralStringResource(R.plurals.blocks_held_apps, s.heldPackages.size, s.heldPackages.size)
                 },
-                onClick = { navigator.push(Route.Notifications) },
+                onClick = { if (hasPlus) navigator.push(Route.Notifications) else plus(PlusFeature.NOTIFICATION_INBOX) },
                 leading = { IconTile(R.drawable.ic_bell, Sp.colors.flame) },
-            ) { AppSelectionPreview(s.heldPackages, maxVisible = 2) }
+            ) { if (hasPlus) AppSelectionPreview(s.heldPackages, maxVisible = 2) else PlusChip() }
             ListRow(
                 stringResource(R.string.blocks_strict_mode),
                 if (s.protection) stringResource(R.string.blocks_on) else stringResource(R.string.blocks_off),
-                onClick = { navigator.push(Route.Strict) },
+                onClick = { if (hasPlus) navigator.push(Route.Strict) else plus(PlusFeature.STRICT_MODE) },
                 leading = { IconTile(R.drawable.ic_lock, Sp.colors.mintLip) },
-            ) { Chevron() }
+            ) { if (hasPlus) Chevron() else PlusChip() }
         }
 
         if (s.pauseBlocksUntil <= System.currentTimeMillis()) {
@@ -197,7 +214,10 @@ fun BlocksScreen(navigator: Navigator) {
     }
 
     editingLimit?.let { limit ->
-        LimitDialog(limit, isNew = limits.none { it.packageName == limit.packageName }, onDismiss = { editingLimit = null })
+        LimitDialog(
+            limit, isNew = limits.none { it.packageName == limit.packageName }, onDismiss = { editingLimit = null },
+            onPlus = if (hasPlus) null else ({ editingLimit = null; plus(PlusFeature.STRICT_MODE) }),
+        )
     }
 }
 
@@ -287,7 +307,8 @@ fun LockedNotice() {
 
 /** Sets or changes the daily limit of one app. */
 @Composable
-fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
+/** [onPlus] is set without Plus. Strict limits need Plus, so choosing strict opens the paywall. */
+fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit, onPlus: (() -> Unit)? = null) {
     val context = LocalContext.current
     val app = context.app
     var minutes by remember { mutableIntStateOf(limit.minutesPerDay) }
@@ -312,7 +333,7 @@ fun LimitDialog(limit: AppLimit, isNew: Boolean, onDismiss: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
                 ChoiceRow(
                     listOf(stringResource(R.string.blocks_gentle) to !strict, stringResource(R.string.blocks_strict) to strict),
-                ) { index -> strict = index == 1 }
+                ) { index -> if (index == 1 && onPlus != null) onPlus() else strict = index == 1 }
                 Text(
                     if (strict) stringResource(R.string.blocks_strict_limit_description) else stringResource(R.string.blocks_gentle_limit_description),
                     style = MaterialTheme.typography.bodySmall,

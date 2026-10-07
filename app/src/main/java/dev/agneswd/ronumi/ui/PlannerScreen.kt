@@ -215,14 +215,20 @@ private fun SummaryColumn(label: String, value: String, modifier: Modifier) {
 }
 
 @Composable
-fun ScheduleCard(schedule: Schedule, modifier: Modifier = Modifier, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
+fun ScheduleCard(schedule: Schedule, modifier: Modifier = Modifier, paused: Boolean = false, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
     Box(modifier) {
         ListRow(
             schedule.name.displayName(),
             scheduleSummary(schedule, rememberUse24Hour()),
             onClick = onClick,
             leading = { ScheduleIcon(schedule.icon, schedule.startMinute, size = 48.dp) },
-            trailing = { MintSwitch(schedule.enabled, onToggle) },
+            trailing = { if (paused) PausedLabel() else MintSwitch(schedule.enabled, onToggle) },
         )
     }
+}
+
+/** A saved rule that waits for Plus. It replaces the switch; the rule itself stays saved. */
+@Composable
+fun PausedLabel() {
+    Text(stringResource(R.string.plus_paused), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
 }

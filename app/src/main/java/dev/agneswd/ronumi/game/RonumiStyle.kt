@@ -16,11 +16,6 @@ data class RonumiItem(
     val plus: Boolean = false,
 )
 
-/** Plus content stays hidden until the Plus gates exist. This is the only switch. */
-object PlusContent {
-    const val VISIBLE = false
-}
-
 /** Stable IDs are saved in settings and backups. Level requirements never consume XP. */
 object RonumiStyles {
     const val SECRET_PET_TAPS = 1000
@@ -77,16 +72,20 @@ object RonumiStyles {
         RonumiItem("plus_accessory_sunglasses", R.string.wardrobe_item_plus_accessory_sunglasses, RonumiSlot.ACCESSORY, 1, plus = true),
     )
 
-    fun isUnlocked(item: RonumiItem, level: Int, petTapCount: Int): Boolean =
-        (!item.plus || PlusContent.VISIBLE) && item.level <= level && petTapCount >= item.minimumTaps
+    /** Plus items need [hasPlus]. The GitHub version always has Plus. */
+    fun isUnlocked(item: RonumiItem, level: Int, petTapCount: Int, hasPlus: Boolean = false): Boolean =
+        (!item.plus || hasPlus) && item.level <= level && petTapCount >= item.minimumTaps
 
     fun visibleItems(petTapCount: Int): List<RonumiItem> = items.filter {
-        (!it.plus || PlusContent.VISIBLE) && (it.minimumTaps == 0 || petTapCount >= it.minimumTaps)
+        it.minimumTaps == 0 || petTapCount >= it.minimumTaps
     }
 
-    /** Catalog order breaks invalid duplicate slots in a stable way. */
-    fun resolve(ids: Set<String>, level: Int, petTapCount: Int = 0): Set<String> = items
-        .filter { it.id in ids && isUnlocked(it, level, petTapCount) }
+    /**
+     * The items Ronumi wears. Catalog order breaks invalid duplicate slots in a stable way.
+     * Without Plus, saved Plus items stay saved but are not worn, so they come back with Plus.
+     */
+    fun resolve(ids: Set<String>, level: Int, petTapCount: Int = 0, hasPlus: Boolean = false): Set<String> = items
+        .filter { it.id in ids && isUnlocked(it, level, petTapCount, hasPlus) }
         .distinctBy { it.slot }
         .mapTo(linkedSetOf()) { it.id }
 }

@@ -125,7 +125,7 @@ class BlockActivity : ComponentActivity() {
                 }
                 val sessions by app.dao.sessions().collectAsState(emptyList())
                 val style = settings?.let {
-                    dev.agneswd.ronumi.game.RonumiStyles.resolve(it.pebbleItems, dev.agneswd.ronumi.game.gameState(sessions, it).level.number, it.petTapCount)
+                    dev.agneswd.ronumi.game.RonumiStyles.resolve(it.pebbleItems, dev.agneswd.ronumi.game.gameState(sessions, it).level.number, it.petTapCount, app.plus.has(dev.agneswd.ronumi.plus.PlusFeature.PLUS_WARDROBE))
                 }.orEmpty()
                 androidx.compose.runtime.CompositionLocalProvider(dev.agneswd.ronumi.ui.design.LocalRonumiStyle provides style) {
                 BackHandler(onBack = leave)

@@ -101,6 +101,9 @@ private val goals = listOf(
     Option(R.drawable.ic_activity_rocket, R.string.onboarding_goal_intense, "240"),
 )
 
+private val PlusOnlySteps = setOf(Step.SHORTS, Step.NOTIFY, Step.STRICT)
+private val PlusOnlyDistractions = setOf("shorts", "notifications")
+
 private val distractions = listOf(
     Option(R.drawable.ic_video, R.string.onboarding_shorts_and_reels, "shorts"),
     Option(R.drawable.ic_video, R.string.onboarding_youtube_rabbit_holes, "youtube"),
@@ -126,6 +129,9 @@ fun Onboarding(onDone: () -> Unit) {
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     var finishing by rememberSaveable { mutableStateOf(false) }
     var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
+    // Onboarding never shows Plus. Without it, the steps and choices that only turn on Plus features are left out.
+    val hasPlus = rememberHasPlus()
+    fun shown(candidate: Step) = hasPlus || candidate !in PlusOnlySteps
     var forward by remember { mutableStateOf(true) }
     var purpose by rememberSaveable { mutableStateOf("") }
     var goal by rememberSaveable { mutableStateOf("") }
@@ -186,7 +192,7 @@ fun Onboarding(onDone: () -> Unit) {
         forward = next.ordinal > step.ordinal
         step = next
     }
-    fun next() = go(Step.entries[step.ordinal + 1])
+    fun next() = go(Step.entries.drop(step.ordinal + 1).first(::shown))
 
     fun finish(firstFocus: Boolean) {
         if (finishing) return
@@ -218,7 +224,7 @@ fun Onboarding(onDone: () -> Unit) {
         if (step.ordinal in questionSteps) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).clickable { go(Step.entries[step.ordinal - 1]) },
+                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).clickable { go(Step.entries.take(step.ordinal).last(::shown)) },
                     contentAlignment = Alignment.Center,
                 ) { Icon(painterResource(R.drawable.ic_close), stringResource(R.string.onboarding_back), tint = Sp.colors.textDim, modifier = Modifier.size(20.dp)) }
                 Spacer(Modifier.width(8.dp))
@@ -246,7 +252,8 @@ fun Onboarding(onDone: () -> Unit) {
                 Step.PURPOSE -> Question(stringResource(R.string.onboarding_purpose_question), purposes, setOf(purpose), multi = false, onPick = { purpose = it }, onNext = ::next)
                 Step.GOAL -> Question(stringResource(R.string.onboarding_goal_question), goals, setOf(goal), multi = false, onPick = { goal = it }, onNext = ::next)
                 Step.DISTRACTIONS -> Question(
-                    stringResource(R.string.onboarding_distractions_question), distractions, picked, multi = true,
+                    stringResource(R.string.onboarding_distractions_question),
+                    if (hasPlus) distractions else distractions.filter { it.value !in PlusOnlyDistractions }, picked, multi = true,
                     onPick = { v -> picked = if (v in picked) picked - v else picked + v }, onNext = ::next,
                 )
                 Step.WHEN -> WhenStep(dayPart, onPick = { dayPart = it; noSchedule = false }, onLater = { dayPart = null; noSchedule = true }, onNext = ::next)

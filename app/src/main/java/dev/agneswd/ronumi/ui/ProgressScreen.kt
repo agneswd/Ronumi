@@ -102,6 +102,7 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
     val settings by app.dao.settings().collectAsState(null)
     val records by app.dao.usageDays().collectAsState(emptyList())
     var period by remember { mutableIntStateOf(7) }
+    val hasPlus = rememberHasPlus()
     val s = settings ?: return
     val essentials by produceState(emptySet<String>(), refresh) {
         value = withContext(Dispatchers.IO) { app.catalog.essentials() }
@@ -201,7 +202,18 @@ fun ProgressScreen(navigator: Navigator, game: GameState?) {
             reportPeriods.map { (days, label) -> label to (period == days) },
             Modifier.padding(horizontal = ScreenPadding),
         ) { index -> period = reportPeriods[index].first }
-        ReportCard(totals, Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 12.dp).appear(200))
+        // The last 7 days are free. Older reports need Plus; the data keeps recording either way.
+        if (period > dev.agneswd.ronumi.plus.FreeLimits.REPORT_DAYS && !hasPlus) {
+            Column(
+                Modifier.fillMaxWidth().padding(start = ScreenPadding, end = ScreenPadding, top = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Ronumi(Mood.CALM, size = 84.dp)
+                Text(stringResource(R.string.plus_history_locked), style = MaterialTheme.typography.bodyLarge, color = Sp.colors.text, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Spacer(Modifier.height(12.dp))
+                ChunkyButton(stringResource(R.string.plus_see), { navigator.push(Route.Plus(dev.agneswd.ronumi.plus.PlusFeature.FULL_REPORTS)) }, Modifier.fillMaxWidth())
+            }
+        } else ReportCard(totals, Modifier.padding(start = ScreenPadding, end = ScreenPadding, top = 12.dp).appear(200))
 
         UsageConsentLine(Modifier.padding(horizontal = ScreenPadding))
         SectionTitle(stringResource(R.string.progress_screen_time))
