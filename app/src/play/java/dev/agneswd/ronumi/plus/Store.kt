@@ -12,4 +12,6 @@ internal interface Store {
     suspend fun queryPrice(): String?
     suspend fun purchase(activity: Activity): StoreResult
     suspend fun acknowledge(token: String): Boolean
+    /** Activity resumes closer together than this do not query purchases again. */
+    val resumeCooldownMillis: Long get() = 60_000L
 }

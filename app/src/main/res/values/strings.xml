@@ -1078,4 +1078,46 @@
     <string name="wardrobe_item_plus_accessory_sunglasses">Heart sunglasses</string>
     <string name="focus_scene_northern_lights">Northern lights</string>
     <string name="focus_scene_campfire">Campfire</string>
+    <!-- Ronumi Plus: paywall, labels, and locked states (Play version only) -->
+    <string name="plus_chip">Plus</string>
+    <string name="plus_title">Ronumi Plus</string>
+    <string name="plus_tagline">Block what pulls you away. Pay once and keep it.</string>
+    <string name="plus_perk_blocks">Unlimited blocks</string>
+    <string name="plus_perk_blocks_line">Block any number of apps, with as many schedules and limits as you need.</string>
+    <string name="plus_perk_websites">Websites</string>
+    <string name="plus_perk_websites_line">Block sites in your browsers.</string>
+    <string name="plus_perk_shorts">Short videos</string>
+    <string name="plus_perk_shorts_line">Close Shorts and Reels feeds.</string>
+    <string name="plus_perk_strict">Strict mode</string>
+    <string name="plus_perk_strict_line">Sessions and limits you cannot end early.</string>
+    <string name="plus_perk_inbox">Notification inbox</string>
+    <string name="plus_perk_inbox_line">Hold notifications and read them later.</string>
+    <string name="plus_perk_study">YouTube study</string>
+    <string name="plus_perk_study_line">Watch the channels you choose, and nothing else.</string>
+    <string name="plus_perk_history">Full history</string>
+    <string name="plus_perk_history_line">See every week and month you recorded.</string>
+    <string name="plus_perk_collection">Plus collection</string>
+    <string name="plus_perk_collection_line">12 new wardrobe items and 2 new focus scenes.</string>
+    <!-- %1$s is the local price from Google Play, for example $4.99. -->
+    <string name="plus_unlock_for">Unlock for %1$s</string>
+    <string name="plus_unlock">Unlock Plus</string>
+    <string name="plus_one_payment">One payment. No subscription. No account.</string>
+    <string name="plus_no_price">Connect to Google Play to see the price.</string>
+    <string name="plus_restore">Restore purchase</string>
+    <string name="plus_restore_none">No Plus purchase found for this Google account.</string>
+    <string name="plus_pending">Your payment is pending. Plus unlocks when Google Play confirms it.</string>
+    <string name="plus_error">Google Play could not finish the purchase. Try again.</string>
+    <string name="plus_thanks_title">Plus is unlocked</string>
+    <string name="plus_thanks_line">Thank you for supporting Ronumi.</string>
+    <string name="plus_done">Done</string>
+    <string name="plus_try_on">Try them on</string>
+    <string name="plus_settings_line_locked">Unlock every block and the Plus collection.</string>
+    <string name="plus_settings_line_active">Plus is active. Thank you for your support.</string>
+    <string name="plus_settings_line_pending">Payment pending</string>
+    <string name="plus_paused">Paused - needs Plus</string>
+    <string name="plus_free_apps_limit">Free blocks up to 5 apps. Plus blocks as many as you need.</string>
+    <string name="plus_see">See Plus</string>
+    <string name="plus_history_locked">Your full history is safe on this phone. Plus shows all of it.</string>
+    <string name="plus_collection_title">Plus collection</string>
+    <string name="plus_unlock_with">Unlock with Plus</string>
 </resources>

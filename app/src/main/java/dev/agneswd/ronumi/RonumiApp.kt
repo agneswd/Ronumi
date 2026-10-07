@@ -55,7 +55,9 @@ class RonumiApp : Application() {
                 // Whole seconds. A checkpoint rewrites the deadline by a few milliseconds.
                 focus?.let { FocusScheduleKey(it.startedAt, it.phase, it.phaseEndsAt / 1000, paused = !it.running) }
             }.distinctUntilChanged()
-            combine(dao.settings().map { it.notificationDeliveryTimes }.distinctUntilChanged(), dao.schedules(), focusKey) { _, _, _ -> Unit }.collect {
+            // Plus decides which schedules run, so a purchase or a refund also refreshes the alarms.
+            val plusKey = plus.state.map { it.entitlement }.distinctUntilChanged()
+            combine(dao.settings().map { it.notificationDeliveryTimes }.distinctUntilChanged(), dao.schedules(), focusKey, plusKey) { _, _, _, _ -> Unit }.collect {
                 Plans.refresh(this@RonumiApp)
             }
         }

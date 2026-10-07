@@ -30,6 +30,8 @@ class HoldListener : NotificationListenerService() {
             val dao = app.dao
             val settings = dao.currentSettings()
             if (sbn.packageName !in settings.heldPackages) return@launch
+            // The notification inbox is a Plus feature. Without Plus, Ronumi holds nothing.
+            if (!app.plus.has(dev.agneswd.ronumi.plus.PlusFeature.NOTIFICATION_INBOX)) return@launch
             if (!settings.holdAlways) {
                 val rules = Rules(schedules = dao.schedules().first(), focus = dao.activeFocus())
                 if (!rules.locked(LocalDateTime.now())) return@launch

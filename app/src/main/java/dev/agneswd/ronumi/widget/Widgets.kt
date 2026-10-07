@@ -121,7 +121,7 @@ object Widgets {
         val today = recordToday(app)
         val sessions = app.dao.allSessions()
         val game = gameState(sessions, settings)
-        val style = dev.agneswd.ronumi.game.RonumiStyles.resolve(settings.pebbleItems, game.level.number, settings.petTapCount)
+        val style = dev.agneswd.ronumi.game.RonumiStyles.resolve(settings.pebbleItems, game.level.number, settings.petTapCount, app.plus.has(dev.agneswd.ronumi.plus.PlusFeature.PLUS_WARDROBE))
         lastStyle = style
         styleReady = true
         val history = if (usageIds.isEmpty()) emptyMap() else app.dao.allUsageDays().associate { it.day to it.perApp.values.sum() }

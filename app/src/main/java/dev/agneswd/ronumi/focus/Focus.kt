@@ -73,6 +73,12 @@ object Focus {
         val now = System.currentTimeMillis()
         val mode = if (minutes != null || plan != null) TimerMode.TIMER else s.timerMode
         val focusMinutes = (minutes ?: plan?.focusMinutes ?: s.focusMinutes).coerceIn(1, 240)
+        // A strict session and a Plus scene need Plus when the session starts. Saved choices stay as they are.
+        val plus = context.app.plus
+        val strict = s.focusStrict && plus.has(dev.agneswd.ronumi.plus.PlusFeature.STRICT_MODE)
+        val theme = s.focusTheme.takeIf { name ->
+            dev.agneswd.ronumi.ui.themeOf(name).let { !it.plus || plus.has(dev.agneswd.ronumi.plus.PlusFeature.PLUS_SCENES) }
+        } ?: dev.agneswd.ronumi.ui.design.FocusTheme.LAKE.name
         dao.saveActiveFocus(
             ActiveFocus(
                 startedAt = now,
@@ -89,13 +95,13 @@ object Focus {
                 breakMinutes = s.breakMinutes,
                 packages = plan?.packages ?: s.focusPackages,
                 mode = plan?.mode ?: s.focusMode,
-                strict = s.focusStrict,
+                strict = strict,
                 lockHome = s.focusLockHome,
                 sound = s.focusSound,
                 tag = tag.trim(),
                 timerMode = mode,
                 longBreakMinutes = s.longBreakMinutes,
-                theme = s.focusTheme,
+                theme = theme,
                 goalMinutes = s.focusGoalMinutes,
             ),
         )

@@ -3,6 +3,7 @@ package dev.agneswd.ronumi.plus
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import android.os.SystemClock
 import android.content.Context
 import dev.agneswd.ronumi.RonumiApp
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,9 @@ internal class PlayPlus(app: RonumiApp, internal val store: Store) : Plus {
     private val acknowledgements = mutableSetOf<String>()
     private var purchaseRevision = 0L
     private var refreshAgain = false
+    /** When the last ownership query succeeded. Activity resumes within a minute of it do not ask again. */
+    private var lastQueryAt = Long.MIN_VALUE / 2
+    private var returningFromPurchase = false
 
     init {
         store.onPurchases = { result ->
@@ -39,7 +43,13 @@ internal class PlayPlus(app: RonumiApp, internal val store: Store) : Plus {
             }
         }
         app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
-            override fun onActivityResumed(activity: Activity) = restore()
+            override fun onActivityResumed(activity: Activity) {
+                // Switching screens resumes activities often. Ask Play at most once a minute, except after a purchase.
+                if (returningFromPurchase || SystemClock.elapsedRealtime() - lastQueryAt >= store.resumeCooldownMillis) {
+                    returningFromPurchase = false
+                    restore()
+                }
+            }
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
             override fun onActivityStarted(activity: Activity) = Unit
             override fun onActivityPaused(activity: Activity) = Unit
@@ -69,6 +79,7 @@ internal class PlayPlus(app: RonumiApp, internal val store: Store) : Plus {
                         // A purchase completed after this query started. Ask for a fresh full list.
                     } while (revision != purchaseRevision)
                     applyPurchases(result, authoritative = true)
+                    if (result.result == StoreResult.OK) lastQueryAt = SystemClock.elapsedRealtime()
                     val price = store.queryPrice()
                     mutableState.value = state.value.copy(price = price ?: state.value.price)
                 } while (refreshAgain)
@@ -81,6 +92,7 @@ internal class PlayPlus(app: RonumiApp, internal val store: Store) : Plus {
             if (state.value.status == PlusStatus.BUSY || state.value.entitlement != Entitlement.LOCKED) return@launch
             mutableState.value = state.value.copy(status = PlusStatus.BUSY)
             val revision = purchaseRevision
+            returningFromPurchase = true
             val result = store.purchase(activity)
             if (result == StoreResult.ALREADY_OWNED) restore()
             else if (result != StoreResult.OK && revision == purchaseRevision) setStatus(result)

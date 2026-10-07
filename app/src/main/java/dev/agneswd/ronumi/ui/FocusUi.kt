@@ -1,6 +1,8 @@
 package dev.agneswd.ronumi.ui
 
-import dev.agneswd.ronumi.game.PlusContent
+import dev.agneswd.ronumi.plus.FreeLimits
+import dev.agneswd.ronumi.plus.PlusFeature
+
 
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -108,8 +110,10 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
     val sessions by app.dao.sessions().collectAsState(emptyList())
     var tag by remember { mutableStateOf("") }
     var starting by remember { mutableStateOf(false) }
+    val hasPlus = rememberHasPlus()
     val s = settings ?: return
     val update: SettingsUpdate = { change -> app.scope.launch { app.dao.updateSettings(change) } }
+    fun plus(feature: PlusFeature) = navigator.push(Route.Plus(feature))
     val recentTags = remember(sessions) { sessions.map { it.tag }.filter { it.isNotBlank() && it != "First focus" }.distinct().take(6) }
 
     Column(Modifier.fillMaxSize().background(Sp.colors.background).statusBarsPadding().navigationBarsPadding()) {
@@ -134,7 +138,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 12.dp, bottom = 0.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(FocusTheme.entries.filter { !it.plus || PlusContent.VISIBLE }) { theme ->
+                items(FocusTheme.entries) { theme ->
                     val on = theme.name == s.focusTheme
                     // The picture and its label are one tap target.
                     Column(
@@ -147,6 +151,8 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                                 .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp)),
                         ) { FocusBackdrop(theme, Modifier.fillMaxSize(), animated = false) }
                         Text(stringResource(theme.labelRes), style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.text else Sp.colors.textDim)
+                        // A Plus scene can be previewed. Starting a session with it opens the paywall.
+                        if (theme.plus && !hasPlus) PlusChip()
                     }
                 }
             }
@@ -205,7 +211,10 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                 leading = { IconTile(R.drawable.ic_tab_blocks, Sp.colors.rose) },
                 onClick = {
                     navigator.push(
-                        Route.PickApps(if (s.focusMode == BlockMode.LISTED) resources.getString(R.string.focus_block_during_focus) else resources.getString(R.string.focus_allow_during_focus), s.focusPackages, single = false) { picked ->
+                        Route.PickApps(if (s.focusMode == BlockMode.LISTED) resources.getString(R.string.focus_block_during_focus) else resources.getString(R.string.focus_allow_during_focus), s.focusPackages, single = false,
+                            limit = FreeLimits.FOCUS_APPS.takeIf { !hasPlus && s.focusMode == BlockMode.LISTED },
+                            onLimit = { plus(PlusFeature.UNLIMITED_FOCUS_APPS) },
+                        ) { picked ->
                             update { it.copy(focusPackages = picked) }
                         },
                     )
@@ -214,7 +223,8 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             SwitchRow(stringResource(R.string.focus_block_every_other_app), stringResource(R.string.focus_allowlist_description), s.focusMode == BlockMode.ALL_EXCEPT, leading = { IconTile(R.drawable.ic_lock, Sp.colors.brand) }) { on ->
                 update { it.copy(focusMode = if (on) BlockMode.ALL_EXCEPT else BlockMode.LISTED) }
             }
-            SwitchRow(stringResource(R.string.focus_strict_mode), stringResource(R.string.focus_strict_description), s.focusStrict, leading = { IconTile(R.drawable.ic_lock, Sp.colors.danger) }) { on -> update { it.copy(focusStrict = on) } }
+            if (hasPlus) SwitchRow(stringResource(R.string.focus_strict_mode), stringResource(R.string.focus_strict_description), s.focusStrict, leading = { IconTile(R.drawable.ic_lock, Sp.colors.danger) }) { on -> update { it.copy(focusStrict = on) } }
+            else ListRow(stringResource(R.string.focus_strict_mode), onClick = { plus(PlusFeature.STRICT_MODE) }, leading = { IconTile(R.drawable.ic_lock, Sp.colors.danger) }) { PlusChip() }
             SwitchRow(stringResource(R.string.focus_lock_the_home_screen), stringResource(R.string.focus_home_lock_description), s.focusLockHome, leading = { IconTile(R.drawable.ic_tab_home, Sp.colors.flame) }) { on -> update { it.copy(focusLockHome = on) } }
 
             SectionTitle(stringResource(R.string.focus_sound))
@@ -232,6 +242,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             if (starting) stringResource(R.string.focus_starting) else stringResource(R.string.focus_start_button),
             {
                 if (starting) return@ChunkyButton
+                if (themeOf(s.focusTheme).plus && !hasPlus) return@ChunkyButton plus(PlusFeature.PLUS_SCENES)
                 starting = true
                 app.scope.launch {
                     try {

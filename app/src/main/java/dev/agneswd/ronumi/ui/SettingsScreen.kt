@@ -59,6 +59,7 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         TopBar(stringResource(R.string.settings_settings), onClose)
         Column(Modifier.weight(1f).verticalScroll(navigator.settingsScroll)) {
+            if (dev.agneswd.ronumi.Distribution.usesBilling) PlusSettingsRow(navigator)
             SectionTitle(stringResource(R.string.settings_permissions))
             if (access.allAllowed) {
                 ListRow(stringResource(R.string.settings_all_permissions_allowed), if (showPermissions) stringResource(R.string.settings_hide_details) else stringResource(R.string.settings_review_permissions), onClick = { navigator.showPermissions = !showPermissions })
@@ -182,5 +183,19 @@ fun SettingsScreen(navigator: Navigator, onClose: () -> Unit) {
             ListRow(stringResource(R.string.legal_title), stringResource(R.string.legal_row_description), onClick = { navigator.push(Route.Legal) }) { Chevron() }
             Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+/** The first row of Settings in the Play version. Only the locked state opens the paywall. */
+@Composable
+private fun PlusSettingsRow(navigator: Navigator) {
+    val plus by LocalContext.current.app.plus.state.collectAsState()
+    when (plus.entitlement) {
+        dev.agneswd.ronumi.plus.Entitlement.LOCKED -> ListRow(
+            stringResource(R.string.plus_title), stringResource(R.string.plus_settings_line_locked),
+            onClick = { navigator.push(Route.Plus(null)) },
+        ) { Chevron() }
+        dev.agneswd.ronumi.plus.Entitlement.UNLOCKED -> ListRow(stringResource(R.string.plus_title), stringResource(R.string.plus_settings_line_active))
+        dev.agneswd.ronumi.plus.Entitlement.PENDING -> ListRow(stringResource(R.string.plus_title), stringResource(R.string.plus_settings_line_pending))
     }
 }

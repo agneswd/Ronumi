@@ -1,5 +1,8 @@
 package dev.agneswd.ronumi.ui
 
+import dev.agneswd.ronumi.plus.FreeLimits
+import dev.agneswd.ronumi.plus.PlusFeature
+
 import androidx.compose.ui.res.pluralStringResource
 import dev.agneswd.ronumi.R
 import dev.agneswd.ronumi.consent.ConsentKind
@@ -89,6 +92,7 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
     val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(route.selected) }
+    var limitHit by remember { mutableStateOf(false) }
     val revision by Consents.revision.collectAsState()
     val apps by produceState<List<InstalledApp>?>(null, revision) {
         value = if (!Consents.granted(context, ConsentKind.APP_LIST)) emptyList()
@@ -112,6 +116,14 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 8.dp).trackTextFieldFocus(),
             )
+            if (limitHit) {
+                Column(Modifier.padding(horizontal = ScreenPadding, vertical = 4.dp)) {
+                    Text(stringResource(R.string.plus_free_apps_limit), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.text)
+                    TextButton(onClick = route.onLimit) {
+                        Text(stringResource(R.string.plus_see), style = MaterialTheme.typography.titleSmall, color = Sp.colors.brand)
+                    }
+                }
+            }
             val shown = apps.orEmpty().filter { query.isBlank() || it.label.contains(query, ignoreCase = true) }
                 // Chosen apps first, so the user sees the current choice at the top.
                 .sortedByDescending { it.packageName in route.selected }
@@ -123,8 +135,11 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
                         if (route.single) {
                             route.onDone(setOf(item.packageName))
                             onClose()
+                        } else if (!checked && route.limit != null && selected.size >= route.limit) {
+                            limitHit = true
                         } else {
                             selected = if (checked) selected - item.packageName else selected + item.packageName
+                            limitHit = false
                         }
                     }
                     ListRow(item.label, onClick = toggle, leading = { AppIcon(item.packageName) }) {
@@ -138,6 +153,7 @@ fun AppPicker(route: Route.PickApps, onClose: () -> Unit) {
 
 @Composable
 fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Navigator) {
+    val hasPlus = rememberHasPlus()
     val resources = androidx.compose.ui.platform.LocalResources.current
     val context = LocalContext.current
     val original = route.original
@@ -245,7 +261,10 @@ fun ScheduleEditor(route: Route.EditSchedule, onClose: () -> Unit, navigator: Na
                 appCount(draft.packages.size),
                 onClick = {
                     navigator.push(
-                        Route.PickApps(if (draft.mode == BlockMode.LISTED) resources.getString(R.string.editor_block_during, draft.name.displayName(context)) else resources.getString(R.string.editor_allow_during, draft.name.displayName(context)), draft.packages, single = false) {
+                        Route.PickApps(if (draft.mode == BlockMode.LISTED) resources.getString(R.string.editor_block_during, draft.name.displayName(context)) else resources.getString(R.string.editor_allow_during, draft.name.displayName(context)), draft.packages, single = false,
+                            limit = FreeLimits.FOCUS_APPS.takeIf { !hasPlus && draft.mode == BlockMode.LISTED },
+                            onLimit = { navigator.push(Route.Plus(PlusFeature.UNLIMITED_FOCUS_APPS)) },
+                        ) {
                             draft = draft.copy(packages = it)
                         },
                     )
