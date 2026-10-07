@@ -45,7 +45,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -269,8 +268,6 @@ fun QuestCard(quests: List<Quest>, modifier: Modifier) {
                                 Modifier.weight(1f),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = Sp.colors.text,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(stringResource(R.string.home_quest_xp, quest.xp), style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
