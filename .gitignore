@@ -8,3 +8,4 @@ e2e/artifacts/
 __pycache__/
 *.jks
 *.keystore
+site/dist/
