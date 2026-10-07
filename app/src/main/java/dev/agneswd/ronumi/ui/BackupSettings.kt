@@ -91,19 +91,17 @@ fun BackupSettings(restoreLocked: Boolean) {
     }
 
     SectionTitle(stringResource(R.string.backup_section_title))
-    Group {
-        ListRow(stringResource(R.string.backup_save_a_backup), stringResource(R.string.backup_export_description),
-            onClick = if (busy) null else ({ create.launch(resources.getString(R.string.backup_default_filename, LocalDate.now())) })) { Chevron() }
-        ListRow(stringResource(R.string.backup_restore_a_backup),
-            if (restoreLocked) stringResource(R.string.backup_restore_locked_description) else stringResource(R.string.backup_restore_description),
-            onClick = if (busy || restoreLocked) null else ({ open.launch(arrayOf("application/octet-stream", "*/*")) })) {
-            if (!restoreLocked && !busy) Chevron()
-        }
-        if (busy || message != null) {
-            Text(if (busy) stringResource(R.string.backup_working_on_your_backup) else message.orEmpty(),
-                modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = 16.dp),
-                style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
-        }
+    ListRow(stringResource(R.string.backup_save_a_backup), stringResource(R.string.backup_export_description),
+        onClick = if (busy) null else ({ create.launch(resources.getString(R.string.backup_default_filename, LocalDate.now())) })) { Chevron() }
+    ListRow(stringResource(R.string.backup_restore_a_backup),
+        if (restoreLocked) stringResource(R.string.backup_restore_locked_description) else stringResource(R.string.backup_restore_description),
+        onClick = if (busy || restoreLocked) null else ({ open.launch(arrayOf("application/octet-stream", "*/*")) })) {
+        if (!restoreLocked && !busy) Chevron()
+    }
+    if (busy || message != null) {
+        Text(if (busy) stringResource(R.string.backup_working_on_your_backup) else message.orEmpty(),
+            modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = 8.dp),
+            style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
     }
 
     pendingUri?.let { source ->

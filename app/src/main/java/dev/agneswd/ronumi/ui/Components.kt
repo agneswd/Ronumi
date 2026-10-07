@@ -14,9 +14,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,8 +50,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -66,7 +73,6 @@ import dev.agneswd.ronumi.ui.design.Sfx
 import dev.agneswd.ronumi.ui.design.Sound
 import dev.agneswd.ronumi.ui.design.Sp
 import dev.agneswd.ronumi.ui.design.ThoughtDot
-import dev.agneswd.ronumi.ui.design.XpBolt
 import kotlinx.coroutines.delay
 
 val ScreenPadding = 20.dp
@@ -78,7 +84,7 @@ typealias SettingsUpdate = ((Settings) -> Settings) -> Unit
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
     Row(
-        modifier.fillMaxWidth().padding(start = ScreenPadding, end = ScreenPadding, top = 28.dp, bottom = 10.dp),
+        modifier.fillMaxWidth().padding(start = ScreenPadding, end = ScreenPadding, top = 36.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text, style = MaterialTheme.typography.titleLarge, color = Sp.colors.text, modifier = Modifier.weight(1f))
@@ -154,7 +160,7 @@ fun AppIcon(packageName: String, size: Dp = 40.dp, name: String? = null, logo: I
     } else {
         val label = name ?: remember(packageName) { context.app.catalog.label(packageName) }
         Box(Modifier.size(size).clip(RoundedCornerShape(size / 4)).background(Sp.colors.brandSoft), contentAlignment = Alignment.Center) {
-            Text(label.take(1).uppercase(androidx.compose.ui.platform.LocalLocale.current.platformLocale), style = MaterialTheme.typography.titleMedium, color = Sp.colors.brand)
+            Text(label.take(1).uppercase(androidx.compose.ui.platform.LocalLocale.current.platformLocale), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
         }
     }
 }
@@ -199,7 +205,15 @@ private fun RoundKey(icon: Int, description: String, enabled: Boolean, onClick: 
  * [side] puts the bubble to the right of Ronumi; otherwise it sits above.
  */
 @Composable
-fun RonumiSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Boolean = true, ronumiSize: Dp = 92.dp) {
+fun RonumiSays(
+    text: String,
+    mood: Mood,
+    modifier: Modifier = Modifier,
+    side: Boolean = true,
+    ronumiSize: Dp = 92.dp,
+    onMascotClick: (() -> Unit)? = null,
+    mascotDescription: String? = null,
+) {
     var shown by remember(text) { mutableIntStateOf(0) }
     LaunchedEffect(text) {
         while (shown < text.length) {
@@ -224,7 +238,7 @@ fun RonumiSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Bo
     if (side) {
         val thinking = mood == Mood.THINK
         Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-            Ronumi(mood, size = ronumiSize, thoughtDots = !thinking)
+            MascotTap(mood, ronumiSize, thoughtDots = !thinking, onMascotClick, mascotDescription)
             if (thinking) ThoughtTrail() else Spacer(Modifier.width(10.dp))
             Box(Modifier.weight(1f).border(2.dp, Sp.colors.border, bubbleShape)) { bubble() }
         }
@@ -232,8 +246,38 @@ fun RonumiSays(text: String, mood: Mood, modifier: Modifier = Modifier, side: Bo
         Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.padding(horizontal = 24.dp).border(2.dp, Sp.colors.border, bubbleShape)) { bubble() }
             Spacer(Modifier.height(14.dp))
-            Ronumi(mood, size = ronumiSize)
+            MascotTap(mood, ronumiSize, thoughtDots = true, onMascotClick, mascotDescription)
         }
+    }
+}
+
+/**
+ * Ronumi, with an optional tap target over the drawing.
+ * The drawing already pets Ronumi. The cover is used when a screen needs a different tap, such as Home opening the wardrobe.
+ */
+@Composable
+private fun MascotTap(mood: Mood, size: Dp, thoughtDots: Boolean, onClick: (() -> Unit)?, description: String?) {
+    if (onClick == null) {
+        Ronumi(mood, size = size, thoughtDots = thoughtDots)
+        return
+    }
+    val label = description.orEmpty()
+    Box(
+        Modifier.clearAndSetSemantics {
+            role = Role.Button
+            contentDescription = label
+            onClick(label = label) { onClick(); true }
+        },
+    ) {
+        Ronumi(mood, size = size, thoughtDots = thoughtDots)
+        Box(
+            Modifier.matchParentSize().clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        )
     }
 }
 
@@ -248,7 +292,7 @@ private fun ThoughtTrail() {
     }
 }
 
-/** The bar at the top of the main tabs: streak, XP and level. */
+/** The bar at the top of the main tabs: streak on the left, level on the right. XP stays on Progress. */
 @Composable
 fun GameBar(game: GameState?, modifier: Modifier = Modifier, onOpen: () -> Unit = {}) {
     val c = Sp.colors
@@ -261,13 +305,9 @@ fun GameBar(game: GameState?, modifier: Modifier = Modifier, onOpen: () -> Unit 
             Flame(size = 26.dp, lit = (game?.streak ?: 0) > 0 || game?.streakSafeToday == true)
             Counter(game?.streak ?: 0, if ((game?.streak ?: 0) > 0 || game?.streakSafeToday == true) c.text else c.textDim)
         }
-        Stat(onOpen) {
-            XpBolt(size = 24.dp)
-            Counter(game?.xp ?: 0, c.text)
-        }
         Spacer(Modifier.weight(1f))
         Stat(onOpen) {
-            Text(stringResource(R.string.common_level), style = MaterialTheme.typography.titleSmall, color = c.brand)
+            Text(stringResource(R.string.common_level), style = MaterialTheme.typography.titleSmall, color = c.textDim)
             Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(c.brand), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.common_number, game?.level?.number ?: 1), style = MaterialTheme.typography.labelMedium, color = c.onFill)
             }
@@ -330,6 +370,64 @@ fun appCount(count: Int): String = pluralStringResource(R.plurals.common_app_cou
 
 /** A button in a row of choices. The chosen one is filled. */
 @Composable
-fun ChoiceButton(text: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    ChunkyButton(text, onClick, modifier, kind = if (selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY, height = 46.dp)
+fun ChoiceButton(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    shrinkLabel: Boolean = true,
+    horizontalPadding: Dp = 10.dp,
+    onClick: () -> Unit,
+) {
+    ChunkyButton(
+        text,
+        onClick,
+        modifier,
+        kind = if (selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY,
+        height = 46.dp,
+        shrinkLabel = shrinkLabel,
+        horizontalPadding = horizontalPadding,
+    )
+}
+
+/**
+ * Equal choice buttons on one line when every label fits at the style size.
+ * When they do not fit, the buttons wrap with 8 dp gaps. A wrapped button is at least 64 dp wide.
+ * Labels stay at [labelLarge] size.
+ */
+@Composable
+fun ChoiceRow(options: List<Pair<String, Boolean>>, modifier: Modifier = Modifier, onSelect: (Int) -> Unit) {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge
+    val locale = androidx.compose.ui.platform.LocalLocale.current.platformLocale
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val labels = options.map { it.first.uppercase(locale) }
+    val textWidths = labels.map { measurer.measure(it, style = style, maxLines = 1).size.width }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val gap = 8.dp
+        val count = options.size
+        val rowWidth = maxWidth
+        val equal = if (count == 0) rowWidth else (rowWidth - gap * (count - 1).coerceAtLeast(0)) / count
+        val widest = textWidths.maxOfOrNull { with(density) { it.toDp() } } ?: 0.dp
+        // Room left for padding when every button has an equal share of the row.
+        val side = if (count == 0) 0.dp else (equal - widest) / 2
+        // At font scale 1.0 a dialog row can be a few dp short of the usual 10 dp padding.
+        // Keep one line with tighter padding instead of wrapping. Larger text wraps.
+        val oneLine = count > 0 && side >= 4.dp && (side >= 8.dp || density.fontScale <= 1.05f)
+        if (oneLine) {
+            val pad = side.coerceIn(4.dp, 10.dp)
+            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                options.forEachIndexed { index, (label, selected) ->
+                    ChoiceButton(label, selected, Modifier.weight(1f), shrinkLabel = false, horizontalPadding = pad) { onSelect(index) }
+                }
+            }
+        } else {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(gap), verticalArrangement = Arrangement.spacedBy(gap)) {
+                options.forEachIndexed { index, (label, selected) ->
+                    val textWidth = with(density) { textWidths[index].toDp() }
+                    val width = (textWidth + 20.dp).coerceAtLeast(64.dp).coerceAtMost(rowWidth)
+                    ChoiceButton(label, selected, Modifier.width(width), shrinkLabel = false) { onSelect(index) }
+                }
+            }
+        }
+    }
 }

@@ -504,7 +504,6 @@
     <string name="home_daily_quests">Daily quests</string>
     <string name="home_resets_at_midnight">Resets at midnight</string>
     <string name="home_screen_time">Screen time</string>
-    <string name="home_up_next">Up next</string>
     <string name="home_schedule_time_range">%1$s to %2$s</string>
     <string name="home_start_button">Start focus</string>
     <string name="home_return_to_focus">Return to focus</string>
@@ -530,20 +529,10 @@
     <string name="home_quest_xp">+%1$d XP</string>
     <string name="home_quest_reward_earned">%1$d XP earned. This reward is already in your total.</string>
     <string name="home_quest_reward_pending">%1$d XP is added automatically when you finish this quest.</string>
-    <string name="home_quest_help">Tap a quest for its rules.</string>
     <plurals name="home_unlocks_today">
         <item quantity="one">%1$d unlocks today</item>
         <item quantity="other">%1$d unlocks today</item>
     </plurals>
-    <plurals name="home_schedule_wait_minutes">
-        <item quantity="one">In %1$dm</item>
-        <item quantity="other">In %1$dm</item>
-    </plurals>
-    <plurals name="home_schedule_wait_hours">
-        <item quantity="one">In %1$dh</item>
-        <item quantity="other">In %1$dh</item>
-    </plurals>
-    <string name="home_schedule_now">Now</string>
 
     <!-- Navigation -->
     <string name="navigation_home">Home</string>

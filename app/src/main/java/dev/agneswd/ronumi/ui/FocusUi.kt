@@ -128,7 +128,10 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                     Text(modeLine(s), style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
                 }
             }
-            LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = ScreenPadding, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyRow(
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 12.dp, bottom = 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 items(FocusTheme.entries) { theme ->
                     val on = theme.name == s.focusTheme
                     // The picture and its label are one tap target.
@@ -141,23 +144,27 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                             Modifier.size(64.dp, 84.dp).clip(RoundedCornerShape(16.dp))
                                 .border(if (on) 3.dp else 0.dp, Sp.colors.brand, RoundedCornerShape(16.dp)),
                         ) { FocusBackdrop(theme, Modifier.fillMaxSize(), animated = false) }
-                        Text(stringResource(theme.labelRes), style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.brand else Sp.colors.textDim)
+                        Text(stringResource(theme.labelRes), style = MaterialTheme.typography.labelSmall, color = if (on) Sp.colors.text else Sp.colors.textDim)
                     }
                 }
             }
 
             SectionTitle(stringResource(R.string.focus_mode))
-            Row(Modifier.padding(horizontal = ScreenPadding), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(TimerMode.TIMER to stringResource(R.string.focus_timer), TimerMode.STOPWATCH to stringResource(R.string.focus_stopwatch), TimerMode.POMODORO to stringResource(R.string.focus_pomodoro)).forEach { (mode, label) ->
-                    ChoiceButton(label, s.timerMode == mode, Modifier.weight(1f)) { update { it.copy(timerMode = mode) } }
-                }
-            }
+            val focusModes = listOf(
+                TimerMode.TIMER to stringResource(R.string.focus_timer),
+                TimerMode.STOPWATCH to stringResource(R.string.focus_stopwatch),
+                TimerMode.POMODORO to stringResource(R.string.focus_pomodoro),
+            )
+            ChoiceRow(
+                focusModes.map { (mode, label) -> label to (s.timerMode == mode) },
+                Modifier.padding(horizontal = ScreenPadding),
+            ) { index -> update { it.copy(timerMode = focusModes[index].first) } }
             if (s.timerMode != TimerMode.STOPWATCH) {
-                FlowRow(Modifier.padding(horizontal = ScreenPadding, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(10, 25, 45, 60, 90).forEach { m ->
-                        ChoiceButton(formatMinutes(m), s.focusMinutes == m, Modifier.width(64.dp)) { update { it.copy(focusMinutes = m) } }
-                    }
-                }
+                val presets = listOf(10, 25, 45, 60, 90)
+                ChoiceRow(
+                    presets.map { minutes -> pluralStringResource(R.plurals.duration_minutes, minutes, minutes) to (s.focusMinutes == minutes) },
+                    Modifier.padding(horizontal = ScreenPadding, vertical = 12.dp),
+                ) { index -> update { it.copy(focusMinutes = presets[index]) } }
                 Stepper(stringResource(R.string.focus_focus_length), s.focusMinutes, 5..240, 5, { formatMinutes(it) }) { v -> update { it.copy(focusMinutes = v) } }
             }
             if (s.timerMode == TimerMode.POMODORO) {
@@ -181,7 +188,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                         Text(
                             t,
                             style = MaterialTheme.typography.labelLarge,
-                            color = if (t == tag) Sp.colors.onFill else Sp.colors.brand,
+                            color = if (t == tag) Sp.colors.onFill else Sp.colors.text,
                             modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (t == tag) Sp.colors.brand else Sp.colors.brandSoft)
                                 .clickable { tag = t }.padding(horizontal = 12.dp, vertical = 8.dp),
                         )
@@ -212,11 +219,8 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
             // Three choices a row, so new sounds wrap instead of squeezing the labels.
             Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FocusSound.entries.chunked(3).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { sound ->
-                            ChoiceButton(stringResource(sound.labelRes), s.focusSound == sound, Modifier.weight(1f)) { update { it.copy(focusSound = sound) } }
-                        }
-                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    ChoiceRow(row.map { sound -> stringResource(sound.labelRes) to (s.focusSound == sound) }) { index ->
+                        update { it.copy(focusSound = row[index]) }
                     }
                 }
             }

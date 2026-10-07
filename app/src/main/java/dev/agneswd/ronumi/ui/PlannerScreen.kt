@@ -19,8 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,7 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.agneswd.ronumi.R
 import dev.agneswd.ronumi.app
@@ -47,7 +45,6 @@ import dev.agneswd.ronumi.guard.minuteText
 import dev.agneswd.ronumi.guard.time
 import dev.agneswd.ronumi.ui.design.ButtonKind
 import dev.agneswd.ronumi.ui.design.ChunkyButton
-import dev.agneswd.ronumi.ui.design.ChunkyCard
 import dev.agneswd.ronumi.ui.design.DayPart
 import dev.agneswd.ronumi.ui.design.DayPartIcon
 import dev.agneswd.ronumi.ui.design.ScheduleIcon
@@ -89,8 +86,8 @@ fun PlannerScreen(navigator: Navigator) {
         }
         WeekStrip(selected, byDay.mapValues { (_, l) -> l.sumOf { it.focusedMillis } >= goal }) { selected = it }
         Row(Modifier.padding(horizontal = ScreenPadding, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SummaryTile(stringResource(R.string.planner_focus), formatDuration(daySessions.sumOf { it.focusedMillis }), Sp.colors.brand, Modifier.weight(1f))
-            SummaryTile(stringResource(R.string.planner_screen_time), formatDuration(usage), Sp.colors.rose, Modifier.weight(1f))
+            SummaryColumn(stringResource(R.string.planner_focus), formatDuration(daySessions.sumOf { it.focusedMillis }), Modifier.weight(1f))
+            SummaryColumn(stringResource(R.string.planner_screen_time), formatDuration(usage), Modifier.weight(1f))
         }
         UsageConsentLine(Modifier.padding(horizontal = ScreenPadding))
 
@@ -103,15 +100,17 @@ fun PlannerScreen(navigator: Navigator) {
                 modifier = Modifier.padding(horizontal = ScreenPadding),
             )
         }
-        Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column {
             daySchedules.forEachIndexed { i, schedule ->
                 ScheduleCard(schedule, Modifier.appear(i * 50), onClick = { navigator.push(Route.EditSchedule(schedule)) }) { on ->
                     app.scope.launch { dev.agneswd.ronumi.guard.PolicyActions.saveSchedule(context, schedule.copy(enabled = on)) }
                 }
             }
             daySessions.forEach { session ->
-                ChunkyCard(Modifier.fillMaxWidth(), fill = Sp.colors.surface, contentPadding = 12.dp) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                ListRow(
+                    session.tag.ifBlank { stringResource(R.string.planner_focus_session) }.displayName(),
+                    stringResource(R.string.planner_session_time_range, time(session.startedAt, use24), time(session.endedAt, use24)),
+                    leading = {
                         Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(if (session.completed) Sp.colors.mint else Sp.colors.surfaceHigh), contentAlignment = Alignment.Center) {
                             Icon(
                                 painterResource(if (session.completed) R.drawable.ic_check else R.drawable.ic_timer),
@@ -120,29 +119,23 @@ fun PlannerScreen(navigator: Navigator) {
                                 tint = if (session.completed) LightPalette.text else Sp.colors.textDim,
                             )
                         }
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(session.tag.ifBlank { stringResource(R.string.planner_focus_session) }.displayName(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                            Text(stringResource(R.string.planner_session_time_range, time(session.startedAt, use24), time(session.endedAt, use24)), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
-                        }
-                        Text(formatDuration(session.focusedMillis), style = MaterialTheme.typography.titleMedium, color = Sp.colors.brand)
-                    }
-                }
+                    },
+                    trailing = {
+                        Text(formatDuration(session.focusedMillis), style = MaterialTheme.typography.titleMedium, color = Sp.colors.textDim)
+                    },
+                )
             }
         }
 
-        if (missing.isNotEmpty()) {
+        if (schedules.isEmpty()) {
             SectionTitle(stringResource(R.string.planner_suggested))
-            Column(Modifier.padding(horizontal = ScreenPadding), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column {
                 missing.forEach { part ->
-                    ChunkyCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            DayPartIcon(part, size = 48.dp)
-                            Spacer(Modifier.width(14.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(stringResource(part.scheduleNameRes), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                                Text(stringResource(R.string.planner_schedule_time_range, minuteText(part.start, use24), minuteText(part.end, use24)), style = MaterialTheme.typography.bodyMedium, color = Sp.colors.textDim)
-                            }
+                    ListRow(
+                        stringResource(part.scheduleNameRes),
+                        stringResource(R.string.planner_schedule_time_range, minuteText(part.start, use24), minuteText(part.end, use24)),
+                        leading = { DayPartIcon(part, size = 48.dp) },
+                        trailing = {
                             ChunkyButton(
                                 stringResource(R.string.planner_add),
                                 {
@@ -155,11 +148,13 @@ fun PlannerScreen(navigator: Navigator) {
                                 kind = ButtonKind.SECONDARY,
                                 height = 40.dp,
                             )
-                        }
-                    }
+                        },
+                    )
                 }
             }
         }
+        // The suggestion rows are shorter without cards, so this button would sit half under the tab bar.
+        Spacer(Modifier.height(32.dp))
         ChunkyButton(
             stringResource(R.string.planner_add_schedule),
             { navigator.push(Route.EditSchedule(null)) },
@@ -187,10 +182,15 @@ private fun WeekStrip(selected: LocalDate, goalMet: Map<LocalDate, Boolean>, onS
                     .padding(vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+                val weekdayStyle = if (fontScale >= 1.3f) TextStyle.NARROW else TextStyle.SHORT
                 Text(
-                    date.dayOfWeek.getDisplayName(TextStyle.SHORT, androidx.compose.ui.platform.LocalLocale.current.platformLocale),
+                    date.dayOfWeek.getDisplayName(weekdayStyle, androidx.compose.ui.platform.LocalLocale.current.platformLocale),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (on) Sp.colors.onFill else Sp.colors.textDim,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
                 )
                 Text(
                     stringResource(R.string.planner_day_number, date.dayOfMonth),
@@ -207,26 +207,22 @@ private fun WeekStrip(selected: LocalDate, goalMet: Map<LocalDate, Boolean>, onS
 }
 
 @Composable
-private fun SummaryTile(label: String, value: String, color: Color, modifier: Modifier) {
-    ChunkyCard(modifier, fill = color.copy(alpha = 0.08f)) {
-        Column {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = color)
-            Text(value, style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
-        }
+private fun SummaryColumn(label: String, value: String, modifier: Modifier) {
+    Column(modifier) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Sp.colors.textDim)
+        Text(value, style = MaterialTheme.typography.headlineSmall, color = Sp.colors.text)
     }
 }
 
 @Composable
 fun ScheduleCard(schedule: Schedule, modifier: Modifier = Modifier, onClick: () -> Unit, onToggle: (Boolean) -> Unit) {
-    ChunkyCard(modifier.fillMaxWidth(), onClick = onClick, contentPadding = 12.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ScheduleIcon(schedule.icon, schedule.startMinute, size = 48.dp)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(schedule.name.displayName(), style = MaterialTheme.typography.titleMedium, color = Sp.colors.text)
-                Text(scheduleSummary(schedule, rememberUse24Hour()), style = MaterialTheme.typography.bodySmall, color = Sp.colors.textDim, textAlign = TextAlign.Start)
-            }
-            MintSwitch(schedule.enabled, onToggle)
-        }
+    Box(modifier) {
+        ListRow(
+            schedule.name.displayName(),
+            scheduleSummary(schedule, rememberUse24Hour()),
+            onClick = onClick,
+            leading = { ScheduleIcon(schedule.icon, schedule.startMinute, size = 48.dp) },
+            trailing = { MintSwitch(schedule.enabled, onToggle) },
+        )
     }
 }
