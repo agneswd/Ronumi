@@ -1,5 +1,7 @@
 package dev.agneswd.ronumi.ui
 
+import dev.agneswd.ronumi.game.PlusContent
+
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import dev.agneswd.ronumi.ui.design.Sound
@@ -132,7 +134,7 @@ fun FocusSetup(navigator: Navigator, onClose: () -> Unit) {
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(start = ScreenPadding, end = ScreenPadding, top = 12.dp, bottom = 0.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(FocusTheme.entries) { theme ->
+                items(FocusTheme.entries.filter { !it.plus || PlusContent.VISIBLE }) { theme ->
                     val on = theme.name == s.focusTheme
                     // The picture and its label are one tap target.
                     Column(

@@ -1063,4 +1063,19 @@
     <string name="legal_libraries_terms">Apache License, Version 2.0.</string>
     <string name="legal_billing_title" translatable="false">Google Play Billing Library</string>
     <string name="legal_billing_terms">Android Software Development Kit License. Ronumi uses it under the GPL section 7 permission in the license notice.</string>
+    <!-- Plus collection: wardrobe items and focus scenes -->
+    <string name="wardrobe_item_plus_color_aurora">Aurora</string>
+    <string name="wardrobe_item_plus_color_ember">Ember</string>
+    <string name="wardrobe_item_plus_color_midnight">Midnight</string>
+    <string name="wardrobe_item_plus_outfit_hoodie">Comfy hoodie</string>
+    <string name="wardrobe_item_plus_outfit_puffer">Puffer jacket</string>
+    <string name="wardrobe_item_plus_outfit_astronaut">Astronaut suit</string>
+    <string name="wardrobe_item_plus_hat_mushroom">Mushroom cap</string>
+    <string name="wardrobe_item_plus_hat_fox">Fox ears</string>
+    <string name="wardrobe_item_plus_hat_leaves">Leaf crown</string>
+    <string name="wardrobe_item_plus_accessory_lantern">Tiny lantern</string>
+    <string name="wardrobe_item_plus_accessory_cocoa">Cocoa mug</string>
+    <string name="wardrobe_item_plus_accessory_sunglasses">Heart sunglasses</string>
+    <string name="focus_scene_northern_lights">Northern lights</string>
+    <string name="focus_scene_campfire">Campfire</string>
 </resources>

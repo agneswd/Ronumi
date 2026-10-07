@@ -36,6 +36,16 @@ fun Gallery(page: String) {
             StrictScene()
             StreakScene()
         }
+        // The Plus collection on Ronumi in four moods. Debug builds show it before the Plus gates do.
+        "plus" -> dev.agneswd.ronumi.game.RonumiStyles.items.filter { it.plus }.forEach { item ->
+            Text(item.id, style = MaterialTheme.typography.labelSmall, color = Sp.colors.textDim)
+            androidx.compose.foundation.layout.Row {
+                listOf(Mood.IDLE, Mood.HAPPY, Mood.CALM, Mood.CELEBRATE).forEach { mood ->
+                    Ronumi(mood, size = 76.dp, style = setOf(item.id), animated = false)
+                }
+                Ronumi(Mood.IDLE, size = 36.dp, style = setOf(item.id), animated = false)
+            }
+        }
         "scenes" -> FlowRow {
             FocusTheme.entries.forEach { t ->
                 FocusBackdrop(t, Modifier.padding(4.dp).size(170.dp, 300.dp))

@@ -29,17 +29,20 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import kotlin.math.PI
 import kotlin.math.sin
 
-/** Animated backgrounds for the focus screen. All are drawn on the device; none are photos. */
-enum class FocusTheme(@param:StringRes val labelRes: Int) {
+/** Animated backgrounds for the focus screen. All are drawn on the device; none are photos. [plus] scenes need Ronumi Plus. */
+enum class FocusTheme(@param:StringRes val labelRes: Int, val plus: Boolean = false) {
     LAKE(R.string.focus_scene_lake),
     DAWN(R.string.focus_scene_dawn),
     FOREST(R.string.focus_scene_forest),
     SPACE(R.string.focus_scene_space),
     RAIN(R.string.focus_scene_rain),
+    NORTHERN_LIGHTS(R.string.focus_scene_northern_lights, plus = true),
+    CAMPFIRE(R.string.focus_scene_campfire, plus = true),
 }
 
 /**
@@ -66,6 +69,14 @@ fun FocusBackdrop(theme: FocusTheme, modifier: Modifier, center: Offset = Offset
         FocusTheme.RAIN -> {
             primary = scenePhase(motion, 1_200, "fast")
             secondary = scenePhase(motion, 5_000, "mid")
+        }
+        FocusTheme.NORTHERN_LIGHTS -> {
+            primary = scenePhase(motion, 16_000, "sway")
+            secondary = scenePhase(motion, 5_000, "mid")
+        }
+        FocusTheme.CAMPFIRE -> {
+            primary = scenePhase(motion, 3_200, "sparks")
+            secondary = scenePhase(motion, 1_100, "flicker")
         }
     }
     // The fraction, not DrawScope.center. A draw lambda would hide this parameter.
@@ -145,6 +156,8 @@ private fun sceneCache(theme: FocusTheme, size: Size, center: Offset): SceneDraw
         FocusTheme.FOREST -> forestCache(width, height)
         FocusTheme.SPACE -> spaceCache(width, height)
         FocusTheme.RAIN -> rainCache(width, height)
+        FocusTheme.NORTHERN_LIGHTS -> northernLightsCache(width, height)
+        FocusTheme.CAMPFIRE -> campfireCache(width, height)
     }
 }
 
@@ -433,5 +446,118 @@ private fun rainCache(width: Float, height: Float): SceneDraw {
             )
         }
         for (reed in reeds) scope.drawPath(reed, reedColor, style = reedStroke)
+    }
+}
+
+/** A wavy ribbon across the sky. [base] and [thickness] are fractions of the height. */
+private fun auroraBand(width: Float, height: Float, base: Float, thickness: Float, waves: Int, salt: Int) = Path().apply {
+    val steps = 12
+    fun top(i: Int) = height * (base + 0.035f * sin((i.toFloat() / steps * waves + hash(salt)) * 2 * PI).toFloat())
+    fun bottom(i: Int) = top(i) + height * thickness * (0.55f + 0.45f * hash(i, salt))
+    val x = { i: Int -> -width * 0.15f + width * 1.3f * i / steps }
+    moveTo(x(0), top(0))
+    for (i in 1..steps) quadraticTo((x(i - 1) + x(i)) / 2, (top(i - 1) + top(i)) / 2 - height * 0.01f, x(i), top(i))
+    lineTo(x(steps), bottom(steps))
+    for (i in steps - 1 downTo 0) quadraticTo((x(i + 1) + x(i)) / 2, (bottom(i + 1) + bottom(i)) / 2 + height * 0.01f, x(i), bottom(i))
+    close()
+}
+
+/** Small pine silhouettes along a ground line at [level], at fixed positions. */
+private fun pines(width: Float, height: Float, level: Float, xs: List<Float>, scale: Float) = Path().apply {
+    xs.forEachIndexed { i, fx ->
+        val x = fx * width
+        val h = height * scale * (0.75f + hash(i, 51) * 0.5f)
+        val w = h * 0.42f
+        val y = height * level
+        moveTo(x, y - h); lineTo(x - w * 0.55f, y - h * 0.45f); lineTo(x + w * 0.55f, y - h * 0.45f); close()
+        moveTo(x, y - h * 0.7f); lineTo(x - w, y); lineTo(x + w, y); close()
+    }
+}
+
+private fun northernLightsCache(width: Float, height: Float): SceneDraw {
+    val sky = Brush.verticalGradient(listOf(Color(0xFF040A1C), Color(0xFF0A1C38), Color(0xFF132F4E)))
+    val stars = starLayer(45, width, height, 0f, 0.6f, 0.9f)
+    // Three bands, drawn back to front. Each sways with its own offset of the same slow phase.
+    val bands = listOf(
+        Triple(auroraBand(width, height, 0.14f, 0.12f, 2, 61), Color(0xFF8C6BFF).copy(alpha = 0.22f), 0.0f),
+        Triple(auroraBand(width, height, 0.22f, 0.10f, 3, 62), Color(0xFF3BE3A2).copy(alpha = 0.26f), 0.33f),
+        Triple(auroraBand(width, height, 0.30f, 0.07f, 2, 63), Color(0xFF6FF0C4).copy(alpha = 0.2f), 0.66f),
+    )
+    val farHill = hillPath(width, height, 0.80f, 3)
+    val nearHill = hillPath(width, height, 0.88f, 4)
+    val snow = Color(0xFFB7C7DD)
+    val trees = pines(width, height, 0.9f, listOf(0.06f, 0.12f, 0.19f, 0.78f, 0.85f, 0.93f), 0.07f)
+    val ridge = height * 0.012f
+    return SceneDraw { scope, sway, mid ->
+        scope.drawRect(sky)
+        stars.draw(scope, mid)
+        for (i in bands.indices) {
+            val (path, color, offset) = bands[i]
+            val dx = sin((sway + offset) * 2 * PI).toFloat() * width * 0.04f
+            scope.translate(dx, 0f) { drawPath(path, color) }
+        }
+        // A light copy above each hill reads as snow along the ridge.
+        scope.drawPath(farHill, snow.copy(alpha = 0.35f))
+        scope.translate(0f, ridge) { drawPath(farHill, Color(0xFF1B2B44)) }
+        scope.drawPath(nearHill, snow.copy(alpha = 0.55f))
+        scope.translate(0f, ridge) { drawPath(nearHill, Color(0xFF132036)) }
+        scope.drawPath(trees, Color(0xFF0A1322))
+    }
+}
+
+private class Sparks(val x: FloatArray, val phase: FloatArray, val drift: FloatArray)
+
+private fun campfireCache(width: Float, height: Float): SceneDraw {
+    val sky = Brush.verticalGradient(listOf(Color(0xFF0D1430), Color(0xFF1B2852), Color(0xFF2B3C6C)))
+    val stars = starLayer(28, width, height, 0f, 0.45f, 0.7f)
+    val ground = hillPath(width, height, 0.84f, 3)
+    val fire = Offset(width * 0.27f, height * 0.88f)
+    val glow = Brush.radialGradient(listOf(Color(0x4DFFB060), Color.Transparent), fire, width * 0.42f)
+    val groundLight = Color(0xFFFFA24D).copy(alpha = 0.16f)
+    val unit = width * 0.075f
+    // The flame is drawn once at rest. The flicker only scales and tilts it around its base.
+    val outer = Path().apply {
+        moveTo(fire.x, fire.y - unit * 2.3f)
+        cubicTo(fire.x + unit * 1.1f, fire.y - unit * 1.2f, fire.x + unit * 1.0f, fire.y - unit * 0.1f, fire.x, fire.y)
+        cubicTo(fire.x - unit * 1.0f, fire.y - unit * 0.1f, fire.x - unit * 1.1f, fire.y - unit * 1.2f, fire.x, fire.y - unit * 2.3f)
+        close()
+    }
+    val inner = Path().apply {
+        moveTo(fire.x, fire.y - unit * 1.3f)
+        cubicTo(fire.x + unit * 0.6f, fire.y - unit * 0.7f, fire.x + unit * 0.5f, fire.y, fire.x, fire.y)
+        cubicTo(fire.x - unit * 0.5f, fire.y, fire.x - unit * 0.6f, fire.y - unit * 0.7f, fire.x, fire.y - unit * 1.3f)
+        close()
+    }
+    val logStroke = unit * 0.38f
+    val trees = pines(width, height, 0.86f, listOf(0.04f, 0.1f, 0.88f, 0.95f), 0.15f)
+    val sparks = Sparks(FloatArray(10), FloatArray(10), FloatArray(10)).also {
+        for (i in 0 until 10) {
+            it.x[i] = fire.x + (hash(i, 71) - 0.5f) * unit * 1.2f
+            it.phase[i] = hash(i, 72)
+            it.drift[i] = (hash(i, 73) - 0.5f) * unit * 1.6f
+        }
+    }
+    val spark = Color(0xFFFFC46B)
+    return SceneDraw { scope, rise, flicker ->
+        scope.drawRect(sky)
+        stars.draw(scope, flicker * 0.2f)
+        scope.drawPath(ground, Color(0xFF141B34))
+        scope.drawCircle(glow, width * 0.42f, fire)
+        scope.drawOval(groundLight, Offset(fire.x - width * 0.22f, fire.y - height * 0.012f), Size(width * 0.44f, height * 0.05f))
+        scope.drawLine(Color(0xFF5A3A2A), Offset(fire.x - unit * 1.1f, fire.y + unit * 0.25f), Offset(fire.x + unit * 1.1f, fire.y - unit * 0.1f), logStroke, StrokeCap.Round)
+        scope.drawLine(Color(0xFF4B2F23), Offset(fire.x - unit * 1.1f, fire.y - unit * 0.1f), Offset(fire.x + unit * 1.1f, fire.y + unit * 0.25f), logStroke, StrokeCap.Round)
+        val wave = sin(flicker * 2 * PI).toFloat()
+        scope.rotate(wave * 4f, fire) {
+            scale(1f + wave * 0.04f, 1f + sin((flicker + 0.3f) * 2 * PI).toFloat() * 0.08f, fire) {
+                drawPath(outer, Color(0xFFFF8A3D))
+                drawPath(inner, Color(0xFFFFD36B))
+            }
+        }
+        for (i in sparks.x.indices) {
+            val p = (rise + sparks.phase[i]) % 1f
+            val at = Offset(sparks.x[i] + sparks.drift[i] * p, fire.y - unit * 1.6f - p * height * 0.22f)
+            scope.drawCircle(spark.copy(alpha = (1f - p) * 0.9f), unit * 0.09f, at)
+        }
+        scope.drawPath(trees, Color(0xFF0A1024))
     }
 }
