@@ -93,7 +93,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Focus timer that blocks chosen apps until the session ends" />
+                android:value="User-started focus timer and Pomodoro phase tracking with an ongoing countdown; stops when the session ends" />
         </service>
 
         <receiver android:name=".schedule.PlanReceiver" android:exported="false">

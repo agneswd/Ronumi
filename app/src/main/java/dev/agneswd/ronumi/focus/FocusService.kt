@@ -99,7 +99,8 @@ class FocusService : LifecycleService() {
             .setUsesChronometer(focus.running)
             .setChronometerCountDown(!stopwatch)
             // Android 16 shows a promoted ongoing notification as a chip with the timer in the status bar.
-            .setRequestPromotedOngoing(live)
+            // Only a running session asks for it. A paused timer is not an ongoing, time-critical activity.
+            .setRequestPromotedOngoing(live && focus.running)
         // A stopwatch has no early end. Finishing it counts as a completed session, as on the focus screen.
         if (stopwatch) {
             builder.addAction(0, getString(R.string.focus_notification_finish), PendingIntent.getService(this, 2, intent(this).setAction(ACTION_FINISH), PendingIntent.FLAG_IMMUTABLE))
