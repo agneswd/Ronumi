@@ -285,12 +285,12 @@ fun DrawScope.drawRonumi(
                 // A closed hat replaces the top of the head. The cap cannot leak around its edges.
                 clipRect(top = if (closedHat) 23f * u else 0f) { drawBody(u, palette) }
                 drawOutfit(u, style)
-                if ("accessory_glasses" !in style) drawAccessory(u, style)
+                if (style.none { it in FaceAccessories }) drawAccessory(u, style)
                 if (raised) drawArms(mood, u, wave, palette, drift)
                 if (!closedHat) drawSprout(mood, u, b, wave)
                 drawHat(u, style)
                 drawFace(mood, u, blink, gaze)
-                if ("accessory_glasses" in style) drawAccessory(u, style)
+                if (style.any { it in FaceAccessories }) drawAccessory(u, style)
             }
         }
     }
@@ -584,11 +584,15 @@ private fun paletteFor(style: Set<String>): RonumiPalette = when {
     "color_slate" in style -> RonumiPalette(Color(0xFFA6BDCD), Color(0xFF6E899F), Color(0xFF536C85), Color(0xFFD8E5EC))
     "color_lilac" in style -> RonumiPalette(Color(0xFFD9BBF5), Color(0xFFAA83D5), Color(0xFF8863B4), Color(0xFFEEDFFF))
     "color_moon" in style -> RonumiPalette(Color(0xFFF1EBFF), Color(0xFFB9B4DA), Color(0xFF928CB9), Color(0xFFFFF8E8))
+    "plus_color_aurora" in style -> RonumiPalette(Color(0xFFA2E9DE), Color(0xFF52B5B6), Color(0xFF3A9294), Color(0xFFDAF7F2))
+    "plus_color_ember" in style -> RonumiPalette(Color(0xFFFFB892), Color(0xFFF07E5E), Color(0xFFCC6447), Color(0xFFFFE3CF))
+    // Light enough at the top for the ink face, with a light belly under the mouth.
+    "plus_color_midnight" in style -> RonumiPalette(Color(0xFF9EA2EC), Color(0xFF5D60BC), Color(0xFF474A9C), Color(0xFFD3D5F7))
     else -> RonumiPalette(BodyTop, BodyBottom, BodyShade, Belly)
 }
 
 private fun DrawScope.drawOutfit(u: Float, style: Set<String>) {
-    val id = style.firstOrNull { it.startsWith("outfit_") } ?: return
+    val id = style.itemIn("outfit") ?: return
     val fabric = when (id) {
         "outfit_tee" -> Color(0xFFF8C779)
         "outfit_stripes" -> Color(0xFFF8F3DF)
@@ -601,6 +605,9 @@ private fun DrawScope.drawOutfit(u: Float, style: Set<String>) {
         "outfit_suit" -> Color(0xFF415269)
         "outfit_cape" -> Color(0xFF9F6CB5)
         "outfit_star_guardian" -> Color(0xFF283753)
+        "plus_outfit_hoodie" -> Color(0xFF8DA4C6)
+        "plus_outfit_puffer" -> Color(0xFF4F8E93)
+        "plus_outfit_astronaut" -> Color(0xFFEEF0F6)
         else -> return
     }
     clipPath(bodyPath(u)) {
@@ -721,14 +728,48 @@ private fun DrawScope.drawOutfit(u: Float, style: Set<String>) {
                 drawCircle(Color(0xFF704587), 4f * u, Offset(50f * u, 82f * u))
                 drawCircle(Spark, 3f * u, Offset(50f * u, 82f * u))
             }
+            "plus_outfit_hoodie" -> {
+                val shade = fabric.copy(red = fabric.red * 0.84f, green = fabric.green * 0.84f, blue = fabric.blue * 0.84f)
+                // The hood rests around the neck, and the pocket sits across the front.
+                drawPath(wrappedBand(u, 63f, 14f, 5f), shade)
+                drawRoundRect(shade, Offset(32f * u, 87f * u), Size(36f * u, 11f * u), CornerRadius(5f * u))
+                drawRoundRect(Color.White.copy(alpha = 0.18f), Offset(34f * u, 88f * u), Size(32f * u, 2f * u), CornerRadius(1f * u))
+                listOf(45f, 55f).forEach { x ->
+                    drawLine(Color(0xFFF7EEDC), Offset(x * u, 77f * u), Offset(x * u, 85f * u), 1.5f * u, StrokeCap.Round)
+                    drawCircle(Color(0xFFF7EEDC), 1.6f * u, Offset(x * u, 85.5f * u))
+                }
+            }
+            "plus_outfit_puffer" -> {
+                val seam = fabric.copy(red = fabric.red * 0.72f, green = fabric.green * 0.72f, blue = fabric.blue * 0.72f)
+                // Horizontal quilted bands. A light line above each seam gives the padding volume.
+                listOf(79f, 86f, 93f).forEach { y ->
+                    drawLine(Color.White.copy(alpha = 0.2f), Offset(7f * u, (y - 2.5f) * u), Offset(93f * u, (y - 2.5f) * u), 1.6f * u)
+                    drawLine(seam, Offset(7f * u, y * u), Offset(93f * u, y * u), 1.4f * u)
+                }
+                drawLine(Color(0xFFDDE7E4), Offset(50f * u, 77f * u), Offset(50f * u, 100f * u), 1.3f * u)
+                drawRoundRect(Color(0xFFDDE7E4), Offset(48.6f * u, 78f * u), Size(2.8f * u, 4f * u), CornerRadius(1f * u))
+            }
+            "plus_outfit_astronaut" -> {
+                val seam = Color(0xFFB9BFD1)
+                drawPath(wrappedBand(u, 64f, 15f, 4f), Color(0xFFC9CEDB))
+                drawLine(seam, Offset(50f * u, 93f * u), Offset(50f * u, 102f * u), 1.2f * u)
+                drawLine(seam, Offset(9f * u, 90f * u), Offset(91f * u, 90f * u), 1f * u)
+                drawRoundRect(Color(0xFF55627F), Offset(40f * u, 79f * u), Size(20f * u, 11f * u), CornerRadius(2.5f * u))
+                listOf(Color(0xFFEE7F72), Spark, Color(0xFF7FD3C1)).forEachIndexed { i, color ->
+                    drawCircle(color, 1.7f * u, Offset((44.5f + i * 5.5f) * u, 84.5f * u))
+                }
+            }
             else -> Unit
         }
     }
 }
 
 private val ClosedHats = setOf(
-    "hat_beanie", "hat_bucket", "hat_sun", "hat_beret", "hat_sleep", "hat_captain", "hat_wizard",
+    "hat_beanie", "hat_bucket", "hat_sun", "hat_beret", "hat_sleep", "hat_captain", "hat_wizard", "plus_hat_mushroom",
 )
+
+/** Accessories worn on the face draw after the eyes, so the lenses sit in front of them. */
+private val FaceAccessories = setOf("accessory_glasses", "plus_accessory_sunglasses")
 
 private fun DrawScope.drawCape(u: Float, guardian: Boolean = false) {
     val cape = Path().apply {
@@ -769,7 +810,7 @@ private fun wrappedBand(u: Float, edgeY: Float, dip: Float, thickness: Float) = 
 }
 
 private fun DrawScope.drawHat(u: Float, style: Set<String>) {
-    val id = style.firstOrNull { it.startsWith("hat_") } ?: return
+    val id = style.itemIn("hat") ?: return
     fun brim(color: Color, x: Float = 19f, width: Float = 62f) {
         drawRoundRect(color, Offset(x * u, 22f * u), Size(width * u, 6f * u), CornerRadius(3f * u))
     }
@@ -840,11 +881,44 @@ private fun DrawScope.drawHat(u: Float, style: Set<String>) {
             drawCircle(Color(0xFFD582A6), 3f * u, Offset(50f * u, 19f * u))
             listOf(23f to 9f, 50f to 4f, 77f to 9f).forEach { (x, y) -> drawCircle(Color(0xFFFFE4A4), 2f * u, Offset(x * u, y * u)) }
         }
+        "plus_hat_mushroom" -> {
+            val cap = Path().apply {
+                moveTo(15f * u, 26f * u)
+                cubicTo(15f * u, -5f * u, 85f * u, -5f * u, 85f * u, 26f * u)
+                close()
+            }
+            drawPath(cap, Color(0xFFD9544D))
+            brim(Color(0xFFF3E3C9), 22f, 56f)
+            drawOval(Color.White.copy(alpha = 0.22f), Offset(26f * u, 6f * u), Size(14f * u, 6f * u))
+            listOf(Triple(33f, 15f, 4.2f), Triple(51f, 6f, 3.4f), Triple(67f, 14f, 4.6f), Triple(46f, 19f, 2.4f), Triple(77f, 22f, 2.2f))
+                .forEach { (x, y, r) -> drawCircle(Color(0xFFFFF7EC), r * u, Offset(x * u, y * u)) }
+        }
+        "plus_hat_fox" -> {
+            drawArc(Color(0xFF7B4E3A), 205f, 130f, false, Offset(20f * u, 13f * u), Size(60f * u, 34f * u), style = Stroke(3f * u, cap = StrokeCap.Round))
+            listOf(false, true).forEach { right ->
+                fun x(value: Float) = (if (right) 100f - value else value) * u
+                val ear = Path().apply { moveTo(x(23f), 25f * u); lineTo(x(20f), 2f * u); lineTo(x(41f), 15f * u); close() }
+                val inner = Path().apply { moveTo(x(26f), 21f * u); lineTo(x(24f), 8f * u); lineTo(x(35f), 15f * u); close() }
+                drawPath(ear, Color(0xFFEE8B3B))
+                drawPath(inner, Color(0xFFFBE2C3))
+            }
+        }
+        "plus_hat_leaves" -> {
+            drawArc(Color(0xFF5E8A57), 200f, 140f, false, Offset(19f * u, 14f * u), Size(62f * u, 30f * u), style = Stroke(1.8f * u))
+            repeat(7) { i ->
+                val angle = 200f + i * (140f / 6f)
+                val rad = Math.toRadians(angle.toDouble())
+                val at = Offset((50f + 31f * kotlin.math.cos(rad).toFloat()) * u, (29f + 15f * kotlin.math.sin(rad).toFloat()) * u)
+                rotate(angle + 90f, at) {
+                    drawOval(if (i % 2 == 0) Color(0xFF5FAE6E) else Color(0xFF8BCB8B), Offset(at.x - 5.5f * u, at.y - 2.8f * u), Size(11f * u, 5.6f * u))
+                }
+            }
+        }
     }
 }
 
 private fun DrawScope.drawAccessory(u: Float, style: Set<String>) {
-    when (style.firstOrNull { it.startsWith("accessory_") }) {
+    when (style.itemIn("accessory")) {
         "accessory_scarf" -> {
             clipPath(bodyPath(u)) {
                 drawRoundRect(Color(0xFFB96E64), Offset(68f * u, 77f * u), Size(10f * u, 21f * u), CornerRadius(3f * u))
@@ -915,8 +989,57 @@ private fun DrawScope.drawAccessory(u: Float, style: Set<String>) {
             drawCircle(Ink, 0.8f * u, Offset(68f * u, 82f * u))
             drawCircle(Ink, 0.8f * u, Offset(72f * u, 82f * u))
         }
+        "plus_accessory_lantern" -> {
+            val frame = Color(0xFF4A5468)
+            // The glow is a soft flat circle, not a blur.
+            drawCircle(Color(0xFFFFD27A).copy(alpha = 0.28f), 15f * u, Offset(87f * u, 86f * u))
+            drawArc(frame, 180f, 180f, false, Offset(81f * u, 70f * u), Size(12f * u, 10f * u), style = Stroke(1.6f * u))
+            drawRoundRect(frame, Offset(79f * u, 75f * u), Size(16f * u, 3f * u), CornerRadius(1.5f * u))
+            drawRoundRect(frame, Offset(80f * u, 77f * u), Size(14f * u, 17f * u), CornerRadius(2.5f * u))
+            drawRoundRect(Color(0xFFFFD27A), Offset(82.5f * u, 79.5f * u), Size(9f * u, 12f * u), CornerRadius(1.5f * u))
+            drawOval(Color(0xFFFFF4C9), Offset(85.5f * u, 82f * u), Size(3f * u, 5.5f * u))
+            drawRoundRect(frame, Offset(79f * u, 93f * u), Size(16f * u, 3f * u), CornerRadius(1.5f * u))
+        }
+        "plus_accessory_cocoa" -> {
+            val mug = Color(0xFFF4EBDD)
+            drawCircle(mug, 4f * u, Offset(60f * u, 87f * u), style = Stroke(2.4f * u))
+            drawRoundRect(mug, Offset(41f * u, 79f * u), Size(18f * u, 18f * u), CornerRadius(3.5f * u))
+            drawRect(Color(0xFFD97E62), Offset(41f * u, 87f * u), Size(18f * u, 4f * u))
+            drawOval(Color(0xFF6E4330), Offset(42f * u, 77.5f * u), Size(16f * u, 4f * u))
+            listOf(46f, 54f).forEach { x ->
+                val steam = Path().apply {
+                    moveTo(x * u, 76f * u)
+                    quadraticTo((x - 3f) * u, 73f * u, x * u, 70.5f * u)
+                    quadraticTo((x + 3f) * u, 68f * u, x * u, 66f * u)
+                }
+                drawPath(steam, Color.White.copy(alpha = 0.8f), style = Stroke(1.4f * u, cap = StrokeCap.Round))
+            }
+        }
+        "plus_accessory_sunglasses" -> {
+            val rim = Color(0xFFB54A73)
+            listOf(36f, 64f).forEach { x ->
+                val lens = heartPath(Offset(x * u, 50f * u), 11f * u)
+                drawPath(lens, Color(0xFFF06C9B).copy(alpha = 0.92f))
+                drawPath(lens, rim, style = Stroke(1.4f * u))
+                drawOval(Color.White.copy(alpha = 0.45f), Offset((x - 6f) * u, 45f * u), Size(4f * u, 2.4f * u))
+            }
+            drawLine(rim, Offset(46f * u, 47f * u), Offset(54f * u, 47f * u), 1.6f * u)
+            drawLine(rim, Offset(19f * u, 46f * u), Offset(25f * u, 48f * u), 1.6f * u)
+            drawLine(rim, Offset(75f * u, 48f * u), Offset(81f * u, 46f * u), 1.6f * u)
+        }
         else -> Unit
     }
+}
+
+/** The worn item for one slot. Plus items use the same slot names with a `plus_` prefix. */
+private fun Set<String>.itemIn(slot: String) = firstOrNull { it.startsWith("${slot}_") || it.startsWith("plus_${slot}_") }
+
+/** A heart of half-width [s] around [c], used for the heart sunglasses. */
+private fun heartPath(c: Offset, s: Float) = Path().apply {
+    moveTo(c.x, c.y + s * 0.62f)
+    cubicTo(c.x - s * 1.15f, c.y - s * 0.05f, c.x - s * 0.62f, c.y - s * 0.95f, c.x, c.y - s * 0.32f)
+    cubicTo(c.x + s * 0.62f, c.y - s * 0.95f, c.x + s * 1.15f, c.y - s * 0.05f, c.x, c.y + s * 0.62f)
+    close()
 }
 
 private fun DrawScope.drawBow(center: Offset, radius: Float, color: Color) {

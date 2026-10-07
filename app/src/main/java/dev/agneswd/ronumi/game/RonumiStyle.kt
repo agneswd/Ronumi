@@ -6,7 +6,20 @@ import androidx.annotation.StringRes
 /** One item can be worn in each slot. An empty slot keeps Ronumi's original look. */
 enum class RonumiSlot { COLOR, OUTFIT, HAT, ACCESSORY }
 
-data class RonumiItem(val id: String, @param:StringRes val nameRes: Int, val slot: RonumiSlot, val level: Int, val minimumTaps: Int = 0)
+/** [plus] items belong to the Ronumi Plus collection. They need no level, only Plus. */
+data class RonumiItem(
+    val id: String,
+    @param:StringRes val nameRes: Int,
+    val slot: RonumiSlot,
+    val level: Int,
+    val minimumTaps: Int = 0,
+    val plus: Boolean = false,
+)
+
+/** Plus content stays hidden until the Plus gates exist. This is the only switch. */
+object PlusContent {
+    const val VISIBLE = false
+}
 
 /** Stable IDs are saved in settings and backups. Level requirements never consume XP. */
 object RonumiStyles {
@@ -49,13 +62,26 @@ object RonumiStyles {
         RonumiItem("accessory_neckerchief", R.string.wardrobe_item_accessory_neckerchief, RonumiSlot.ACCESSORY, 14),
         RonumiItem("accessory_medal", R.string.wardrobe_item_accessory_medal, RonumiSlot.ACCESSORY, 17),
         RonumiItem("accessory_star", R.string.wardrobe_item_accessory_star, RonumiSlot.ACCESSORY, 19),
+        // The Plus collection, a cozy night set. These IDs are stable.
+        RonumiItem("plus_color_aurora", R.string.wardrobe_item_plus_color_aurora, RonumiSlot.COLOR, 1, plus = true),
+        RonumiItem("plus_color_ember", R.string.wardrobe_item_plus_color_ember, RonumiSlot.COLOR, 1, plus = true),
+        RonumiItem("plus_color_midnight", R.string.wardrobe_item_plus_color_midnight, RonumiSlot.COLOR, 1, plus = true),
+        RonumiItem("plus_outfit_hoodie", R.string.wardrobe_item_plus_outfit_hoodie, RonumiSlot.OUTFIT, 1, plus = true),
+        RonumiItem("plus_outfit_puffer", R.string.wardrobe_item_plus_outfit_puffer, RonumiSlot.OUTFIT, 1, plus = true),
+        RonumiItem("plus_outfit_astronaut", R.string.wardrobe_item_plus_outfit_astronaut, RonumiSlot.OUTFIT, 1, plus = true),
+        RonumiItem("plus_hat_mushroom", R.string.wardrobe_item_plus_hat_mushroom, RonumiSlot.HAT, 1, plus = true),
+        RonumiItem("plus_hat_fox", R.string.wardrobe_item_plus_hat_fox, RonumiSlot.HAT, 1, plus = true),
+        RonumiItem("plus_hat_leaves", R.string.wardrobe_item_plus_hat_leaves, RonumiSlot.HAT, 1, plus = true),
+        RonumiItem("plus_accessory_lantern", R.string.wardrobe_item_plus_accessory_lantern, RonumiSlot.ACCESSORY, 1, plus = true),
+        RonumiItem("plus_accessory_cocoa", R.string.wardrobe_item_plus_accessory_cocoa, RonumiSlot.ACCESSORY, 1, plus = true),
+        RonumiItem("plus_accessory_sunglasses", R.string.wardrobe_item_plus_accessory_sunglasses, RonumiSlot.ACCESSORY, 1, plus = true),
     )
 
     fun isUnlocked(item: RonumiItem, level: Int, petTapCount: Int): Boolean =
-        item.level <= level && petTapCount >= item.minimumTaps
+        (!item.plus || PlusContent.VISIBLE) && item.level <= level && petTapCount >= item.minimumTaps
 
     fun visibleItems(petTapCount: Int): List<RonumiItem> = items.filter {
-        it.minimumTaps == 0 || petTapCount >= it.minimumTaps
+        (!it.plus || PlusContent.VISIBLE) && (it.minimumTaps == 0 || petTapCount >= it.minimumTaps)
     }
 
     /** Catalog order breaks invalid duplicate slots in a stable way. */
