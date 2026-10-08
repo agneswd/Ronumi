@@ -87,6 +87,9 @@ img { max-width: 100%; height: auto; display: block; }
 /* Phone screenshots */
 .phone { border-radius: 28px; border: 1px solid var(--border); overflow: hidden; background: var(--surface); }
 .hero .phone { max-width: 340px; justify-self: center; }
+/* Grid items default to their content width; let them shrink on narrow phones. */
+.hero > *, .feature > * { min-width: 0; }
+.hero .phone { width: 100%; }
 
 /* Feature rows */
 .feature { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; padding-block: 72px; border-top: 1px solid var(--border); }
